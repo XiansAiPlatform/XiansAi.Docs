@@ -1,0 +1,578 @@
+/* ==========================================================================
+   XIANS.AI ANIMATIONS AND TRANSITIONS
+   Modern animations for professional developer documentation
+   ========================================================================== */
+
+/* ==========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ==========================================================================
+   SCROLL ANIMATIONS
+   ========================================================================== */
+
+.animated {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animated-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.animated-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.animated-delay-3 {
+  animation-delay: 0.3s;
+}
+
+/* ==========================================================================
+   HOVER EFFECTS
+   ========================================================================== */
+
+/* Glow effect on hover */
+.glow-on-hover:hover {
+  box-shadow: 0 0 20px rgba(2, 132, 199, 0.4),
+              0 0 40px rgba(2, 132, 199, 0.2);
+}
+
+/* Lift effect */
+.lift-on-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.lift-on-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Scale effect */
+.scale-on-hover {
+  transition: transform 0.3s ease;
+}
+
+.scale-on-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Underline animation */
+.underline-animate {
+  position: relative;
+}
+
+.underline-animate::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0284c7, #06b6d4);
+  transition: width 0.3s ease;
+}
+
+.underline-animate:hover::after {
+  width: 100%;
+}
+
+/* ==========================================================================
+   CODE BLOCK ANIMATIONS
+   ========================================================================== */
+
+/* Copy button animation */
+.md-clipboard.copied {
+  animation: pulse 0.5s ease;
+}
+
+.md-clipboard.copied::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2em;
+  color: #10b981;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Code language label */
+.code-language-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.9), rgba(6, 182, 212, 0.9));
+  color: white;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0 0.5rem 0 0.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  animation: slideInRight 0.4s ease;
+}
+
+/* Syntax highlighting animation */
+.highlight {
+  animation: fadeIn 0.4s ease;
+}
+
+/* ==========================================================================
+   LOADING STATES
+   ========================================================================== */
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--xians-bg-tertiary) 25%,
+    var(--xians-bg-secondary) 50%,
+    var(--xians-bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 0.5rem;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 3px solid var(--xians-border-light);
+  border-top-color: var(--xians-primary);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+/* Progress bar animation */
+.reading-progress-bar {
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.5);
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   NAVIGATION ANIMATIONS
+   ========================================================================== */
+
+/* Tab switching animation */
+.md-tabs__link {
+  position: relative;
+  overflow: hidden;
+}
+
+.md-tabs__link::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--xians-primary), transparent);
+  transition: left 0.5s ease;
+}
+
+.md-tabs__link--active::before,
+.md-tabs__link:hover::before {
+  left: 100%;
+}
+
+/* Sidebar navigation animation */
+.md-nav__link {
+  position: relative;
+  overflow: hidden;
+}
+
+.md-nav__link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: var(--xians-primary);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.md-nav__link--active::before {
+  transform: scaleY(1);
+}
+
+/* ==========================================================================
+   SEARCH ANIMATIONS
+   ========================================================================== */
+
+.md-search__form {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-search--active .md-search__form {
+  animation: pulse 0.3s ease;
+}
+
+.md-search__output {
+  animation: fadeIn 0.3s ease;
+}
+
+.md-search-result__item {
+  animation: fadeInUp 0.3s ease backwards;
+}
+
+.md-search-result__item:nth-child(1) { animation-delay: 0.05s; }
+.md-search-result__item:nth-child(2) { animation-delay: 0.1s; }
+.md-search-result__item:nth-child(3) { animation-delay: 0.15s; }
+.md-search-result__item:nth-child(4) { animation-delay: 0.2s; }
+.md-search-result__item:nth-child(5) { animation-delay: 0.25s; }
+
+/* ==========================================================================
+   HEADER ANIMATIONS
+   ========================================================================== */
+
+.md-header {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-header--shadow {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Logo removed - animation disabled */
+.md-header__button.md-logo {
+  display: none !important;
+}
+
+/* ==========================================================================
+   ADMONITION ANIMATIONS
+   ========================================================================== */
+
+.md-typeset .admonition {
+  animation: fadeInUp 0.5s ease backwards;
+  transform-origin: top center;
+}
+
+.md-typeset .admonition:hover {
+  animation: none;
+}
+
+/* Admonition icon pulse */
+.md-typeset .admonition-title::before {
+  display: inline-block;
+  animation: pulse 2s ease infinite;
+}
+
+/* ==========================================================================
+   BUTTON ANIMATIONS
+   ========================================================================== */
+
+.md-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.md-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.md-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ==========================================================================
+   CARD ANIMATIONS
+   ========================================================================== */
+
+.md-content .card {
+  animation: fadeInUp 0.6s ease backwards;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-content .card:nth-child(1) { animation-delay: 0.1s; }
+.md-content .card:nth-child(2) { animation-delay: 0.2s; }
+.md-content .card:nth-child(3) { animation-delay: 0.3s; }
+.md-content .card:nth-child(4) { animation-delay: 0.4s; }
+
+.md-content .card:hover {
+  animation: none;
+}
+
+/* Card icon animation */
+.md-content .card-icon {
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.md-content .card:hover .card-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* ==========================================================================
+   TABLE ANIMATIONS
+   ========================================================================== */
+
+.md-content table {
+  animation: fadeIn 0.5s ease;
+}
+
+.md-content table tr {
+  transition: background-color 0.2s ease;
+}
+
+.md-content table tbody tr {
+  animation: fadeInUp 0.3s ease backwards;
+}
+
+.md-content table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+.md-content table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+.md-content table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+.md-content table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+.md-content table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+/* ==========================================================================
+   TOOLTIP ANIMATIONS
+   ========================================================================== */
+
+[title]:hover::after {
+  animation: fadeIn 0.3s ease;
+}
+
+.md-tooltip {
+  animation: fadeIn 0.2s ease;
+}
+
+/* ==========================================================================
+   HERO SECTION ANIMATIONS
+   ========================================================================== */
+
+.hero {
+  animation: fadeInUp 0.8s ease;
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+}
+
+.hero h1 {
+  animation: fadeInUp 1s ease 0.2s backwards;
+}
+
+.hero p {
+  animation: fadeInUp 1s ease 0.4s backwards;
+}
+
+.hero .md-button {
+  animation: fadeInUp 1s ease 0.6s backwards;
+}
+
+/* ==========================================================================
+   IMAGE ANIMATIONS
+   ========================================================================== */
+
+.md-content img {
+  animation: fadeIn 0.6s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-content img:hover {
+  animation: none;
+}
+
+/* ==========================================================================
+   FOOTER ANIMATIONS
+   ========================================================================== */
+
+.md-footer {
+  animation: fadeIn 0.5s ease;
+}
+
+.md-social__link {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-social__link:hover {
+  animation: bounce 1s ease;
+}
+
+/* ==========================================================================
+   ANNOUNCEMENT BAR ANIMATIONS
+   ========================================================================== */
+
+.md-banner {
+  animation: fadeInUp 0.5s ease;
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+.md-banner__button {
+  transition: all 0.3s ease;
+}
+
+/* ==========================================================================
+   TABBED CONTENT ANIMATIONS
+   ========================================================================== */
+
+.md-typeset .tabbed-content {
+  animation: fadeIn 0.3s ease;
+}
+
+.md-typeset .tabbed-labels > label {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.md-typeset .tabbed-labels > label::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--xians-primary);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-typeset .tabbed-set > input:checked + label::after {
+  width: 100%;
+}
+
+/* ==========================================================================
+   PRINT - DISABLE ANIMATIONS
+   ========================================================================== */
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .reading-progress-bar,
+  .skeleton {
+    animation: none !important;
+  }
+}
+
+/* ==========================================================================
+   PAGE TRANSITION
+   ========================================================================== */
+
+.md-content__inner {
+  animation: fadeIn 0.4s ease;
+}
+
+/* Smooth page transitions for SPA navigation */
+[data-md-component="container"] {
+  animation: fadeIn 0.3s ease;
+}
+

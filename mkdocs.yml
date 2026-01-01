@@ -1,0 +1,286 @@
+# mkdocs.yml
+site_name: Xians.ai Documentation
+site_description: Enterprise-grade Agent Development Kit for building, deploying, and orchestrating AI agents
+site_author: Xians.ai Team
+site_url: https://docs.xians.ai
+
+# Repository information
+repo_name: XiansAiPlatform/XiansAi.Docs
+repo_url: https://github.com/XiansAiPlatform/XiansAi.Docs
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  
+  # Modern feature set - Latest Material for MkDocs features
+  features:
+    # Navigation features
+    - navigation.tabs              # Top-level sections as tabs
+    - navigation.tabs.sticky       # Sticky navigation tabs
+    - navigation.sections          # Render top-level sections as groups
+    - navigation.expand            # Expand subsections by default
+    - navigation.top               # Back to top button
+    - navigation.tracking          # URL updates as you scroll
+    - navigation.indexes           # Section index pages
+    - navigation.instant           # Instant loading (XHR)
+    - navigation.instant.prefetch  # Prefetch pages on hover
+    - navigation.instant.progress  # Show progress indicator
+    - navigation.path              # Breadcrumbs (new in Material 9.5+)
+    - navigation.prune             # Optimize navigation for large sites
+    
+    # Search features
+    - search.suggest               # Search suggestions
+    - search.highlight             # Highlight search terms
+    - search.share                 # Share search results
+    
+    # Content features
+    - content.tabs.link            # Link content tabs
+    - content.code.annotate        # Code annotations
+    - content.code.copy            # Copy code button
+    - content.code.select          # Select code blocks (new feature)
+    - content.action.edit          # Edit page action
+    - content.action.view          # View source action
+    - content.tooltips             # Improved tooltips
+    - content.footnote.tooltips    # Footnote tooltips (new)
+    
+    # Header features
+    - header.autohide              # Auto-hide header on scroll
+    - announce.dismiss             # Dismissible announcements
+    
+    # Table of contents
+    - toc.follow                   # TOC follows scroll
+    - toc.integrate                # Integrate TOC into navigation (optional)
+    
+  # Color palette with modern design
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  
+  # Typography - Modern fonts
+  font:
+    text: Inter
+    code: JetBrains Mono
+  
+  # Icons and logo
+  # logo: assets/logo.png  # Logo removed
+  favicon: assets/logo.png
+  icon:
+    edit: material/pencil
+    view: material/eye
+    repo: fontawesome/brands/github
+    annotation: material/plus-circle
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/flame-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+
+# Custom CSS and JavaScript
+extra_css:
+  - stylesheets/extra.css
+  - stylesheets/animations.css
+
+extra_javascript:
+  - javascripts/external-links.js
+  - javascripts/enhancements.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Navigation structure - Update this based on your documentation
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Introduction: getting-started/introduction.md
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+  - Basic Concepts:
+    - Agents: basic-concepts/agents.md
+    - Workflows: basic-concepts/workflows.md
+    - Messages: basic-concepts/messages.md
+    - Tenants: basic-concepts/tenants.md
+    - Schedules: basic-concepts/schedules.md
+    - Webhooks: basic-concepts/webhooks.md
+    - Document DB: basic-concepts/document-db.md
+    - Knowledge: basic-concepts/knowledge.md
+
+  - API Reference:
+    - Overview: api-reference/overview.md
+  - Contributing:
+    - How to Contribute: contributing/how-to-contribute.md
+
+# Markdown extensions - Comprehensive modern set
+markdown_extensions:
+  # Python Markdown core extensions
+  - abbr                           # Abbreviations
+  - admonition                     # Admonition blocks
+  - attr_list                      # Add HTML attributes to elements
+  - def_list                       # Definition lists
+  - footnotes                      # Footnotes
+  - md_in_html                     # Markdown in HTML
+  - toc:
+      permalink: true
+      permalink_title: Link to this section
+      toc_depth: 2
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - tables                         # Tables support
+  - meta                           # Meta-data support
+  
+  # PyMdown Extensions - Enhanced features
+  - pymdownx.arithmatex:           # Math support
+      generic: true
+  - pymdownx.betterem:             # Better emphasis handling
+      smart_enable: all
+  - pymdownx.caret                 # Superscript and insert
+  - pymdownx.mark                  # Mark/highlight text
+  - pymdownx.tilde                 # Subscript and delete
+  - pymdownx.details               # Collapsible details
+  - pymdownx.emoji:                # Emoji support
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:            # Code highlighting
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      auto_title: true             # Automatic title for code blocks
+      linenums_style: pymdownx-inline  # Line number style
+  - pymdownx.inlinehilite          # Inline code highlighting
+  - pymdownx.keys                  # Keyboard key styling
+  - pymdownx.magiclink:            # Auto-link URLs
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: XiansAiPlatform
+      repo: XiansAi.Docs
+  - pymdownx.smartsymbols          # Smart symbols (arrows, etc.)
+  - pymdownx.snippets:             # Include file snippets
+      check_paths: true
+  - pymdownx.superfences:          # Advanced fences (diagrams, etc.)
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:               # Tabbed content
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:             # Task lists
+      custom_checkbox: true
+      clickable_checkbox: false
+
+# Plugins - Modern configuration
+plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      lang: en
+      
+  - minify:
+      minify_html: true
+      minify_css: true
+      minify_js: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+      
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+      fallback_to_build_date: true
+      enable_git_follow: false
+
+# Configuration
+use_directory_urls: true
+strict: false                      # Set to true for production builds
+dev_addr: '127.0.0.1:8000'
+
+# Customization
+extra:
+  generator: false                 # Hide "Made with Material for MkDocs"
+  
+  # Version information (optional)
+  version:
+    provider: mike
+    default: stable
+  
+  # Social links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/XiansAiPlatform
+      name: GitHub Organization
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/xians
+      name: Discord Community
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/xiansai
+      name: Twitter
+    - icon: fontawesome/solid/globe
+      link: https://xians.ai
+      name: Official Website
+  
+  # Announcement banner - dismissible
+  # announcement: 
+  #   text: "🚀 New: Check out our latest features! <a href='/getting-started/quick-start/'>Get Started →</a>"
+  
+  # Consent/Cookie management (optional)
+  consent:
+    title: Cookie consent
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+    actions:
+      - accept
+      - reject
+      - manage
+  
+  # Analytics (configure when ready)
+  # analytics:
+  #   provider: google
+  #   property: G-XXXXXXXXXX
+  #   feedback:
+  #     title: Was this page helpful?
+  #     ratings:
+  #       - icon: material/emoticon-happy-outline
+  #         name: This page was helpful
+  #         data: 1
+  #         note: Thanks for your feedback!
+  #       - icon: material/emoticon-sad-outline
+  #         name: This page could be improved
+  #         data: 0
+  #         note: >-
+  #           Thanks for your feedback! Help us improve by
+  #           <a href="https://github.com/XiansAiPlatform/XiansAi.Docs/issues/new" target="_blank">reporting an issue</a>.
+
+# Copyright and legal
+copyright: |
+  &copy; 2024 <a href="https://xians.ai" target="_blank" rel="noopener">Xians.ai</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="#__consent">Cookie Settings</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="https://xians.ai/privacy" target="_blank" rel="noopener">Privacy Policy</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="https://xians.ai/terms" target="_blank" rel="noopener">Terms of Service</a>
+
