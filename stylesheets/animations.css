@@ -466,11 +466,7 @@
 
 .md-content img {
   animation: fadeIn 0.6s ease;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.md-content img:hover {
-  animation: none;
+  /* Removed hover transitions */
 }
 
 /* ==========================================================================

@@ -849,12 +849,14 @@
   transform: translate(2px, -2px);
 }
 
-/* Anchor links */
+/* Anchor links - subtle gray */
 .md-content .headerlink {
-  color: var(--xians-text-muted);
+  color: #9ca3af !important; /* Gray color */
   margin-left: var(--xians-space-sm);
   opacity: 0;
   transition: all var(--xians-transition-fast);
+  text-decoration: none !important;
+  border-bottom: none !important;
 }
 
 .md-content h1:hover .headerlink,
@@ -867,7 +869,7 @@
 }
 
 .md-content .headerlink:hover {
-  color: var(--xians-primary);
+  color: #6b7280 !important; /* Darker gray on hover instead of primary color */
   transform: translateX(4px);
 }
 
@@ -946,19 +948,39 @@
   border: 2px solid var(--xians-border-medium);
 }
 
-/* Back to top button */
+/* Back to top button - subtle and non-intrusive */
 .md-top {
   background-color: var(--xians-primary);
   border-radius: 50%;
-  box-shadow: var(--xians-shadow-lg);
+  box-shadow: var(--xians-shadow-sm);
   transition: all var(--xians-transition-base);
+  opacity: 0.4;
+  width: 2.5rem;
+  height: 2.5rem;
+  bottom: 1.5rem !important;
+  right: 1.5rem !important;
+  transform-origin: center center;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0; /* Hide text, show only icon */
+}
+
+.md-top svg {
+  font-size: 1.25rem; /* Restore icon size */
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .md-top:hover {
   background-color: var(--xians-primary-dark);
-  transform: translateY(-4px);
-  box-shadow: var(--xians-shadow-xl);
+  transform: scale(1.05);
+  box-shadow: var(--xians-shadow-md);
+  opacity: 1;
 }
+
+/* Alternative: Completely hide the back to top button */
+/* Uncomment the line below if you want to remove it entirely */
+/* .md-top { display: none !important; } */
 
 /* Copy code button */
 .md-clipboard {
@@ -1475,12 +1497,7 @@ input:focus-visible,
 .md-content img {
   border-radius: var(--xians-radius-md);
   box-shadow: var(--xians-shadow-md);
-  transition: all var(--xians-transition-base);
-}
-
-.md-content img:hover {
-  transform: scale(1.02);
-  box-shadow: var(--xians-shadow-lg);
+  /* Removed hover animation and scaling */
 }
 
 /* Lazy loading placeholder */
