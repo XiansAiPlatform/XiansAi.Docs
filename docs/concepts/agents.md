@@ -486,7 +486,7 @@ Your agents become even more powerful when you leverage Xians' full operational 
 - **[Workflows](workflows.md)**: Orchestrate complex agent processes with built-in and custom workflows
 - **[Messages](messages.md)**: Rich, stateful communication with automatic threading and context management
 - **[Knowledge](knowledge.md)**: Connect agents to your data with the document database
-- **[Schedules](schedules.md)**: Time-based agent activation with cron and interval schedules
+- **Schedules**: Time-based agent activation with cron and interval schedules
 - **[Webhooks](webhooks.md)**: Trigger agents from external events and systems
 - **[Tenants](tenants.md)**: Multi-tenant deployment with complete isolation
 

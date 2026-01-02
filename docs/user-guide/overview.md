@@ -18,7 +18,7 @@ If you're new to Xians.ai, we recommend following this learning path:
 
 1. **[Installation](../getting-started/installation.md)** - Set up your environment
 2. **[Quick Start](../getting-started/quick-start.md)** - Create your first agent
-3. **[Configuration](../getting-started/configuration.md)** - Learn about configuration options
+3. **Configuration** - Learn about configuration options
 
 ## Core Concepts
 

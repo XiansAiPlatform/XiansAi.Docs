@@ -1,152 +1,238 @@
 # Quick Start
 
-This guide will help you create your first AI agent using Xians.ai in just a few minutes.
+Get up and running with your first Xians agent in minutes. This guide walks you through creating a simple conversational agent and connecting it to the Xians platform.
 
-## Create Your First Agent
+---
 
-### Step 1: Initialize a New Project
+## Prerequisites
 
-Create a new directory for your agent project:
+Before you begin, ensure you have the following installed:
+
+- **.NET 9 SDK** - [Download here](https://dotnet.microsoft.com/download)
+- **OpenAI API Key** - Get one from [OpenAI Platform](https://platform.openai.com)
+
+---
+
+## Step 1: Create Your Project
+
+Xians agents run as standard .NET applications that can be executed locally or deployed to any server environment. Start by creating a new console project:
 
 ```bash
-mkdir my-first-agent
-cd my-first-agent
-xians init
+dotnet new console -n MyAgent
+cd MyAgent
 ```
 
-This will create the basic project structure:
+---
 
+## Step 2: Build a Simple Agent with MAF
+
+You can use any framework that supports .NET Core to create your agent. In this guide, we'll use the **Microsoft Agent Framework (MAF)**.
+
+### Install Required Packages
+
+```bash
+dotnet add package Azure.AI.OpenAI --prerelease
+dotnet add package Azure.Identity
+dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
 ```
-my-first-agent/
-├── agents/
-│   └── main_agent.py
-├── config/
-│   └── agent_config.yaml
-└── requirements.txt
+
+### Create the Agent Class
+
+Create a new file called `MafAgent.cs`:
+
+```bash
+touch MafAgent.cs
 ```
 
-### Step 2: Configure Your Agent
+Add the following code to `MafAgent.cs`:
 
-Edit `config/agent_config.yaml`:
+```csharp
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using OpenAI;
+using OpenAI.Chat;
 
-```yaml
-agent:
-  name: "MyFirstAgent"
-  description: "A simple conversational agent"
+namespace Xians.SimpleAgent;
+
+public class MafAgent
+{
+    private readonly AIAgent _agent;
+
+    public MafAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
+    {
+        var chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
+        
+        _agent = chatClient.CreateAIAgent(new ChatClientAgentOptions
+        {
+            ChatOptions = new ChatOptions
+            {
+                Instructions = "You are a helpful assistant."
+            }
+        });
+    }
+
+    public async Task<string> RunAsync(string message)
+    {
+        var response = await _agent.RunAsync(message);
+        return response.Text;
+    }
+}
+```
+
+### Update Program.cs
+
+Replace the contents of `Program.cs` with:
+
+```csharp
+using Xians.SimpleAgent;
+
+// Get OpenAI API key (replace with your actual key)
+var apiKey = "your-openai-api-key";
+
+// Create the agent
+var agent = new MafAgent(apiKey);
+
+// Process a user message
+var response = await agent.RunAsync("Hello! Can you write a one sentence story about a cat?");
+Console.WriteLine($"Agent: {response}");
+```
+
+### Test Your Agent
+
+Build and run your agent to verify it works:
+
+```bash
+dotnet build
+dotnet run
+```
+
+You should see a creative response from your agent!
+
+> **Note:** At this point, we've built a simple agent using MAF without any Xians SDK constructs. This demonstrates the core principle of Xians: work with your existing agent frameworks. Next, we'll enhance this agent with the power of the Xians platform.
+
+---
+
+## Step 3: Connect Your Agent to Xians
+
+While a standalone agent is great for demos, production systems require multi-tenancy, user management, conversation threading, and more. Building this infrastructure from scratch is time-consuming, but **Xians provides all of this out of the box**.
+
+### Install the Xians SDK
+
+```bash
+dotnet add package Xians.Lib
+```
+
+> **Note:** Xians.Lib version 3+ is published under `Xians.Lib`, not `XiansAi.Lib` like previous versions.
+
+### Get Your Xians API Key
+
+Before proceeding, you need to:
+
+1. Set up your Xians platform instance
+2. Navigate to **Tenant Settings** in the platform UI
+3. Copy your **Agent API Key** and **Server URL**
+
+![Xians API Key Location](../assets/images/xians-apikey.png)
+
+### Update Program.cs
+
+Replace the entire contents of `Program.cs` with the following:
+
+```csharp
+using Xians.Lib.Agents.Core;
+using Xians.SimpleAgent;
+
+// Configuration - replace with your actual values
+var openAiApiKey = "your-openai-api-key";
+var serverUrl = "https://your-xians-server.com";
+var xiansApiKey = "your-xians-api-key";
+
+// Initialize Xians Platform
+var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
+{
+    ServerUrl = serverUrl,
+    ApiKey = xiansApiKey
+});
+
+// Register a new agent with Xians
+var xiansAgent = xiansPlatform.Agents.Register(new ()
+{
+    Name = "My Conversational Agent",
+    SystemScoped = true  // See important notes below
+});
+
+// Define a built-in conversational workflow
+var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
+
+// Create your MAF agent instance
+var mafAgent = new MafAgent(openAiApiKey);
+
+// Handle incoming user messages
+conversationalWorkflow.OnUserMessage(async (context) =>
+{
+    var response = await mafAgent.RunAsync(context.Message.Text);
+    await context.ReplyAsync(response);
+});
+
+// Start the agent and all workflows
+await xiansAgent.RunAllAsync();
+```
+
+### Important Configuration Notes
+
+**SystemScoped Setting:**
+
+- **`SystemScoped = true`**: Adds the agent to the global **Agent Templates** library, making it available for any tenant admin to deploy. This option is only available if you're a **system administrator**.
   
-llm:
-  provider: "openai"
-  model: "gpt-4"
-  
-capabilities:
-  - greet_user
-  - answer_questions
-```
+- **`SystemScoped = false`** (default): Immediately deploys the agent to your current tenant. Use this if you only have tenant-level permissions.
 
-### Step 3: Define Agent Behavior
+**Understanding Workflows:**
 
-Edit `agents/main_agent.py`:
+- A **Xians agent** is a definition that represents your agent in the platform
+- The actual AI logic runs in your **MAF agent** (or any other framework you choose)
+- **Built-in workflows** connect Xians' conversation handling capabilities to your agent logic
+- One Xians agent can contain multiple built-in workflows, each connected to different AI agent implementations
 
-```python
-from xians import Agent, capability
+---
 
-class MyFirstAgent(Agent):
-    """A simple conversational agent"""
-    
-    @capability(description="Greet the user warmly")
-    def greet_user(self, name: str) -> str:
-        return f"Hello, {name}! How can I help you today?"
-    
-    @capability(description="Answer questions about Xians.ai")
-    def answer_questions(self, question: str) -> str:
-        # Your logic here
-        return f"You asked: {question}"
+## Step 4: Deploy Your Agent
 
-if __name__ == "__main__":
-    agent = MyFirstAgent()
-    agent.run()
-```
+### For System-Scoped Agents
 
-### Step 4: Run Your Agent
+If you registered your agent with `SystemScoped = true`, you'll find it in the **Agent Templates** section:
 
-Start your agent:
+![Agent Templates](../assets/images/agent-templates.png)
 
-```bash
-xians run
-```
+Tenant administrators can then deploy instances of this template to their tenants.
 
-Your agent is now running and ready to interact!
+### For Tenant-Scoped Agents
 
-## Testing Your Agent
+If you used `SystemScoped = false`, or after deploying a system template, your agent appears under **Deployed Agents**:
 
-### Using the CLI
+![Deployed Agents](../assets/images/deployed-agents.png)
 
-Interact with your agent via the command line:
+> **What You've Achieved:** Xians has transformed your simple MAF agent into a multi-tenant, enterprise-ready solution. You can now manage agent lifecycles across different tenant scopes through the platform UI.
 
-```bash
-xians chat --agent MyFirstAgent
-```
+---
 
-### Using the API
+## Step 5: Start a Conversation
 
-Send a request to your agent:
+Now for the exciting part - talking to your agent!
 
-```bash
-curl -X POST http://localhost:8080/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello!", "agent": "MyFirstAgent"}'
-```
+1. Navigate to **Conversations** in the platform UI
+2. Select your deployed agent from the list
+3. Click the **+** button to create a new conversation
+4. Start chatting with your agent!
 
-## What's Next?
+![Agent Conversations](../assets/images/agent-conversations.png)
 
-!!! success "Congratulations!"
-    You've created your first Xians.ai agent! 🎉
+---
 
-### Next Steps
+## Next Steps
 
-- Learn about [Configuration](configuration.md) options
-- Explore [Agent Capabilities](../user-guide/overview.md)
-- Read the [API Reference](../api-reference/overview.md)
-- Join our [Community](https://discord.gg/xians)
+Congratulations! You've successfully created and deployed your first Xians agent. Here's what you can explore next:
 
-## Example Projects
+- **Add Tools & Functions** - Extend your agent with custom capabilities
+- **Implement Chat History** - Connect chat history for context-aware responses
 
-Check out these example projects for inspiration:
-
-=== "Customer Support Agent"
-
-    ```python
-    from xians import Agent, capability
-    
-    class SupportAgent(Agent):
-        @capability
-        def handle_ticket(self, issue: str) -> str:
-            # Handle customer support ticket
-            return f"Ticket created for: {issue}"
-    ```
-
-=== "Data Analysis Agent"
-
-    ```python
-    from xians import Agent, capability
-    
-    class AnalystAgent(Agent):
-        @capability
-        def analyze_data(self, data: list) -> dict:
-            # Analyze data
-            return {"summary": "Analysis complete"}
-    ```
-
-=== "Task Automation Agent"
-
-    ```python
-    from xians import Agent, capability
-    
-    class AutomationAgent(Agent):
-        @capability
-        def automate_task(self, task: str) -> str:
-            # Automate task
-            return f"Task '{task}' automated"
-    ```
-
-
+Ready to dive deeper? Check out our Core Concepts or explore Advanced Workflows.

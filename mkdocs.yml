@@ -1,4 +1,30 @@
 # mkdocs.yml
+
+# Navigation structure - Update this based on your documentation
+nav:
+  - Home: index.md
+  - Introduction:
+    - Where does it fit: introduction/where-does-it-fit.md
+    - Features: introduction/features.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+  - Concepts:
+    - Scheduling: concepts/scheduling-concepts.md
+    - Agents: concepts/agents.md
+    - Workflows: concepts/workflows.md
+    - Messages: concepts/messages.md
+    - Tenants: concepts/tenants.md
+    - Webhooks: concepts/webhooks.md
+    - Document DB: concepts/document-db.md
+    - Knowledge: concepts/knowledge.md
+  - Xians Lib SDK:
+    - Scheduling: sdk-reference/scheduling-sdk.md
+  - Server API:
+    - Overview: api-reference/overview.md
+  - Contributing:
+    - How to Contribute: contributing/how-to-contribute.md
+
 site_name: Xians.ai Documentation
 site_description: Enterprise-grade Agent Development Kit for building, deploying, and orchestrating AI agents
 site_author: Xians.ai Team
@@ -108,28 +134,6 @@ extra_javascript:
   - javascripts/enhancements.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-
-# Navigation structure - Update this based on your documentation
-nav:
-  - Home: index.md
-  - Getting Started:
-    - Introduction: getting-started/introduction.md
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
-  - Basic Concepts:
-    - Agents: basic-concepts/agents.md
-    - Workflows: basic-concepts/workflows.md
-    - Messages: basic-concepts/messages.md
-    - Tenants: basic-concepts/tenants.md
-    - Schedules: basic-concepts/schedules.md
-    - Webhooks: basic-concepts/webhooks.md
-    - Document DB: basic-concepts/document-db.md
-    - Knowledge: basic-concepts/knowledge.md
-
-  - API Reference:
-    - Overview: api-reference/overview.md
-  - Contributing:
-    - How to Contribute: contributing/how-to-contribute.md
 
 # Markdown extensions - Comprehensive modern set
 markdown_extensions:

@@ -504,7 +504,7 @@ Webhooks connect everything:
 
 - **[Workflows](workflows.md)**: Trigger complex processes from external events
 - **[Agents](agents.md)**: Invoke agents based on real-world events
-- **[Schedules](schedules.md)**: Use schedules for time-based, webhooks for event-based
+- **Schedules**: Use schedules for time-based, webhooks for event-based
 - **[Messages](messages.md)**: Create message threads from webhook events
 
 ---

@@ -352,7 +352,7 @@ Workflows become powerful when combined with:
 
 - **[Agents](agents.md)**: The workers that execute each step
 - **[Messages](messages.md)**: Human-to-workflow communication
-- **[Schedules](schedules.md)**: Trigger workflows on a timeline
+- **Schedules**: Trigger workflows on a timeline
 - **[Webhooks](webhooks.md)**: Start workflows from external events
 - **[Knowledge](knowledge.md)**: Equip workflow agents with domain knowledge
 

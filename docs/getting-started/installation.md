@@ -59,8 +59,7 @@ For detailed setup instructions, configuration options, and troubleshooting, vis
 
 ### Next Steps
 
-!!! tip "Next Steps"
-    Once your platform is running locally, proceed to the [Quick Start](quick-start.md) guide to create your first agent.
+Once your platform is running locally, proceed to the [Quick Start](quick-start.md) guide to create your first agent.
 
 ---
 
