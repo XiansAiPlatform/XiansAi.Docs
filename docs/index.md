@@ -6,8 +6,10 @@
   </p>
   
   <div style="margin-top: 2rem;">
+
     <a href="getting-started/installation/" style="margin: 0.5rem; background: var(--xians-primary); border: 1px solid var(--xians-primary); color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 0.375rem; font-weight: 500; display: inline-block; transition: background-color 0.15s ease;">Get Started</a>
-    <a href="https://github.com/XiansAiPlatform" style="margin: 0.5rem; background: transparent; border: 1px solid var(--xians-border-dark); color: var(--xians-text-primary); text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 0.375rem; font-weight: 500; display: inline-block; transition: border-color 0.15s ease;">View on GitHub</a>
+
+    <a href="introduction/where-does-it-fit/" style="margin: 0.5rem; background: transparent; border: 1px solid var(--xians-border-dark); color: var(--xians-text-primary); text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 0.375rem; font-weight: 500; display: inline-block; transition: border-color 0.15s ease;">Introduction</a>
   </div>
 </div>
 
