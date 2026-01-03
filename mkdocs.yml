@@ -26,7 +26,8 @@ nav:
 site_name: Xians.ai Documentation
 site_description: Enterprise-grade Agent Development Kit for building, deploying, and orchestrating AI agents
 site_author: Xians.ai Team
-site_url: https://docs.xians.ai
+site_url: https://xians.ai
+
 
 # Repository information
 repo_name: XiansAiPlatform/XiansAi.Docs
