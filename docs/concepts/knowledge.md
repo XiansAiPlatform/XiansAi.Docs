@@ -4,497 +4,218 @@
 
 LLMs are smart, but they don't know **your** business. Your products, your policies, your documentation. Knowledge bases solve this through **Retrieval-Augmented Generation (RAG)**—letting agents search your content and ground their answers in your truth.
 
-## The Hallucination Problem
+## What is Agent Knowledge?
 
-**Raw LLM:**
-```
-User: "What's your return policy?"
-Agent: "I think it's probably 30 days..." ← Made it up
-User: "How much does the Pro plan cost?"
-Agent: "Around $50/month I believe..." ← Guessing
-```
+Every agent has its own **private knowledge base**—a key-value store for information your agent needs to remember and retrieve. Think of it as your agent's memory:
 
-**With Knowledge Base:**
-```
-User: "What's your return policy?"
-Agent searches knowledge base → Finds policy doc
-Agent: "Our return policy allows returns within 60 days..." ← Accurate
+- **System instructions** that users create to customize agent behavior
+- **Product catalogs** for a sales agent
+- **Company policies** for a support agent  
+- **User preferences** for a personalization agent
+- **Workflow instructions** for complex processes
 
-User: "How much does the Pro plan cost?"
-Agent searches knowledge base → Finds pricing
-Agent: "The Pro plan is $49/month, billed annually..." ← Factual
-```
+Knowledge is **automatically scoped** to each agent. Agent A can't access Agent B's knowledge—perfect for multi-tenant applications.
 
-## Why Knowledge Transforms AI Development
+## Managing Knowledge
 
-### The Challenge: LLMs Don't Know Your Content
-- Training data ends months/years ago
-- Doesn't include your docs, products, policies
-- Can't access real-time information
-- Makes up plausible-sounding lies (hallucinations)
+### Create or Update Knowledge
 
-### The Solution: Retrieval-Augmented Generation (RAG)
-Knowledge bases provide:
-- **Semantic Search**: Find relevant content by meaning, not just keywords
-- **Grounded Responses**: Answers based on your actual documents
-- **Always Current**: Update docs, agent knows immediately
-- **Source Citations**: See exactly what the agent used
-
-## Core Concepts
-
-### How RAG Works
-
-```
-1. User asks question
-   ↓
-2. Question → Embedding → Vector
-   ↓
-3. Search knowledge base for similar content
-   ↓
-4. Retrieve top relevant chunks
-   ↓
-5. LLM generates answer using retrieved context
-   ↓
-6. Response grounded in your documents
+```csharp
+var agent = XiansContext.GetAgent(agentName); // or var agent = XiansContext.CurrentAgent;
+// Create or update knowledge
+await agent.Knowledge.UpdateAsync(
+    knowledgeName: "welcome-message",
+    content: "Welcome! How can I help you today?",
+    type: "text"
+);
 ```
 
-### Knowledge Base Structure
+**Supported knowledge types:**
 
-```typescript
-const kb = await xians.createKnowledgeBase({
-  name: "company-docs",
-  
-  // How to process documents
-  chunking: {
-    strategy: "semantic",     // Smart chunking
-    maxChunkSize: 512,        // Tokens per chunk
-    overlap: 50               // Context preservation
-  },
-  
-  // How to search
-  embedding: {
-    model: "text-embedding-3-large",
-    dimensions: 1536
-  }
-});
-```
+- `"text"` - Plain text content
+- `"markdown"` - Formatted documentation with Markdown syntax
+- `"json"` - Structured data
 
-## Quick Start
+Any other type value is treated as `"text"`.
 
-### Create and Populate Knowledge Base
+### Retrieve Knowledge
 
-```typescript
-// Create knowledge base
-const kb = await xians.createKnowledgeBase({
-  name: "product-docs",
-  description: "Product manuals and documentation"
-});
+```csharp
+// Get specific knowledge
+var knowledge = await agent.Knowledge.GetAsync("welcome-message");
 
-// Add documents
-await kb.addDocument({
-  title: "Pro Plan Features",
-  content: `
-    The Pro Plan includes:
-    - Unlimited API calls
-    - 24/7 support
-    - Custom integrations
-    - SLA: 99.9% uptime
-    Price: $99/month
-  `,
-  metadata: {
-    category: "pricing",
-    lastUpdated: new Date()
-  }
-});
-
-// Upload files
-await kb.uploadFile("./employee-handbook.pdf");
-await kb.uploadFile("./product-guide.md");
-```
-
-### Connect Agent to Knowledge Base
-
-```typescript
-const agent = await xians.createAgent({
-  name: "SupportAgent",
-  model: "gpt-4",
-  
-  // Connect to knowledge bases
-  knowledgeBases: ["product-docs", "support-articles"],
-  
-  // RAG configuration
-  ragConfig: {
-    retrievalCount: 5,         // Top 5 relevant chunks
-    minRelevanceScore: 0.7,    // Filter low-quality matches
-    includeInPrompt: true      // Auto-inject into context
-  },
-  
-  systemPrompt: `You are a helpful support agent. 
-  Answer questions based on our documentation.
-  If you're not sure, say so—don't make things up.`
-});
-
-// Agent automatically searches knowledge base
-const response = await agent.chat({
-  message: "What's included in the Pro plan?"
-});
-
-// Response grounded in uploaded documents
-console.log(response.message);
-console.log(response.sources);  // Which docs were used
-```
-
-## Why This Changes AI Development
-
-### Before RAG: Hardcoded Knowledge
-
-```javascript
-// Manually stuff knowledge into prompts
-const prompt = `
-Context: Our return policy is 60 days. Pro plan costs $99/month...
-[Paste entire documentation here...]
-
-User question: ${userQuestion}
-
-Answer:`;
-
-// Problems:
-// - Context window limits (can't fit everything)
-// - Stale (update docs = update all prompts)
-// - Inefficient (send irrelevant info every time)
-// - Expensive (tokens for unused context)
-```
-
-### With Knowledge Bases
-
-```typescript
-// Just connect and go
-const agent = await xians.createAgent({
-  name: "SupportAgent",
-  knowledgeBases: ["all-docs"]
-});
-
-// Agent automatically:
-// - Finds relevant docs for each question
-// - Uses only what's needed
-// - Stays current with doc updates
-// - Cites sources
-```
-
-## Powerful Knowledge Patterns
-
-### Pattern 1: Multi-Source Agent
-
-```typescript
-// Agent with multiple knowledge bases
-const agent = await xians.createAgent({
-  name: "UniversalAgent",
-  knowledgeBases: [
-    "product-docs",       // Product information
-    "support-articles",   // How-to guides
-    "company-policies",   // HR policies
-    "legal-docs"          // Terms, privacy, etc.
-  ],
-  
-  ragConfig: {
-    // Search all knowledge bases
-    searchStrategy: "parallel",
-    
-    // Weight by source
-    sourceWeights: {
-      "product-docs": 1.0,
-      "legal-docs": 1.2      // Prioritize legal accuracy
-    }
-  }
-});
-```
-
-### Pattern 2: Dynamic Knowledge Updates
-
-```typescript
-// Knowledge base syncs with your CMS
-const kb = await xians.createKnowledgeBase({
-  name: "help-center",
-  
-  // Auto-sync from web
-  sources: [{
-    type: "web",
-    url: "https://help.yourcompany.com",
-    schedule: "daily",      // Refresh daily
-    crawlDepth: 3
-  }]
-});
-
-// Or trigger manual sync
-await kb.sync();
-
-// Agents always have latest content
-```
-
-### Pattern 3: Filtered Knowledge Retrieval
-
-```typescript
-// Different agents see different knowledge
-const publicAgent = await xians.createAgent({
-  name: "PublicSupportAgent",
-  knowledgeBases: ["public-docs"],
-  
-  ragConfig: {
-    filters: {
-      "metadata.public": true  // Only public docs
-    }
-  }
-});
-
-const internalAgent = await xians.createAgent({
-  name: "InternalAgent",
-  knowledgeBases: ["all-docs"],
-  
-  ragConfig: {
-    filters: {
-      "metadata.department": "engineering"  // Dept-specific
-    }
-  }
-});
-```
-
-## Real-World Examples
-
-### Customer Support with Product Knowledge
-
-```typescript
-// Build knowledge base from product docs
-const productKB = await xians.createKnowledgeBase({
-  name: "products"
-});
-
-// Add product catalog
-const products = await database.getProducts();
-for (const product of products) {
-  await productKB.addDocument({
-    title: product.name,
-    content: `
-      ${product.name}
-      Price: $${product.price}
-      Description: ${product.description}
-      Features: ${product.features.join(", ")}
-      Specifications: ${JSON.stringify(product.specs)}
-    `,
-    metadata: {
-      category: product.category,
-      sku: product.sku,
-      inStock: product.stock > 0
-    }
-  });
+if (knowledge != null)
+{
+    Console.WriteLine($"Content: {knowledge.Content}");
+    Console.WriteLine($"Type: {knowledge.Type}");
 }
-
-// Support agent with product knowledge
-const agent = await xians.createAgent({
-  name: "ProductSupportAgent",
-  knowledgeBases: ["products"],
-  
-  systemPrompt: `You help customers with product questions.
-  Use the knowledge base to provide accurate information.
-  If a product is out of stock, mention it.`
-});
-
-// Agent knows your entire catalog
-await agent.chat({
-  message: "Do you have wireless headphones under $150?"
-});
 ```
 
-### HR Assistant with Company Policies
+### List All Knowledge
 
-```typescript
-// Upload company handbook
-const hrKB = await xians.createKnowledgeBase({
-  name: "hr-policies"
-});
+```csharp
+// See everything your agent knows
+var allKnowledge = await agent.Knowledge.ListAsync();
 
-await hrKB.uploadFile("./employee-handbook.pdf");
-await hrKB.uploadFile("./benefits-guide.pdf");
-await hrKB.uploadFile("./pto-policy.md");
-
-// HR agent
-const hrAgent = await xians.createAgent({
-  name: "HRAssistant",
-  knowledgeBases: ["hr-policies"],
-  
-  ragConfig: {
-    retrievalCount: 3,
-    includeInPrompt: true
-  },
-  
-  systemPrompt: `You're an HR assistant. Answer employee questions
-  about company policies accurately. Always cite the specific policy
-  section you're referencing.`
-});
-
-// Employees get instant, accurate answers
-await hrAgent.chat({
-  message: "How many vacation days do I get?"
-});
-// Response includes: "According to the PTO Policy section 3.1..."
+foreach (var item in allKnowledge)
+{
+    Console.WriteLine($"{item.Name}: {item.Type}");
+}
 ```
 
-### Code Documentation Assistant
+### Delete Knowledge
 
-```typescript
-// Index your codebase documentation
-const docsKB = await xians.createKnowledgeBase({
-  name: "api-docs"
-});
-
-// Add API documentation
-await docsKB.uploadFile("./docs/api-reference.md");
-await docsKB.uploadFile("./docs/sdk-guide.md");
-await docsKB.uploadFile("./docs/examples.md");
-
-// Developer assistant
-const devAgent = await xians.createAgent({
-  name: "DevAssistant",
-  knowledgeBases: ["api-docs"],
-  
-  systemPrompt: `You help developers use our API.
-  Provide code examples and link to relevant documentation.`
-});
-
-await devAgent.chat({
-  message: "How do I authenticate API requests?"
-});
+```csharp
+// Remove outdated knowledge
+var deleted = await agent.Knowledge.DeleteAsync("old-policy");
+// Returns true if deleted, false if not found
 ```
 
-## Advanced Features
+## Knowledge in Workflows
 
-### Hybrid Search
+Knowledge operations work seamlessly **inside workflows**—the SDK automatically handles context switching:
 
-```typescript
-// Combine semantic search + keyword matching
-const results = await kb.hybridSearch({
-  query: "return policy for electronics",
-  keywords: ["60 days", "warranty"],
-  weights: {
-    semantic: 0.7,    // 70% semantic similarity
-    keyword: 0.3      // 30% keyword matching
-  }
-});
+```csharp
+[Workflow("CustomerSupport:HandleTicket")]
+public class TicketWorkflow
+{
+    [WorkflowRun]
+    public async Task<string> RunAsync(string customerId)
+    {
+        // Get agent from workflow context
+        var agent = XiansContext.GetAgent("SupportAgent");
+        
+        // Retrieve customer preferences mid-workflow
+        var prefs = await agent.Knowledge.GetAsync($"customer-{customerId}");
+        
+        // Use knowledge to personalize response
+        return $"Hello! I see you prefer {prefs?.Content}";
+    }
+}
 ```
 
-### Chunk Strategies
+The SDK uses **context-aware execution** to route workflow calls through Temporal activities automatically.
 
-```typescript
-// Semantic chunking (smart)
-await kb.updateConfig({
-  chunking: {
-    strategy: "semantic",     // AI understands context
-    maxChunkSize: 1000
-  }
-});
+## Agent Isolation
 
-// Fixed size chunking (simple)
-await kb.updateConfig({
-  chunking: {
-    strategy: "fixed",
-    chunkSize: 512,
-    overlap: 50
-  }
-});
+Each agent's knowledge is **completely isolated**:
+
+```csharp
+// Agent 1 creates knowledge
+await salesAgent.Knowledge.UpdateAsync("pricing", "Enterprise: $999/mo");
+
+// Agent 2 cannot see Agent 1's knowledge
+var leaked = await supportAgent.Knowledge.GetAsync("pricing");
+// Returns null - agents are isolated by tenant and name
 ```
 
-### Source Citations
-
-```typescript
-// See what knowledge was used
-const response = await agent.chat({
-  message: "What's your refund policy?"
-});
-
-console.log(response.sources);
-// [
-//   { 
-//     title: "Return & Refund Policy",
-//     chunk: "Customers may return items within 60 days...",
-//     score: 0.92
-//   }
-// ]
-```
-
-## Knowledge vs Document DB
-
-| Feature | Knowledge Base | Document DB |
-|---------|---------------|-------------|
-| **Purpose** | Semantic search, RAG | Structured data storage |
-| **Search** | By meaning/similarity | By exact fields |
-| **Best for** | Documents, content, text | Records, entities, state |
-| **Example** | Product manuals, FAQs | Customer records, orders |
-| **Agent use** | "What's the policy?" | "Who is customer #123?" |
-
-**Use both together:**
-```typescript
-// Knowledge: Content search
-const policyInfo = await kb.search("return policy");
-
-// Document DB: Data lookup
-const customer = await db.findOne("customers", { id: "123" });
-
-// Agent combines both
-const response = `Based on our policy: ${policyInfo}
-For your order: ${customer.lastOrder}`;
-```
+Even if two agents use the **same knowledge name**, they maintain separate copies. Perfect for multi-tenant SaaS applications.
 
 ## Best Practices
 
-**✅ Chunk Documents Smartly**
-```typescript
-// Good chunk size: 512-1024 tokens
-// Include overlap to preserve context
-chunking: {
-  maxChunkSize: 512,
-  overlap: 50
-}
+**Use descriptive names** with prefixes:
+```csharp
+// Good: Organized and searchable
+await agent.Knowledge.UpdateAsync("config.api.timeout", "30000");
+await agent.Knowledge.UpdateAsync("user-123-preferences", "dark-mode");
+await agent.Knowledge.UpdateAsync("template_greeting_morning", "Good morning!");
 ```
 
-**✅ Use Rich Metadata**
-```typescript
-await kb.addDocument({
-  title: "Pro Plan Pricing",
-  content: "...",
-  metadata: {
-    category: "pricing",
-    plan: "pro",
-    lastUpdated: "2024-12-01",
-    public: true
-  }
+**Choose appropriate types**:
+```csharp
+// Plain text for instructions or simple content
+await agent.Knowledge.UpdateAsync(
+    "onboarding-flow",
+    "Step 1: Verify email\nStep 2: Set password\nStep 3: Complete profile",
+    "text"
+);
+
+// Structured data for parsing
+await agent.Knowledge.UpdateAsync(
+    "api-config",
+    "{\"timeout\":30,\"retries\":3}",
+    "json"
+);
+
+// Markdown for formatted documentation
+await agent.Knowledge.UpdateAsync(
+    "user-guide",
+    "# Getting Started\n\n## Step 1\nConnect your account...",
+    "markdown"
+);
+```
+
+**Handle large content**:
+```csharp
+// Knowledge supports large content (tested up to 10KB+)
+var largeDoc = File.ReadAllText("product-catalog.md");
+await agent.Knowledge.UpdateAsync("product-catalog", largeDoc, "markdown");
+```
+
+## Common Patterns
+
+### System Instructions (User-Created)
+
+One of the most powerful uses of knowledge is storing **system instructions** that users create to customize how their agent behaves.
+
+```csharp
+// User creates custom system instructions through your UI
+var userInstructions = @"You are a friendly customer support agent.
+Always greet customers warmly and ask how their day is going.
+When dealing with complaints, empathize first before offering solutions.
+Use casual language and avoid corporate jargon.";
+
+// Store as agent knowledge
+await agent.Knowledge.UpdateAsync(
+    "system-instructions",
+    userInstructions,
+    "text"
+);
+
+// Later, in your message handler, retrieve and use them
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    var agent = XiansContext.GetAgent("CustomerSupportAgent");
+    var systemInstructions = await agent.Knowledge.GetAsync("system-instructions");
+    
+    // Build your LLM messages with user's custom instructions
+    var messages = new List<ChatMessage>
+    {
+        new SystemMessage(systemInstructions?.Content ?? "Default instructions"),
+        new UserMessage(context.Message.Text)
+    };
+    
+    var response = await llm.GetCompletionAsync(messages);
+    await context.Messages.ReplyAsync(response);
 });
 ```
 
-**✅ Monitor Search Quality**
-```typescript
-// Track what users search for
-const analytics = await kb.getAnalytics();
-console.log("Top queries:", analytics.topQueries);
-console.log("Coverage:", analytics.coverageRate);
-
-// Identify gaps in knowledge
-console.log("Queries with poor results:", analytics.lowScoreQueries);
-```
-
-**❌ Don't Dump Everything**
-Only add relevant, well-structured content. Quality > Quantity.
-
-**❌ Don't Forget to Update**
-Stale knowledge = wrong answers. Keep docs current.
-
-## Integration Points
-
-Knowledge powers intelligent agents:
-
-- **[Agents](agents.md)**: Ground agents in your domain knowledge
-- **[Workflows](workflows.md)**: Knowledge retrieval in workflow steps
-- **[Document DB](document-db.md)**: Different use case - structured vs semantic
-- **[Messages](messages.md)**: Cite sources in conversation
+This lets users **fully customize their agent's personality and behavior** without code changes or redeployment.
 
 ---
 
-**The Bottom Line**: Knowledge bases transform generic LLMs into domain experts. They're the bridge between your content and your AI agents—enabling accurate, grounded, trustworthy responses.
+### User Preferences
+```csharp
+// Store per-user settings
+await agent.Knowledge.UpdateAsync(
+    $"user-{userId}-settings",
+    JsonSerializer.Serialize(userPrefs),
+    "json"
+);
+```
+
+### Dynamic Instructions
+```csharp
+// Update agent behavior without redeploying
+await agent.Knowledge.UpdateAsync(
+    "current-promotion",
+    "Offer 20% off for new customers this week",
+    "text"
+);
+```
+
+### Configuration Management
+```csharp
+// Centralized config accessible to all agent workflows
+await agent.Knowledge.UpdateAsync("feature-flags", "{'newUI': true}", "json");
+```

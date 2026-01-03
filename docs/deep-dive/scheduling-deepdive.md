@@ -1538,8 +1538,6 @@ Use schedules to transform reactive agents into **autonomous, proactive systems*
 
 **Next Steps:**
 
-- **[Scheduling Concepts](../concepts/scheduling-concepts.md)** - Quick start guide
-- **[Workflows](../concepts/workflows.md)** - Workflow orchestration
+- **[Scheduling Concepts](../concepts/scheduling.md)** - Quick start guide
 - **[Agents](../concepts/agents.md)** - Agent architecture
-- **[Tenants](../concepts/tenants.md)** - Multi-tenant patterns
 

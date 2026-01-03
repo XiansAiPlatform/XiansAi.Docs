@@ -6,7 +6,7 @@ Get started with Xians.ai by choosing the installation path that best fits your 
 
 Xians.ai offers two deployment options:
 
-1. **[SaaS Platform](#option-1-saas-platform-recommended)** - Quick start with hosted infrastructure (Recommended for 99x employees and customers)
+1. **[SaaS Platform](#option-1-saas-platform)** - Quick start with hosted infrastructure (Recommended for 99x employees and customers)
 2. **[Community Edition](#option-2-community-edition-self-hosted)** - Self-hosted deployment for development and testing
 
 ---

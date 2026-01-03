@@ -36,15 +36,17 @@ dotnet add package Azure.Identity
 dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
 ```
 
-### Create the Agent Class
+### Create the MAF Agent Class
 
-Create a new file called `MafAgent.cs`:
+Create a new file called `MafSubAgent.cs`:
+
+> **Note:** We call this class `MafSubAgent`, not `MafAgent`, because production-grade agentic applications typically comprise multiple sub-agents. When you create an agent with Xians, it can have multiple workflows attached to different sub-agents. You'll see this pattern in the following examples. 
 
 ```bash
-touch MafAgent.cs
+touch MafSubAgent.cs
 ```
 
-Add the following code to `MafAgent.cs`:
+Add the following code to `MafSubAgent.cs`:
 
 ```csharp
 using Microsoft.Agents.AI;
@@ -52,28 +54,26 @@ using Microsoft.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
 
-namespace Xians.SimpleAgent;
-
-public class MafAgent
+public class MafSubAgent
 {
-    private readonly AIAgent _agent;
+    private readonly ChatClient _chatClient;
 
-    public MafAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
+    public MafSubAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
     {
-        var chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
-        
-        _agent = chatClient.CreateAIAgent(new ChatClientAgentOptions
+        _chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
+    }
+
+    public async Task<string> RunAsync(string message)
+    {
+        var agent = _chatClient.CreateAIAgent(new ChatClientAgentOptions
         {
             ChatOptions = new ChatOptions
             {
                 Instructions = "You are a helpful assistant."
             }
         });
-    }
 
-    public async Task<string> RunAsync(string message)
-    {
-        var response = await _agent.RunAsync(message);
+        var response = await agent.RunAsync(message);
         return response.Text;
     }
 }
@@ -90,7 +90,7 @@ using Xians.SimpleAgent;
 var apiKey = "your-openai-api-key";
 
 // Create the agent
-var agent = new MafAgent(apiKey);
+var agent = new MafSubAgent(apiKey);
 
 // Process a user message
 var response = await agent.RunAsync("Hello! Can you write a one sentence story about a cat?");
@@ -140,7 +140,6 @@ Replace the entire contents of `Program.cs` with the following:
 
 ```csharp
 using Xians.Lib.Agents.Core;
-using Xians.SimpleAgent;
 
 // Configuration - replace with your actual values
 var openAiApiKey = "your-openai-api-key";
@@ -165,13 +164,13 @@ var xiansAgent = xiansPlatform.Agents.Register(new ()
 var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
 
 // Create your MAF agent instance
-var mafAgent = new MafAgent(openAiApiKey);
+var mafSubAgent = new MafSubAgent(openAiApiKey);
 
 // Handle incoming user messages
-conversationalWorkflow.OnUserMessage(async (context) =>
+conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
-    var response = await mafAgent.RunAsync(context.Message.Text);
-    await context.ReplyAsync(response);
+    var response = await mafSubAgent.RunAsync(context.Message.Text);
+    await context.Messages.ReplyAsync(response);
 });
 
 // Start the agent and all workflows

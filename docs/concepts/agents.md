@@ -1,495 +1,430 @@
-# Agents
+# Agents & Workflows
 
-## Build Anywhere, Manage Everywhere
+## Overview
 
-Xians takes a fundamentally different approach to AI agents. We don't lock you into a proprietary framework or force you to rebuild your agents. Instead, **Xians is an agent management and operational platform** that lets you build agents with any framework you choose—Microsoft Agent Framework (MAF), LangChain, Semantic Kernel, or even raw OpenAI SDK—and provides the production-grade infrastructure to deploy, manage, and scale them.
+Agents in Xians are database entities that provide identity and management capabilities for your AI applications. They serve as containers for workflows, knowledge, documents, and other resources, with built-in multi-tenancy and isolation.
 
-## The Problem Xians Solves
+## Core Concepts
 
-Building an AI agent is one thing. **Operating it in production is another entirely.**
+### Agents
 
-### The Challenge with Agent Frameworks
+An **Agent** is a registered entity that:
 
-Most agent frameworks focus on the development experience:
+- Provides an identity for management and isolation purposes
+- Can be **system-scoped** (templates deployable across tenants) or **tenant-scoped** (deployed to a specific tenant)
+- Owns and manages collections of workflows, knowledge, and documents
+- Automatically handles tenant isolation and resource scoping
 
-- They help you build sophisticated reasoning loops
-- They provide tools and prompt management
-- They offer local testing and debugging
+```mermaid
+graph TB
+    A[XiansAgent] --> B[Workflows]
+    A --> C[Knowledge]
+    A --> D[Documents]
+    B --> E[Built-In Workflow 1]
+    B --> F[Built-In Workflow 2]
+    B --> G[Custom Workflow 1]
+    B --> H[Custom Workflow 2]
+```
 
-But when you're ready for production, you face critical questions:
+### Workflows
 
-- How do I deploy multiple agents across different tenants?
-- How do I handle message routing and conversation state?
-- How do I schedule agent tasks and manage workflows?
-- How do I monitor performance and handle failures?
-- How do I integrate with my existing systems via webhooks and APIs?
+**Workflows** are Temporal-based execution units attached to agents. There are two types:
 
-**This is where Xians comes in.**
+#### Built-In Workflows
 
-## Xians: Your Agent Management Plane
+Pre-built workflows with plumbing for common patterns:
 
-Think of Xians as the **control plane for your AI agents**—the operational infrastructure that sits between your agent logic and your users, handling all the complexity of production deployment.
+- Listen to user messages (chat and data)
+- Handle webhook invocations
+- No workflow class definition required
 
-### What Xians Provides
+#### Custom Workflows
 
-**1. Agent Registration & Identity**
+Plain Temporal workflows you define:
 
-Your agents, built with any framework, register with Xians to get:
+- Full control over workflow logic
+- Access to all Temporal features (signals, queries, updates, child workflows)
+- Automatic tenant isolation
+- Scheduled execution support
 
-- Unique identity and authentication
-- Tenant isolation and multi-tenancy support
-- System or tenant-scoped deployment options
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant BW as Built-In Workflow
+    participant CW as Custom Workflow
+    participant A as Activities
+    
+    U->>BW: Send Message
+    BW->>BW: Execute Handler
+    BW->>U: Reply
+    
+    U->>CW: Webhook/Signal
+    CW->>A: Execute Activities
+    A-->>CW: Results
+    CW->>U: Response
+```
 
-**2. Message & Conversation Management**
+## Agent Registration
 
-- Automatic message routing to the right agent
-- Conversation threading and context management
-- User message queuing and delivery guarantees
-
-**3. Workflow Orchestration**
-
-- Built-in workflows for common patterns
-- Custom workflow definitions for complex logic
-- Worker management and scaling
-
-**4. Scheduling Infrastructure**
-
-- Cron-based and interval schedules
-- Time-based agent activation
-- Automatic schedule lifecycle management
-
-**5. Integration & Connectivity**
-
-- Webhook triggers and callbacks
-- Event streaming and notifications
-- API-first architecture for external systems
-
-## Core Architecture
-
-### The Separation of Concerns
-
-Xians embraces a clean architectural principle:
-
-**Your Code (Agent Logic)**
-
-- Build with ANY framework: MAF, LangChain, Semantic Kernel, OpenAI SDK
-- Implement your AI reasoning, tools, and business logic
-- Test and iterate locally with your preferred tooling
-
-**Xians Platform (Operations)**
-
-- Register your agent with Xians
-- Define workflows and message handlers
-- Configure schedules and integrations
-- Deploy and scale across tenants
-
-### Agent Registration Model
+### Creating an Agent
 
 ```csharp
-// Initialize connection to Xians platform
 var xiansPlatform = await XiansPlatform.InitializeAsync(new XiansOptions
 {
-    ServerUrl = "https://your-xians-instance.com",
-    ApiKey = xiansApiKey  // Includes tenant context
+    ServerUrl = "https://your-server.com",
+    ApiKey = "your-api-key"
 });
 
-// Register your agent (built with ANY framework)
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
-{
-    Name = "CustomerSupportAgent",
-    SystemScoped = true  // or tenant-scoped
-});
-```
-
-## Quick Start: Connecting Your Agent
-
-Here's how you connect an agent built with **any framework** to Xians:
-
-### Step 1: Build Your Agent Logic
-
-Use your preferred framework to implement the AI logic:
-
-```csharp
-// Your agent implementation - use ANY framework!
-// This example uses OpenAI SDK, but could be MAF, LangChain, etc.
-public class ConversationalAgent
-{
-    public static async Task<string> ProcessMessageAsync(
-        IUserMessageContext context, 
-        string openAiApiKey)
-    {
-        // Your AI logic here - framework agnostic
-        var client = new OpenAIClient(openAiApiKey);
-        var response = await client.GetChatCompletionAsync(
-            model: "gpt-4",
-            messages: BuildMessages(context)
-        );
-        
-        return response.Content;
-    }
-}
-```
-
-### Step 2: Register with Xians & Define Workflows
-
-Connect your agent to Xians operational infrastructure:
-
-```csharp
-// Register the agent
-var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
-{
-    Name = "CustomerSupportAgent",
-    SystemScoped = true
-});
-
-// Define workflow for handling user messages
-var conversationalWorkflow = agent.Workflows.DefineBuiltIn(
-    name: "Conversational", 
-    workers: 1
-);
-
-// Connect your agent logic to the workflow
-conversationalWorkflow.OnUserMessage(async (context) =>
-{
-    // Call YOUR agent implementation (any framework)
-    var response = await ConversationalAgent.ProcessMessageAsync(
-        context, 
-        openAiApiKey
-    );
-    
-    // Xians handles message delivery, threading, and state
-    await context.ReplyAsync(response);
-});
-```
-
-### Step 3: Add Schedules (Optional)
-
-Enable time-based agent activation:
-
-```csharp
-// Define a custom workflow for scheduled tasks
-var scheduledWorkflow = agent.Workflows.DefineCustom<DailyReportWorkflow>(
-    workers: 1
-);
-
-// Xians automatically provides schedule infrastructure
-// Your workflow can create schedules using built-in activities:
-await scheduledWorkflow.Schedules
-    .Create("daily-report")
-    .WithCronSchedule("0 9 * * *")  // 9 AM daily
-    .StartAsync();
-```
-
-### Step 4: Run Your Agent
-
-```csharp
-// Start all workflows - Xians handles message routing, 
-// scaling, and operational concerns
-await agent.RunAllAsync();
-```
-
-## Deployment Patterns
-
-### Pattern 1: Multi-Workflow Agent
-
-**One agent, multiple specialized workflows.**
-
-```csharp
-// Single agent with different workflows for different use cases
-var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
-{
-    Name = "CustomerServiceHub",
-    SystemScoped = true
-});
-
-// Conversational workflow for chat interactions
-var chatWorkflow = agent.Workflows.DefineBuiltIn("Conversational", workers: 3);
-
-// Web workflow for web-based interactions
-var webWorkflow = agent.Workflows.DefineBuiltIn("Web", workers: 2);
-
-// Custom workflow for background research
-var researchWorkflow = agent.Workflows.DefineCustom<ResearchWorkflow>(workers: 1);
-```
-
-**Use Case**: Different interaction patterns for the same logical agent (chat, web, scheduled tasks).
-
-### Pattern 2: Multi-Tenant Deployment
-
-**Same agent logic, isolated per tenant.**
-
-```csharp
-// System-scoped agent serves ALL tenants
-var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
-{
-    Name = "SharedAssistant",
-    SystemScoped = true  // Xians handles tenant isolation
-});
-
-// Each tenant gets isolated conversations, data, and context
-// Your agent logic remains the same
-conversationalWorkflow.OnUserMessage(async (context) =>
-{
-    // context.TenantId automatically provided by Xians
-    var response = await ProcessWithTenantContext(context);
-    await context.ReplyAsync(response);
-});
-```
-
-**Use Case**: SaaS applications where each customer needs their own agent instance.
-
-### Pattern 3: Framework Agnostic
-
-**Mix and match frameworks in the same deployment.**
-
-```csharp
-// One workflow using Microsoft Agent Framework
-var mafWorkflow = agent.Workflows.DefineBuiltIn("MAF-Powered", workers: 1);
-mafWorkflow.OnUserMessage(async (context) =>
-{
-    var response = await MyMAFAgent.ProcessAsync(context);
-    await context.ReplyAsync(response);
-});
-
-// Another workflow using LangChain
-var langchainWorkflow = agent.Workflows.DefineBuiltIn("LangChain-Powered", workers: 1);
-langchainWorkflow.OnUserMessage(async (context) =>
-{
-    var response = await MyLangChainAgent.ProcessAsync(context);
-    await context.ReplyAsync(response);
-});
-```
-
-**Use Case**: Evaluate different frameworks or use the best tool for each specific task.
-
-## Why This Architecture Matters
-
-### The Old Way: DIY Everything
-
-```text
-Agent Logic + Message Queues + State Management + Scheduling + 
-Tenant Isolation + Monitoring + Scaling + Deployment + ...
-```
-
-**Result**: Months building infrastructure instead of agent capabilities.
-
-### The Xians Way: Focus on Your Agent
-
-```text
-Your Agent Logic (any framework) → Xians Platform (handles everything else)
-```
-
-**Result**: Production-ready deployment in hours, not months.
-
-## Real-World Example
-
-### Before Xians: The Infrastructure Nightmare
-
-```csharp
-// Build your agent
-var agent = new MyAIAgent();
-
-// Now build everything else...
-var messageQueue = await SetupRabbitMQ();
-var stateStore = await SetupRedis();
-var scheduler = await SetupHangfire();
-
-// Handle message routing manually
-await messageQueue.Subscribe("user-messages", async msg =>
-{
-    // Parse tenant context
-    var tenantId = ExtractTenant(msg);
-    
-    // Load conversation state
-    var state = await stateStore.GetConversationState(msg.ThreadId);
-    
-    // Process with agent
-    var response = await agent.Process(msg, state);
-    
-    // Save state
-    await stateStore.SaveConversationState(msg.ThreadId, state);
-    
-    // Send response
-    await SendToUser(response, tenantId);
-});
-
-// Setup scheduled tasks manually
-await scheduler.Schedule(() => 
-{
-    // Figure out which tenant, which agent, which context...
-    await agent.PerformScheduledTask();
-}, "0 9 * * *");
-
-// And we haven't even touched deployment, scaling, monitoring...
-```
-
-### With Xians: Focus on Agent Logic
-
-```csharp
-// 1. Build your agent with ANY framework
-public class MyAgent
-{
-    public static async Task<string> ProcessAsync(
-        IUserMessageContext context,
-        string apiKey)
-    {
-        // Your AI logic here - use MAF, LangChain, whatever you want
-        return await YourFramework.Process(context.Message);
-    }
-}
-
-// 2. Connect to Xians
-var xians = await XiansPlatform.InitializeAsync(options);
-var agent = xians.Agents.Register(new XiansAgentRegistration
 {
     Name = "MyAgent",
-    SystemScoped = true
+    Version = "1.0.0",
+    Description = "My intelligent agent",
+    SystemScoped = true  // or false for tenant-specific
+});
+```
+
+### System-Scoped vs Tenant-Scoped
+
+| Type | Scope | Use Case | Deployment |
+|------|-------|----------|------------|
+| **System-Scoped** | Multi-tenant template | Reusable agents across tenants | Registered once, deployed to multiple tenants |
+| **Tenant-Scoped** | Single tenant | Tenant-specific customizations | Deployed to developer's tenant only |
+
+## Agent API Reference
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Name` | `string` | Unique identifier for the agent |
+| `Version` | `string?` | Optional version identifier |
+| `Description` | `string?` | Human-readable description |
+| `SystemScoped` | `bool` | Whether agent is multi-tenant template |
+| `Workflows` | `WorkflowCollection` | Collection of workflows |
+| `Knowledge` | `KnowledgeCollection` | Knowledge base management |
+| `Documents` | `DocumentCollection` | Document storage and retrieval |
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `GetBuiltInWorkflow(string? name)` | Get a built-in workflow by name (null for unnamed) |
+| `GetCustomWorkflow<T>()` | Get a custom workflow by type |
+| `GetAllWorkflows()` | Get all workflows for this agent |
+| `UploadWorkflowDefinitionsAsync()` | Upload workflow definitions to server |
+| `RunAllAsync(CancellationToken)` | Run all registered workflows |
+
+## Defining Workflows
+
+### Built-In
+
+Built-in workflows are ideal for message-driven patterns:
+
+```csharp
+// Define an unnamed built-in workflow
+var workflow = agent.Workflows.DefineBuiltIn();
+
+// Define a named built-in workflow
+var chatWorkflow = agent.Workflows.DefineBuiltIn(name: "ChatHandler");
+
+// Register message handler
+chatWorkflow.OnUserChatMessage(async (context) =>
+{
+    var userMessage = context.Message.Text;
+    var response = await ProcessMessage(userMessage);
+    await context.ReplyAsync(response);
 });
 
-// 3. Define workflow and connect your logic
-var workflow = agent.Workflows.DefineBuiltIn("Conversational", workers: 1);
-workflow.OnUserMessage(async (context) =>
+// Register data message handler
+chatWorkflow.OnUserDataMessage(async (context) =>
 {
-    // Xians automatically provides:
-    // - Tenant context (context.TenantId)
-    // - Conversation threading (context.ThreadId)
-    // - Message delivery guarantees
-    // - State management
+    var data = context.Message.Data;
+    await ProcessData(data);
+});
+```
+
+### Custom
+
+Custom workflows give you full Temporal capabilities:
+
+```csharp
+// Define custom workflow
+var customWorkflow = agent.Workflows.DefineCustom<MyCustomWorkflow>();
+
+// Add activities
+customWorkflow.AddActivity<MyActivity>();
+customWorkflow.AddActivity(new MyActivityInstance());
+
+// Add multiple activities
+customWorkflow.AddActivities(
+    new Activity1(),
+    new Activity2(),
+    new Activity3()
+);
+```
+
+#### Example Custom Workflow Class
+
+```csharp
+using Temporalio.Workflows;
+
+[Workflow]
+public class MyCustomWorkflow
+{
+    [WorkflowRun]
+    public async Task<string> RunAsync(WorkflowInput input)
+    {
+        // Execute activities
+        var result = await Workflow.ExecuteActivityAsync(
+            (MyActivity act) => act.ProcessAsync(input),
+            new() { StartToCloseTimeout = TimeSpan.FromMinutes(5) }
+        );
+        
+        // Wait for signals
+        await Workflow.WaitConditionAsync(() => signalReceived);
+        
+        return result;
+    }
     
-    var response = await MyAgent.ProcessAsync(context, apiKey);
-    await context.ReplyAsync(response);
-});
-
-// 4. Run it
-await agent.RunAllAsync();
-
-// That's it. Xians handles:
-// ✅ Message routing and queuing
-// ✅ Conversation state and threading
-// ✅ Tenant isolation
-// ✅ Scaling and worker management
-// ✅ Scheduled task infrastructure
-// ✅ Webhook integration
-// ✅ Monitoring and health checks
+    [WorkflowSignal]
+    public async Task HandleSignalAsync(SignalData data)
+    {
+        // Handle signal
+    }
+    
+    [WorkflowQuery]
+    public string GetStatus() => currentStatus;
+}
 ```
 
-## Framework Compatibility
+## Workflow API Reference
 
-Xians is **100% framework agnostic**. Build with:
+### Properties
 
-### Microsoft Agent Framework (MAF)
+| Property | Type | Description |
+|----------|------|-------------|
+| `WorkflowType` | `string` | Unique workflow type identifier (prefixed with agent name) |
+| `Name` | `string?` | Optional workflow name |
+| `Workers` | `int` | Number of worker instances |
+| `Schedules` | `ScheduleCollection?` | Scheduled execution management |
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `AddActivity(object)` | Register activity instance (shared across workers) |
+| `AddActivity<T>()` | Register activity type (new instance per worker) |
+| `AddActivities(params object[])` | Register multiple activity instances |
+| `OnUserChatMessage(Func<UserMessageContext, Task>)` | Register chat message handler (built-in only) |
+| `OnUserDataMessage(Func<UserMessageContext, Task>)` | Register data message handler (built-in only) |
+| `RunAsync(CancellationToken)` | Start workflow workers |
+
+## Message Context
+
+When handling messages in built-in workflows, you receive a `UserMessageContext`:
+
+### UserMessageContext Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Message` | `CurrentMessage` | The current message with text, data, and context information |
+| `Metadata` | `Dictionary<string, string>?` | Optional metadata for the message |
+| `SkipResponse` | `bool` | Set to true to prevent messages from being sent to the user |
+
+### UserMessageContext Methods
+
+| Method | Description |
+|--------|-------------|
+| `ReplyAsync(string text)` | Send a simple text reply |
+| `ReplyAsync(string text, object? data)` | Send a reply with text and data |
+| `SendDataAsync(object data, string? content)` | Send a data message with optional text |
+| `GetChatHistoryAsync(int page, int pageSize)` | Retrieve paginated chat history |
+| `GetLastHintAsync()` | Retrieve the last hint for this conversation |
+| `SendHandoffAsync(string targetWorkflowId, ...)` | Hand off conversation to another workflow |
+
+### CurrentMessage Properties
+
+All message properties are accessed via `context.Message`:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Text` | `string` | The text content of the message |
+| `ParticipantId` | `string` | The participant (user) ID |
+| `RequestId` | `string` | Unique request identifier |
+| `TenantId` | `string` | The tenant ID for multi-tenancy |
+| `Scope` | `string?` | Optional scope for the message |
+| `Hint` | `string?` | Optional hint for context |
+| `ThreadId` | `string?` | Thread ID for conversation tracking |
+| `Data` | `object?` | Associated data payload |
+| `Authorization` | `string?` | Authorization token if provided |
+
+### Accessing Agent Resources
+
+Agent resources (Knowledge, Documents, Workflows) are accessed via `XiansContext`:
 
 ```csharp
-// Your MAF agent
-var mafAgent = new AgentBuilder()
-    .WithModel("gpt-4")
-    .WithTools(...)
-    .Build();
-
-// Connect to Xians
-workflow.OnUserMessage(async (context) =>
-{
-    var response = await mafAgent.ExecuteAsync(context.Message);
-    await context.ReplyAsync(response);
-});
+// In workflow or activity context
+var agent = XiansContext.CurrentAgent;
+var workflow = XiansContext.CurrentWorkflow;
+var tenantId = XiansContext.TenantId;  // For system-scoped agents
 ```
 
-### LangChain
-
-```python
-# Your LangChain agent
-from langchain.agents import create_openai_functions_agent
-
-agent = create_openai_functions_agent(llm, tools, prompt)
-
-# Connect to Xians via SDK
-@workflow.on_user_message
-async def handle(context):
-    response = await agent.ainvoke({"input": context.message})
-    await context.reply(response)
-```
-
-### Semantic Kernel
+### Example Usage
 
 ```csharp
-// Your SK agent
-var kernel = Kernel.CreateBuilder()
-    .AddOpenAIChatCompletion(...)
-    .Build();
-
-// Connect to Xians
-workflow.OnUserMessage(async (context) =>
+chatWorkflow.OnUserChatMessage(async (context) =>
 {
-    var response = await kernel.InvokeAsync(context.Message);
-    await context.ReplyAsync(response);
+    // Access message data
+    var message = context.Message.Text;
+    var participantId = context.Message.ParticipantId;
+    var requestId = context.Message.RequestId;
+    var tenantId = context.Message.TenantId;
+    var threadId = context.Message.ThreadId;
+    var data = context.Message.Data;
+    
+    // Reply to user
+    await context.ReplyAsync("Hello!");
+    
+    // Reply with text and data
+    await context.ReplyAsync("Response text", new { key = "value" });
+    
+    // Send data message
+    await context.SendDataAsync(new { key = "value" }, "Optional text");
+    
+    // Access agent's knowledge via XiansContext
+    var agent = XiansContext.CurrentAgent;
+    var knowledgeItem = await agent.Knowledge.GetAsync("knowledge-name");
+    var allKnowledge = await agent.Knowledge.ListAsync();
+    
+    // Update knowledge
+    await agent.Knowledge.UpdateAsync("knowledge-name", "content", type: "instruction");
+    
+    // Access documents
+    var doc = await agent.Documents.GetAsync("doc-id");
+    
+    // Get chat history
+    var history = await context.GetChatHistoryAsync(page: 1, pageSize: 10);
 });
 ```
 
-### Raw OpenAI SDK
+## Workflow Scheduling (Self-Scheduling Pattern)
+
+Workflows can schedule themselves to run at specific times or intervals. This is done **inside the workflow** using `XiansContext.CurrentWorkflow.Schedules`:
+
+### Self-Scheduling Example
 
 ```csharp
-// Direct OpenAI calls
-var openAI = new OpenAIClient(apiKey);
+using Temporalio.Workflows;
+using Xians.Lib.Agents.Core;
+using Xians.Lib.Agents.Scheduling.Models;
 
-workflow.OnUserMessage(async (context) =>
+[Workflow("MyAgent:RecurringTask")]
+public class RecurringTaskWorkflow
 {
-    var response = await openAI.GetChatCompletionAsync(...);
-    await context.ReplyAsync(response.Content);
-});
+    [WorkflowRun]
+    public async Task RunAsync(string taskId, int intervalHours)
+    {
+        // At the start of the workflow, ensure a recurring schedule exists
+        await EnsureScheduleExists(taskId, intervalHours);
+        
+        // Perform the actual work
+        await DoWorkAsync(taskId);
+    }
+    
+    private async Task EnsureScheduleExists(string taskId, int intervalHours)
+    {
+        try
+        {
+            // Self-schedule using XiansContext.CurrentWorkflow
+            // Automatically uses activities when in workflow context!
+            var schedule = await XiansContext.CurrentWorkflow.Schedules!
+                .Create($"recurring-{taskId}")
+                .WithIntervalSchedule(TimeSpan.FromHours(intervalHours))
+                .WithInput(new object[] { taskId, intervalHours })
+                .StartAsync();
+            
+            Workflow.Logger.LogInformation(
+                "Schedule created - will run every {Hours} hours",
+                intervalHours);
+        }
+        catch (ScheduleAlreadyExistsException ex)
+        {
+            Workflow.Logger.LogInformation(
+                "Schedule already exists: {ScheduleId}",
+                ex.ScheduleId);
+        }
+    }
+    
+    private async Task DoWorkAsync(string taskId)
+    {
+        // Your workflow logic here
+        Workflow.Logger.LogInformation("Processing task: {TaskId}", taskId);
+    }
+}
 ```
 
-## Best Practices
+## Child Workflows
 
-**✅ DO:**
+Workflows can start and execute other workflows as child workflows using `XiansContext.Workflows`:
 
-- **Choose the right framework** for your agent logic—Xians supports them all
-- **Use SystemScoped** for multi-tenant deployments
-- **Leverage workflows** to separate concerns (chat vs. scheduled tasks vs. web interactions)
-- **Let Xians manage state** instead of building your own infrastructure
-- **Use built-in schedules** for time-based agent activation
-- **Test locally** with your framework, then deploy to Xians for production
+### Starting Child Workflows (Fire and Forget)
 
-**❌ DON'T:**
+Use `StartAsync` to start a child workflow without waiting for its completion:
 
-- **Build your own message queues**—Xians provides production-ready infrastructure
-- **Mix operational concerns with agent logic**—keep them separate
-- **Ignore tenant context**—always use `context.TenantId` for isolation
-- **Hardcode credentials**—use environment variables and Xians authentication
-- **Skip error handling** in your agent logic—Xians handles delivery, but your logic should be robust
+```csharp
+[Workflow("MyAgent:ParentWorkflow")]
+public class ParentWorkflow
+{
+    [WorkflowRun]
+    public async Task RunAsync(string taskId)
+    {
+        // Start child workflow by type - fire and forget
+        await XiansContext.Workflows.StartAsync<ChildWorkflow>(
+            idPostfix: taskId,
+            args: new object[] { "param1", "param2" }
+        );
+        
+        // Continue without waiting for child to complete
+        Workflow.Logger.LogInformation("Child workflow started");
+    }
+}
+```
 
-## Key Benefits of the Xians Approach
+### Executing Child Workflows (Wait for Result)
 
-### 🎨 **Framework Freedom**
+Use `ExecuteAsync` to execute a child workflow and wait for its result:
 
-Build with MAF today, switch to LangChain tomorrow. Xians doesn't care—it manages operations, not your AI logic.
+```csharp
+[Workflow("MyAgent:ParentWorkflow")]
+public class ParentWorkflow
+{
+    [WorkflowRun]
+    public async Task<string> RunAsync(string data)
+    {
+        // Execute child workflow and wait for result
+        var result = await XiansContext.Workflows.ExecuteAsync<ChildWorkflow, string>(
+            idPostfix: "process",
+            args: new object[] { data }
+        );
+        
+        return result;
+    }
+}
+```
 
-### 🏗️ **Production Infrastructure**
+### XiansContext.Workflows API Reference
 
-Message routing, state management, scheduling, tenant isolation—all handled by Xians out of the box.
+| Method | Description |
+|--------|-------------|
+| `StartAsync<TWorkflow>(string? idPostfix, params object[] args)` | Start child workflow by type without waiting |
+| `StartAsync(string workflowType, string? idPostfix, params object[] args)` | Start child workflow by type string without waiting |
+| `ExecuteAsync<TWorkflow, TResult>(string? idPostfix, params object[] args)` | Execute child workflow and wait for result |
+| `ExecuteAsync<TResult>(string workflowType, string? idPostfix, params object[] args)` | Execute child workflow by type string and wait for result |
 
-### 📈 **Built-in Scaling**
+**Notes:**
 
-Configure worker counts per workflow. Xians automatically manages load distribution and scaling.
-
-### 🔒 **Multi-Tenancy by Default**
-
-Deploy once, serve many tenants with complete data isolation and security.
-
-### ⚡ **Rapid Development**
-
-Focus on agent capabilities, not infrastructure. Get to production in hours, not months.
-
-## Going Deeper
-
-Your agents become even more powerful when you leverage Xians' full operational platform:
-
-- **[Workflows](workflows.md)**: Orchestrate complex agent processes with built-in and custom workflows
-- **[Messages](messages.md)**: Rich, stateful communication with automatic threading and context management
-- **[Knowledge](knowledge.md)**: Connect agents to your data with the document database
-- **Schedules**: Time-based agent activation with cron and interval schedules
-- **[Webhooks](webhooks.md)**: Trigger agents from external events and systems
-- **[Tenants](tenants.md)**: Multi-tenant deployment with complete isolation
-
----
-
-**The Bottom Line**: Xians is not an agent framework—it's the **operational platform** that makes your agents production-ready. Build with any framework you love, deploy with infrastructure you trust.
+- `idPostfix` is used to create unique workflow IDs (format: `{workflowType}-{idPostfix}`)
+- If `idPostfix` is null, a GUID is generated automatically
+- Throws `WorkflowAlreadyStartedException` if a workflow with the same ID is already running
+- Works both inside workflows (as child workflows) and outside workflows (as new workflows)

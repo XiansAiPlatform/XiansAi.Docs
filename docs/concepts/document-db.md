@@ -7,491 +7,335 @@ Your agents need to **remember things**. Customer profiles, order history, sessi
 ## The Data Storage Problem
 
 **Traditional Databases:**
-```
-Define rigid schema → Hope you got it right
-Need a new field? → Migration script, downtime, anxiety
-Nested data? → Junction tables, complex joins, headaches
-```
+
+- Define rigid schema → Hope you got it right
+- Need a new field? → Migration script, downtime, anxiety
 
 **Document DB:**
+
+- Store JSON documents → No schema needed
+- New field? → Just add it
+- Query flexibly → Find exactly what you need
+
+## Understanding Type and Key
+
+The foundation of Document DB is built on two critical fields:
+
+### Type: Your Document Categories
+
+`Type` is how you organize documents into logical groups. Think of it as your document's category:
+
+```csharp
+Type = "user-profile"     // Customer data
+Type = "session"          // Active sessions
+Type = "order"            // Purchase history
+Type = "preferences"      // User settings
+Type = "analytics-event"  // Event logs
 ```
-Store JSON documents → No schema needed
-New field? → Just add it
-Nested data? → Natural and simple
-Query flexibly → Find exactly what you need
+
+**Why it matters:**
+- Query all documents of a specific type
+- Organize your data semantically
+- Create natural data partitions per use case
+
+### Key: Your Semantic Identifier
+
+`Key` is a human-readable, business-meaningful identifier. Instead of random UUIDs, use keys that make sense:
+
+```csharp
+Key = "user-12345"           // User ID from your system
+Key = "session-abc-def"      // Session identifier
+Key = "order-2024-001"       // Order number
+Key = "config-email-smtp"    // Configuration name
 ```
 
-## Why Document DB Matters for AI Development
+**Why it matters:**
+- Instantly know what the document is
+- Debug easily in logs and dashboards
+- Retrieve without remembering random IDs
 
-### The Challenge: Agents Need Context Beyond Conversations
-AI agents are powerful, but they need structured data:
-- **Customer context**: Who are they? What's their history?
-- **Session state**: Where are we in a complex process?
-- **Business data**: Products, orders, inventory, analytics
-- **Agent memory**: Decisions made, actions taken
+### Type + Key: Powerful Lookup
 
-### The Solution: Schema-Less, AI-Friendly Storage
-Document DB provides:
-- **Flexible schema**: Store any structure without migrations
-- **Fast queries**: Find data instantly with indexes
-- **Tenant isolation**: Automatic data separation
-- **AI-native**: Perfect for unstructured, evolving data
+The real magic happens when you combine them:
 
-## Core Concepts
-
-### Documents Are Just JSON
-
-```typescript
-// Customer document
+```csharp
+// Save with Type + Key as unique identifier
+var doc = new Document
 {
-  _id: "cust_123",
-  _collection: "customers",
-  _tenantId: "acme-corp",
-  _createdAt: "2024-01-15T10:30:00Z",
-  
-  // Your data - any structure you want
-  name: "Jane Smith",
-  email: "jane@example.com",
-  plan: "enterprise",
-  tags: ["vip", "early-adopter"],
-  preferences: {
-    notifications: true,
-    theme: "dark"
-  },
-  purchaseHistory: [
-    { date: "2024-01-10", amount: 299.99 },
-    { date: "2024-02-15", amount: 499.99 }
-  ]
+    Type = "user-preferences",
+    Key = "user-12345",
+    Content = JsonSerializer.SerializeToElement(prefs)
+};
+
+await agent.Documents.SaveAsync(doc, new DocumentOptions
+{
+    UseKeyAsIdentifier = true,  // Type+Key becomes the unique identifier
+    Overwrite = true            // Update if already exists
+});
+
+// Retrieve directly with Type + Key
+var userPrefs = await agent.Documents.GetByKeyAsync("user-preferences", "user-12345");
+```
+
+**The Pattern:**
+```
+Type = "What kind of data?"
+Key = "Which specific instance?"
+Type + Key = "Exactly this document"
+```
+
+Each agent can have multiple document types, and each type can have many documents with unique keys. This creates a powerful, self-documenting data organization system.
+
+## Core Operations
+
+Every agent gets its own document collection. Documents are automatically scoped to your agent—no manual filtering required.
+
+### Save & Retrieve
+
+```csharp
+// Save any JSON-serializable data
+var profile = new Document
+{
+    Type = "user-profile",
+    Content = JsonSerializer.SerializeToElement(new
+    {
+        Name = "Alice",
+        Plan = "premium",
+        Credits = 1000
+    })
+};
+
+var saved = await agent.Documents.SaveAsync(profile);
+
+// Get it back
+var retrieved = await agent.Documents.GetAsync(saved.Id);
+```
+
+### Working with Type + Key
+
+Practical examples of the Type+Key pattern:
+
+```csharp
+// User preferences: One document per user
+await agent.Documents.SaveAsync(new Document
+{
+    Type = "user-preferences",
+    Key = $"user-{userId}",
+    Content = JsonSerializer.SerializeToElement(preferences)
+}, new DocumentOptions { UseKeyAsIdentifier = true, Overwrite = true });
+
+// Configuration: Named settings
+await agent.Documents.SaveAsync(new Document
+{
+    Type = "config",
+    Key = "email-templates",
+    Content = JsonSerializer.SerializeToElement(templates)
+}, new DocumentOptions { UseKeyAsIdentifier = true, Overwrite = true });
+
+// Retrieve by Type + Key - no GUID needed!
+var userPrefs = await agent.Documents.GetByKeyAsync("user-preferences", $"user-{userId}");
+var emailConfig = await agent.Documents.GetByKeyAsync("config", "email-templates");
+```
+
+### Query & Filter
+
+Find exactly what you need:
+
+```csharp
+// Query by type
+var activeUsers = await agent.Documents.QueryAsync(new DocumentQuery
+{
+    Type = "user-profile",
+    MetadataFilters = new Dictionary<string, object>
+    {
+        ["status"] = "active",
+        ["plan"] = "premium"
+    },
+    Limit = 50
+});
+```
+
+### Update & Delete
+
+```csharp
+// Update
+profile.Content = JsonSerializer.SerializeToElement(new { Credits = 500 });
+await agent.Documents.UpdateAsync(profile);
+
+// Delete one
+await agent.Documents.DeleteAsync(profileId);
+
+// Delete many
+await agent.Documents.DeleteManyAsync(new[] { id1, id2, id3 });
+
+// Check existence
+bool exists = await agent.Documents.ExistsAsync(profileId);
+```
+
+## Advanced Features
+
+### Time-to-Live (TTL)
+
+Auto-expire temporary data:
+
+```csharp
+var session = new Document
+{
+    Type = "session",
+    Content = JsonSerializer.SerializeToElement(new { Token = "abc123" })
+};
+
+await agent.Documents.SaveAsync(session, new DocumentOptions
+{
+    TtlMinutes = 60  // Expires in 1 hour
+});
+```
+
+### Metadata Enrichment
+
+Every document automatically includes:
+- `AgentId` - Scoped to your agent
+- `WorkflowId` - Linked to the workflow that created it (when applicable)
+- `CreatedAt`, `UpdatedAt` - Automatic timestamps
+- `ExpiresAt` - When TTL is set
+
+### Agent Isolation
+
+Documents are private to each agent. Agent A cannot access Agent B's documents—it's automatic:
+
+```csharp
+// Agent 1 saves a document
+var doc = await agent1.Documents.SaveAsync(myDoc);
+
+// Agent 2 tries to get it
+var result = await agent2.Documents.GetAsync(doc.Id);
+// Returns null - different agent, can't access
+```
+
+## Common Patterns
+
+### Document Organization by Type
+
+Here's how an e-commerce agent might organize its documents:
+
+```
+Agent: "OrderProcessingAgent"
+├── Type: "user-profile"
+│   ├── Key: "user-001" → { name, email, plan }
+│   ├── Key: "user-002" → { name, email, plan }
+│   └── Key: "user-003" → { name, email, plan }
+│
+├── Type: "order"
+│   ├── Key: "order-2024-001" → { items, total, status }
+│   ├── Key: "order-2024-002" → { items, total, status }
+│   └── Key: "order-2024-003" → { items, total, status }
+│
+├── Type: "session"
+│   ├── Key: "session-abc" → { userId, cart, expires }
+│   └── Key: "session-xyz" → { userId, cart, expires }
+│
+└── Type: "config"
+    ├── Key: "payment-gateway" → { apiKey, endpoint }
+    └── Key: "shipping-rates" → { zones, rates }
+```
+
+**Query examples:**
+```csharp
+// Get all orders
+var orders = await agent.Documents.QueryAsync(new DocumentQuery { Type = "order" });
+
+// Get specific user profile
+var profile = await agent.Documents.GetByKeyAsync("user-profile", "user-001");
+
+// Get configuration
+var paymentConfig = await agent.Documents.GetByKeyAsync("config", "payment-gateway");
+```
+
+### User Preferences Store
+
+```csharp
+public async Task SaveUserPreferences(string userId, object prefs)
+{
+    var doc = new Document
+    {
+        Type = "user-preferences",
+        Key = userId,
+        Content = JsonSerializer.SerializeToElement(prefs)
+    };
+    
+    await agent.Documents.SaveAsync(doc, new DocumentOptions
+    {
+        UseKeyAsIdentifier = true,
+        Overwrite = true
+    });
 }
 ```
 
-### Collections Organize Documents
+### Session Cache
 
-```
-Document DB
-├── customers       → Customer profiles
-├── orders          → Order history
-├── sessions        → User sessions
-├── agent-state     → Agent memory
-├── products        → Product catalog
-└── analytics       → Usage metrics
-```
-
-## Quick Start
-
-### Store Data
-
-```typescript
-// Create a customer record
-const customer = await xians.documentDB.insert("customers", {
-  name: "John Doe",
-  email: "john@example.com",
-  plan: "professional",
-  signupDate: new Date(),
-  metadata: {
-    source: "website",
-    campaign: "q4-2024"
-  }
-});
-
-// Document ID returned
-console.log(customer._id);  // "cust_xyz789"
-```
-
-### Query Data
-
-```typescript
-// Find VIP customers
-const vipCustomers = await xians.documentDB.find("customers", {
-  tags: { $contains: "vip" },
-  plan: "enterprise"
-});
-
-// Find by ID
-const customer = await xians.documentDB.findById("customers", "cust_123");
-
-// Complex queries
-const results = await xians.documentDB.find("orders", {
-  total: { $gt: 100, $lt: 1000 },
-  status: "completed",
-  createdAt: { $gte: startOfMonth }
-});
-```
-
-### Update Data
-
-```typescript
-// Update customer
-await xians.documentDB.updateById("customers", "cust_123", {
-  plan: "enterprise",  // Update field
-  tags: { $push: "premium" }  // Add to array
-});
-```
-
-## Why This Changes AI Development
-
-### Before Document DB: Manual Data Management
-
-```javascript
-// Manually manage database connections
-const pool = new Pool({ connectionString: DB_URL });
-
-// Write SQL for every query
-const result = await pool.query(
-  `SELECT * FROM customers 
-   WHERE plan = $1 AND tags @> $2`,
-  ['enterprise', ['vip']]
-);
-
-// Map rows to objects
-const customers = result.rows.map(row => ({
-  id: row.customer_id,
-  name: row.customer_name,
-  // ... manual mapping
-}));
-
-// Store complex nested data? Good luck.
-```
-
-### With Document DB
-
-```typescript
-// Just store and query
-const customers = await xians.documentDB.find("customers", {
-  plan: "enterprise",
-  tags: { $contains: "vip" }
-});
-
-// Nested data? No problem.
-// Complex structures? Natural.
-// Schema changes? Just do it.
-```
-
-## Powerful Patterns for AI Agents
-
-### Pattern 1: Agent Memory
-
-```typescript
-// Agent remembers decisions across conversations
-const conversationAgent = await xians.createAgent({
-  name: "SalesAgent",
-  
-  onMessage: async (message, context) => {
-    // Load agent memory for this customer
-    const memory = await xians.documentDB.findOne("agent-memory", {
-      customerId: message.userId,
-      agentId: "sales-agent"
-    });
-    
-    // Agent sees: what was discussed, decisions made, next steps
-    const response = await llm.chat({
-      message: message.content,
-      context: memory || {}
-    });
-    
-    // Update memory
-    await xians.documentDB.updateById("agent-memory", memory._id, {
-      lastInteraction: new Date(),
-      topics: { $push: response.topic },
-      nextSteps: response.nextSteps
-    });
-    
-    return response;
-  }
-});
-```
-
-### Pattern 2: Dynamic Context for Agents
-
-```typescript
-// Agent looks up customer context automatically
-const agent = await xians.createAgent({
-  name: "SupportAgent",
-  
-  beforeMessage: async (message) => {
-    // Enrich with customer data
-    const customer = await xians.documentDB.findOne("customers", {
-      email: message.userEmail
-    });
-    
-    const recentOrders = await xians.documentDB.find("orders", {
-      customerId: customer._id,
-      createdAt: { $gte: thirtyDaysAgo }
-    }, {
-      sort: { createdAt: -1 },
-      limit: 5
-    });
-    
-    // Agent gets full context automatically
-    return {
-      ...message,
-      customerContext: {
-        plan: customer.plan,
-        vip: customer.tags?.includes("vip"),
-        recentOrders: recentOrders
-      }
-    };
-  }
-});
-```
-
-### Pattern 3: Workflow State Persistence
-
-```typescript
-// Store complex workflow state
-const workflow = await xians.createWorkflow({
-  name: "CustomerOnboarding",
-  
-  onStep: async (step, data) => {
-    // Save state after each step
-    await xians.documentDB.updateById("workflow-state", data.executionId, {
-      currentStep: step.id,
-      stepData: {
-        [step.id]: data.output
-      },
-      updatedAt: new Date()
-    });
-  },
-  
-  onResume: async (executionId) => {
-    // Resume from saved state
-    const state = await xians.documentDB.findOne("workflow-state", {
-      executionId
-    });
-    
-    return state.stepData;
-  }
-});
-```
-
-## Querying Power
-
-### Rich Query Operators
-
-```typescript
-// Comparison
-const orders = await xians.documentDB.find("orders", {
-  total: { $gt: 100, $lt: 1000 },
-  status: { $in: ["pending", "processing"] },
-  createdAt: { $gte: startDate, $lte: endDate }
-});
-
-// Logical operators
-const customers = await xians.documentDB.find("customers", {
-  $or: [
-    { plan: "enterprise" },
-    { revenue: { $gt: 10000 } },
-    { tags: { $contains: "vip" } }
-  ]
-});
-
-// Nested fields
-const results = await xians.documentDB.find("customers", {
-  "address.country": "USA",
-  "metadata.verified": true,
-  "preferences.notifications": true
-});
-
-// Array operations
-const products = await xians.documentDB.find("products", {
-  tags: { $contains: "featured" },
-  categories: { $containsAny: ["electronics", "gadgets"] }
-});
-```
-
-### Aggregation for Analytics
-
-```typescript
-// Group and count
-const stats = await xians.documentDB.aggregate("orders", [
-  { $match: { status: "completed" } },
-  { 
-    $group: {
-      _id: "$customerId",
-      totalOrders: { $count: {} },
-      totalRevenue: { $sum: "$total" },
-      avgOrder: { $avg: "$total" }
-    }
-  },
-  { $sort: { totalRevenue: -1 } },
-  { $limit: 10 }
-]);
-
-// Top customers by revenue
-console.log(stats);
-```
-
-## Real-World Examples
-
-### E-Commerce Agent with Product Catalog
-
-```typescript
-// Agent queries product database
-const productAgent = await xians.createAgent({
-  name: "ProductRecommendationAgent",
-  
-  tools: [{
-    name: "searchProducts",
-    handler: async ({ query, filters }) => {
-      return await xians.documentDB.find("products", {
-        $text: { $search: query },
-        inStock: true,
-        price: filters.priceRange,
-        categories: { $containsAny: filters.categories }
-      }, {
-        limit: 10,
-        sort: { popularity: -1 }
-      });
-    }
-  }],
-  
-  systemPrompt: `You help customers find products. Use searchProducts 
-  to look up our catalog and make personalized recommendations.`
-});
-
-// Agent can now intelligently search products
-const response = await productAgent.chat({
-  message: "I need wireless headphones under $200"
-});
-```
-
-### Session State Management
-
-```typescript
-// Multi-step form with AI assistance
-const formAgent = await xians.createAgent({
-  name: "FormAssistant",
-  
-  onMessage: async (message, context) => {
-    // Load session state
-    const session = await xians.documentDB.findOne("sessions", {
-      sessionId: context.sessionId
-    }) || {
-      sessionId: context.sessionId,
-      currentStep: 1,
-      formData: {}
-    };
-    
-    // Process current step
-    const stepResult = await processStep(message, session.currentStep);
-    
-    // Update session
-    session.formData[`step${session.currentStep}`] = stepResult;
-    session.currentStep += 1;
-    
-    await xians.documentDB.upsert("sessions", 
-      { sessionId: context.sessionId },
-      session
-    );
-    
-    return {
-      message: `Great! Moving to step ${session.currentStep}...`,
-      progress: `${session.currentStep} of 5`
-    };
-  }
-});
-```
-
-## Performance: Indexes
-
-### Speed Up Queries
-
-```typescript
-// Create index on frequently queried fields
-await xians.documentDB.createIndex("customers", {
-  field: "email",
-  unique: true  // Enforce uniqueness
-});
-
-// Compound index for complex queries
-await xians.documentDB.createIndex("orders", {
-  fields: ["customerId", "status", "createdAt"],
-  name: "customer_orders_idx"
-});
-
-// Text index for search
-await xians.documentDB.createIndex("products", {
-  field: "description",
-  type: "text"
-});
-
-// Now queries are fast
-```
-
-## Best Practices
-
-**✅ Use Metadata Richly**
-```typescript
-// Good - Rich metadata for flexible queries
+```csharp
+var session = new Document
 {
-  _id: "order_123",
-  customerId: "cust_456",
-  status: "completed",
-  tags: ["express", "vip"],
-  metadata: {
-    source: "mobile-app",
-    campaign: "summer-sale",
-    priority: "high"
-  }
-}
-```
+    Type = "session",
+    Key = sessionId,
+    Content = JsonSerializer.SerializeToElement(sessionData)
+};
 
-**✅ Index Frequently Queried Fields**
-```typescript
-// If you query by customerId often
-await xians.documentDB.createIndex("orders", {
-  field: "customerId"
+await agent.Documents.SaveAsync(session, new DocumentOptions
+{
+    UseKeyAsIdentifier = true,
+    TtlMinutes = 30,  // Auto-cleanup
+    Overwrite = true
 });
 ```
 
-**✅ Use Pagination for Large Results**
-```typescript
-const page1 = await xians.documentDB.find("orders", 
-  { status: "completed" },
-  { limit: 50, skip: 0 }
-);
+### Event Log
 
-const page2 = await xians.documentDB.find("orders",
-  { status: "completed" },
-  { limit: 50, skip: 50 }
-);
+```csharp
+var event = new Document
+{
+    Type = "analytics-event",
+    Content = JsonSerializer.SerializeToElement(new
+    {
+        Event = "purchase",
+        UserId = userId,
+        Amount = 99.99,
+        Timestamp = DateTime.UtcNow
+    }),
+    Metadata = new Dictionary<string, object>
+    {
+        ["category"] = "revenue",
+        ["priority"] = "high"
+    }
+};
+
+await agent.Documents.SaveAsync(event);
 ```
 
-**❌ Don't Store Huge Documents**
-Keep documents under 1MB. Split large data into separate documents.
+**Golden Rule:** If you can describe your data as "I need the `{Type}` for `{Key}`", you're doing it right.
 
-**❌ Don't Over-Nest**
-```typescript
-// Bad - too deep
-customer.orders[0].items[0].product.category.parent.grandparent
+Examples:
 
-// Good - reference instead
-customer.orderIds → separate orders collection
-```
+- "I need the **user-profile** for **user-12345**"
+- "I need the **session** for **session-abc-123**"  
+- "I need the **config** for **email-smtp**"
 
-## Tenant Isolation: Automatic
+## What You Get
 
-```typescript
-// When operating in tenant context
-const tenant = xians.tenant("acme-corp");
+- **Schema-less** - Store any JSON structure  
+- **Auto-scoped** - Documents isolated per agent  
+- **Type-based categorization** - Organize by document type  
+- **Semantic keys** - Human-readable identifiers  
+- **Type + Key lookup** - Direct retrieval without GUIDs  
+- **Queryable** - Filter by type, metadata, keys  
+- **TTL Support** - Auto-expire temporary data  
+- **Scalable** - Handles small configs to large datasets  
+- **Type-safe** - Full C# typing with `JsonSerializer`
 
-// All queries automatically scoped to tenant
-const customers = await tenant.documentDB.find("customers", {});
-// Returns ONLY acme-corp customers
+## What It's NOT
 
-// Impossible to accidentally query another tenant's data
-```
+- Not a relational database (no joins)  
+- Not for large binary files (use blob storage)  
+- Not for high-frequency writes (use caching layers)
 
-## Integration Points
-
-Document DB powers the entire platform:
-
-- **[Agents](agents.md)**: Store agent memory and context
-- **[Workflows](workflows.md)**: Persist workflow state
-- **[Messages](messages.md)**: Enrich messages with business data
-- **[Knowledge](knowledge.md)**: Different use case - semantic search vs structured queries
-- **[Tenants](tenants.md)**: Automatic tenant isolation
-
----
-
-**The Bottom Line**: Document DB gives your AI agents a flexible, queryable memory. It's the structured data layer that makes agents context-aware, intelligent, and useful beyond simple Q&A.
+Document DB is your agent's **persistent memory**. Use it for configuration, state, user data, and anything your agent needs to remember between executions.

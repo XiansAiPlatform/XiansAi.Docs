@@ -1,4 +1,4 @@
-# Control Plane for AI Agents
+# AI Agent Control Center
 
 <div style="text-align: left; padding: 0rem 0;">
   <p style="font-size: 1rem; color: var(--xians-text-secondary); max-width: 800px;">
@@ -17,19 +17,9 @@
   <img src="assets/images/xians-screenshot.png" alt="Xians Platform - Deployed Agents Dashboard" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--xians-border-medium); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
 </div>
 
-## Quick Links
-
-### Documentation Sections
-
-- **[Getting Started](getting-started/installation/)** - Set up your development environment and create your first agent
-- **[User Guide](user-guide/overview/)** - Comprehensive guides for building and deploying agents
-- **[API Reference](api-reference/overview/)** - Detailed API documentation
-- **Contributing** - Learn how to contribute to the project
-
-### Useful Resources
+## Useful Resources
 
 - [GitHub Organization](https://github.com/XiansAiPlatform)
-- [Discord Community](https://discord.gg/xians)
 - [Official Website](https://xians.ai)
 
 ---
