@@ -5,10 +5,6 @@
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://xians.ai/api-reference/overview/</loc>
-         <lastmod>2026-01-03</lastmod>
-    </url>
-    <url>
          <loc>https://xians.ai/concepts/A2A/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
@@ -29,6 +25,10 @@
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
+         <loc>https://xians.ai/concepts/overview/</loc>
+         <lastmod>2026-01-03</lastmod>
+    </url>
+    <url>
          <loc>https://xians.ai/concepts/replying/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
@@ -45,15 +45,15 @@
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://xians.ai/deep-dive/scheduling-deepdive/</loc>
-         <lastmod>2026-01-03</lastmod>
-    </url>
-    <url>
          <loc>https://xians.ai/getting-started/chat-history/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
          <loc>https://xians.ai/getting-started/installation/</loc>
+         <lastmod>2026-01-03</lastmod>
+    </url>
+    <url>
+         <loc>https://xians.ai/getting-started/overview/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
@@ -70,6 +70,10 @@
     </url>
     <url>
          <loc>https://xians.ai/introduction/features/</loc>
+         <lastmod>2026-01-03</lastmod>
+    </url>
+    <url>
+         <loc>https://xians.ai/introduction/overview/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
