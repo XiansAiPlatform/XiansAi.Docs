@@ -1,87 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://docs.xians.ai/</loc>
+         <loc>https://xians.ai/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/api-reference/overview/</loc>
+         <loc>https://xians.ai/api-reference/overview/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/A2A/</loc>
+         <loc>https://xians.ai/concepts/A2A/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/agents/</loc>
+         <loc>https://xians.ai/concepts/agents/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/document-db/</loc>
+         <loc>https://xians.ai/concepts/document-db/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/hitl-tasks/</loc>
+         <loc>https://xians.ai/concepts/hitl-tasks/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/knowledge/</loc>
+         <loc>https://xians.ai/concepts/knowledge/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/replying/</loc>
+         <loc>https://xians.ai/concepts/replying/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/scheduling/</loc>
+         <loc>https://xians.ai/concepts/scheduling/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/concepts/sdk-patterns/</loc>
+         <loc>https://xians.ai/concepts/sdk-patterns/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/contributing/how-to-contribute/</loc>
+         <loc>https://xians.ai/contributing/how-to-contribute/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/deep-dive/scheduling-deepdive/</loc>
+         <loc>https://xians.ai/deep-dive/scheduling-deepdive/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/getting-started/chat-history/</loc>
+         <loc>https://xians.ai/getting-started/chat-history/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/getting-started/installation/</loc>
+         <loc>https://xians.ai/getting-started/installation/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/getting-started/quick-start/</loc>
+         <loc>https://xians.ai/getting-started/quick-start/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/getting-started/tool-execution/</loc>
+         <loc>https://xians.ai/getting-started/tool-execution/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/includes/abbreviations/</loc>
+         <loc>https://xians.ai/includes/abbreviations/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/introduction/features/</loc>
+         <loc>https://xians.ai/introduction/features/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/introduction/where-does-it-fit/</loc>
+         <loc>https://xians.ai/introduction/where-does-it-fit/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/sdk-reference/scheduling-sdk/</loc>
+         <loc>https://xians.ai/sdk-reference/scheduling-sdk/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
     <url>
-         <loc>https://docs.xians.ai/user-guide/overview/</loc>
+         <loc>https://xians.ai/user-guide/overview/</loc>
          <lastmod>2026-01-03</lastmod>
     </url>
 </urlset>
