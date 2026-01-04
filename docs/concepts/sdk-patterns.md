@@ -1,6 +1,6 @@
 # SDK Access Patterns
 
-The Xians SDK is designed around **explicit ownership**—every operation is accessed through its logical owner. No confusion, no guessing. Just four simple access patterns that cover everything.
+The Xians SDK is designed around **explicit ownership** - every operation is accessed through its logical owner. No confusion, no guessing. Just four simple access patterns that cover everything.
 
 ## Quick Reference
 
@@ -43,7 +43,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 
 ### 2. **CurrentAgent** → For Agent-Level Data
 
-Access knowledge and documents—data that belongs to your agent across all workflows.
+Access knowledge and documents - data that belongs to your agent across all workflows.
 
 ```csharp
 // Search agent's knowledge base
@@ -87,7 +87,7 @@ var taskQueue = XiansContext.CurrentWorkflow.TaskQueue;
 
 ### 4. **XiansContext** → For Cross-Cutting Operations
 
-Access orchestration features—messaging, sub-workflows, and agent/workflow discovery.
+Access orchestration features - messaging, sub-workflows, and agent/workflow discovery.
 
 ```csharp
 // Start a sub-workflow

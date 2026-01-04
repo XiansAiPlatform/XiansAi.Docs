@@ -2,7 +2,7 @@
 
 ## Flexible Data Storage for AI
 
-Your agents need to **remember things**. Customer profiles, order history, session data, analytics—structured information that doesn't fit neatly into prompts. Document DB gives your agents a schema-less, queryable memory that scales.
+Your agents need to **remember things**. Customer profiles, order history, session data, analytics - structured information that doesn't fit neatly into prompts. Document DB gives your agents a schema-less, queryable memory that scales.
 
 ## The Data Storage Problem
 
@@ -88,7 +88,7 @@ Each agent can have multiple document types, and each type can have many documen
 
 ## Core Operations
 
-Every agent gets its own document collection. Documents are automatically scoped to your agent—no manual filtering required.
+Every agent gets its own document collection. Documents are automatically scoped to your agent - no manual filtering required.
 
 ### Save & Retrieve
 
@@ -201,7 +201,7 @@ Every document automatically includes:
 
 ### Agent Isolation
 
-Documents are private to each agent. Agent A cannot access Agent B's documents—it's automatic:
+Documents are private to each agent. Agent A cannot access Agent B's documents - it's automatic:
 
 ```csharp
 // Agent 1 saves a document

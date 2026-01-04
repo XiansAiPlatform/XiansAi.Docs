@@ -1,6 +1,6 @@
 # Agent-to-Agent (A2A) Communication
 
-A2A enables workflows to communicate with each other—whether sending chat messages, data payloads, or invoking Temporal operations like signals, queries, and updates.
+A2A enables workflows to communicate with each other - whether sending chat messages, data payloads, or invoking Temporal operations like signals, queries, and updates.
 
 ## Overview
 

@@ -2,11 +2,11 @@
 
 ## Give Your Agents Domain Expertise
 
-LLMs are smart, but they don't know **your** business. Your products, your policies, your documentation. Knowledge bases solve this through **Retrieval-Augmented Generation (RAG)**—letting agents search your content and ground their answers in your truth.
+LLMs are smart, but they don't know **your** business. Your products, your policies, your documentation. Knowledge bases solve this through **Retrieval-Augmented Generation (RAG)** - letting agents search your content and ground their answers in your truth.
 
 ## What is Agent Knowledge?
 
-Every agent has its own **private knowledge base**—a key-value store for information your agent needs to remember and retrieve. Think of it as your agent's memory:
+Every agent has its own **private knowledge base** - a key-value store for information your agent needs to remember and retrieve. Think of it as your agent's memory:
 
 - **System instructions** that users create to customize agent behavior
 - **Product catalogs** for a sales agent
@@ -14,7 +14,7 @@ Every agent has its own **private knowledge base**—a key-value store for infor
 - **User preferences** for a personalization agent
 - **Workflow instructions** for complex processes
 
-Knowledge is **automatically scoped** to each agent. Agent A can't access Agent B's knowledge—perfect for multi-tenant applications.
+Knowledge is **automatically scoped** to each agent. Agent A can't access Agent B's knowledge - perfect for multi-tenant applications.
 
 ## Managing Knowledge
 
@@ -73,7 +73,7 @@ var deleted = await agent.Knowledge.DeleteAsync("old-policy");
 
 ## Knowledge in Workflows
 
-Knowledge operations work seamlessly **inside workflows**—the SDK automatically handles context switching:
+Knowledge operations work seamlessly **inside workflows** - the SDK automatically handles context switching:
 
 ```csharp
 [Workflow("CustomerSupport:HandleTicket")]

@@ -4,7 +4,7 @@ Human-in-the-Loop (HITL) tasks are a special type of workflow that enable seamle
 
 ## Overview
 
-HITL tasks are the foundation of human-agent collaboration in Xians. When a workflow needs human input—whether to approve content, provide feedback, or make a decision—it creates a task that waits for human interaction. The task can be:
+HITL tasks are the foundation of human-agent collaboration in Xians. When a workflow needs human input - whether to approve content, provide feedback, or make a decision - it creates a task that waits for human interaction. The task can be:
 
 - **Approved** - Human accepts the work and workflow continues
 - **Rejected** - Human rejects with a reason, workflow handles accordingly  
