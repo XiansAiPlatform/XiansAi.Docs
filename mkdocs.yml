@@ -23,6 +23,7 @@ nav:
     - Scheduling: concepts/scheduling.md
     - Agent-to-Agent (A2A): concepts/A2A.md
     - Human-in-the-Loop: concepts/hitl-tasks.md
+    - Webhooks: concepts/webhook.md
 
 site_name: Xians.ai Documentation
 site_description: Enterprise-grade Agent Development Kit for building, deploying, and orchestrating AI agents
