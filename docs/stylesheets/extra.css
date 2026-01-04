@@ -131,7 +131,7 @@
   border-bottom: 1px solid var(--xians-border-medium);
   backdrop-filter: blur(10px);
   transition: all var(--xians-transition-base);
-  padding-top: 0.75rem;
+  padding-top: 0.35rem;
   padding-bottom: 0;
   min-height: auto;
 }
@@ -148,7 +148,7 @@
 }
 
 .md-header__title {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   font-weight: 400;
   cursor: pointer;
   color: var(--xians-text-primary) !important;
@@ -236,12 +236,13 @@
   background: var(--xians-bg-primary);
   border-bottom: 1px solid var(--xians-border-light);
   backdrop-filter: blur(10px);
-  padding-top: 0.5rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0;
 }
 
 .md-tabs__link {
   font-weight: 500;
-  font-size: 0.8125rem;
+  font-size: 0.7rem;
   color: var(--xians-text-secondary) !important;
   text-transform: none;
   letter-spacing: 0.01em;
@@ -275,7 +276,7 @@
 
 /* Sidebar navigation */
 .md-nav {
-  font-size: 0.8125rem;
+  font-size: 0.7rem;
 }
 
 .md-nav__title {
@@ -337,22 +338,24 @@
    CONTENT STYLING - Enhanced typography and spacing
    ========================================================================== */
 .md-content {
-  font-size: 1rem;
-  line-height: 1.75;
+  font-size: 0.85rem;
+  line-height: 1.65;
   color: var(--xians-text-primary);
 }
 
 .md-content__inner {
-  margin-top: var(--xians-space-lg);
+  margin-top: 0;
+  padding-top: 0.25rem;
 }
 
 /* Headings with gradient accent */
 .md-content h1 {
-  font-size: 2.75rem;
+  font-size: 2rem;
   font-weight: 800;
   line-height: 1.1;
   color: var(--xians-text-primary);
   letter-spacing: -0.03em;
+  margin-top: 0;
   margin-bottom: var(--xians-space-lg);
   position: relative;
   padding-bottom: var(--xians-space-md);
@@ -370,7 +373,7 @@
 }
 
 .md-content h2 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.3;
   color: var(--xians-text-primary);
@@ -383,7 +386,7 @@
 }
 
 .md-content h3 {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 700;
   line-height: 1.4;
   color: var(--xians-text-primary);
@@ -394,7 +397,7 @@
 }
 
 .md-content h4 {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.5;
   color: var(--xians-text-primary);
@@ -405,7 +408,7 @@
 
 .md-content h5,
 .md-content h6 {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.5;
   color: var(--xians-text-secondary);
@@ -417,7 +420,7 @@
 /* Paragraphs and text */
 .md-content p {
   margin-bottom: var(--xians-space-md);
-  line-height: 1.8;
+  line-height: 1.65;
 }
 
 .md-content strong {
@@ -508,7 +511,7 @@
   padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
   font-family: var(--xians-font-mono);
-  font-size: 0.875em;
+  font-size: 0.75em;
   border: 1px solid var(--xians-border-medium);
 }
 
@@ -527,7 +530,7 @@
   color: #e5e7eb !important;
   padding: 0;
   border: none;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   line-height: 1.6;
 }
 
@@ -707,7 +710,7 @@
 .md-typeset .admonition-title,
 .md-typeset summary {
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin-bottom: var(--xians-space-sm);
@@ -903,7 +906,7 @@
 }
 
 .md-nav--secondary .md-nav__link {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--xians-text-muted);
   padding: 0.375rem 0.5rem;
 }
@@ -1048,7 +1051,7 @@
 }
 
 .md-banner__inner {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .md-banner__button {
@@ -1115,7 +1118,7 @@
 .md-content .card h3 {
   margin-top: 0;
   color: var(--xians-primary);
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .md-content .card-icon {
@@ -1138,11 +1141,11 @@
   }
   
   .md-content h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
   
   .md-content h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
   
   .md-content .card-grid {
@@ -1301,7 +1304,7 @@ input:focus-visible,
 .md-path {
   color: var(--xians-text-muted);
   font-size: 0.75rem;
-  margin-bottom: var(--xians-space-md);
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: var(--xians-space-xs);
@@ -1446,6 +1449,7 @@ input:focus-visible,
 .md-typeset .task-list-item {
   list-style: none;
   padding-left: 0;
+  font-size: 0.85rem;
 }
 
 .md-typeset .task-list-control {
@@ -1455,7 +1459,7 @@ input:focus-visible,
 /* Footnotes */
 .md-typeset .footnote {
   color: var(--xians-text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .md-typeset .footnote-ref {
@@ -1470,6 +1474,92 @@ input:focus-visible,
   background: var(--xians-gradient-hero);
   color: white;
   padding: var(--xians-space-2xl) var(--xians-space-lg);
+  border-radius: var(--xians-radius-xl);
+  margin: var(--xians-space-xl) 0;
+  text-align: center;
+  box-shadow: var(--xians-shadow-xl);
+}
+
+.hero h1 {
+  color: white;
+  margin-bottom: var(--xians-space-md);
+}
+
+.hero p {
+  font-size: 1rem;
+  opacity: 0.95;
+  margin-bottom: var(--xians-space-lg);
+}
+
+.hero .md-button {
+  margin: var(--xians-space-sm);
+}
+
+/* ==========================================================================
+   PERFORMANCE OPTIMIZATIONS
+   ========================================================================== */
+.md-content img {
+  border-radius: var(--xians-radius-md);
+  box-shadow: var(--xians-shadow-md);
+  /* Removed hover animation and scaling */
+}
+
+/* Lazy loading placeholder */
+img[loading="lazy"] {
+  background-color: var(--xians-bg-tertiary);
+}
+
+/* ==========================================================================
+   VIEW AND EDIT ICONS (CONTENT ACTIONS)
+   ========================================================================== */
+/* Ensure view and edit action buttons are visible and clickable */
+.md-content__button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0.25rem;
+  padding: 0.5rem;
+  background-color: var(--xians-bg-secondary);
+  border: 1px solid var(--xians-border-medium);
+  border-radius: var(--xians-radius-md);
+  color: var(--xians-text-secondary) !important;
+  transition: all var(--xians-transition-fast);
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.md-content__button:hover {
+  background-color: var(--xians-primary);
+  border-color: var(--xians-primary);
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: var(--xians-shadow-md);
+}
+
+.md-content__button:active {
+  transform: translateY(0);
+  box-shadow: var(--xians-shadow-sm);
+}
+
+/* Ensure icons within buttons are visible and properly sized */
+.md-content__button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: currentColor;
+  display: block;
+}
+
+/* ==========================================================================
+   END OF STYLES
+   ========================================================================== */
+
+
   border-radius: var(--xians-radius-xl);
   margin: var(--xians-space-xl) 0;
   text-align: center;
