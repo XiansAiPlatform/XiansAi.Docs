@@ -40,7 +40,7 @@ dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
 
 Create a new file called `MafSubAgent.cs`:
 
-> **Note:** We call this class `MafSubAgent`, not `MafAgent`, because production-grade agentic applications typically comprise multiple sub-agents. When you create an agent with Xians, it can have multiple workflows attached to different sub-agents. You'll see this pattern in the following examples. 
+> **Note:** We call this class `MafSubAgent`, not `MafAgent`, because production-grade agentic applications typically comprise multiple sub-agents. When you create an agent with Xians, it can have multiple workflows attached to different sub-agents. You'll see this pattern in the following examples.
 
 ```bash
 touch MafSubAgent.cs
@@ -84,10 +84,8 @@ public class MafSubAgent
 Replace the contents of `Program.cs` with:
 
 ```csharp
-using Xians.SimpleAgent;
-
-// Get OpenAI API key (replace with your actual key)
-var apiKey = "your-openai-api-key";
+// Get OpenAI API key (replace with your actual key or use environment variable)
+var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "your-openai-api-key";
 
 // Create the agent
 var agent = new MafSubAgent(apiKey);
@@ -96,6 +94,8 @@ var agent = new MafSubAgent(apiKey);
 var response = await agent.RunAsync("Hello! Can you write a one sentence story about a cat?");
 Console.WriteLine($"Agent: {response}");
 ```
+
+> **Tip:** You can set the `OPENAI_API_KEY` environment variable instead of hardcoding it. This is good practice even for simple tests.
 
 ### Test Your Agent
 
@@ -134,14 +134,101 @@ Before proceeding, you need to:
 
 ![Xians API Key Location](../assets/images/xians-apikey.png)
 
-### Update Program.cs
+### Configuration Options
+
+You can configure your agent's credentials in two ways:
+
+#### Option 1: Direct Configuration (Quick Testing)
+
+For quick testing and demos, you can hardcode the values directly in your code.
+
+#### Option 2: Using .env File (Recommended)
+
+For better security and maintainability, use a `.env` file to manage your configuration. This prevents accidentally committing sensitive API keys to version control.
+
+**Install the DotNetEnv package:**
+
+```bash
+dotnet add package DotNetEnv
+```
+
+**Create a `.env` file** in the root of your project:
+
+```bash
+# OpenAI Configuration
+OPENAI_API_KEY=your-openai-api-key
+
+# Xians Platform Configuration
+XIANS_SERVER_URL=https://your-xians-server.com
+XIANS_API_KEY=your-xians-api-key
+```
+
+**Add `.env` to your `.gitignore`** to prevent committing secrets:
+
+```bash
+echo ".env" >> .gitignore
+```
+
+> **Security Tip:** Never commit your `.env` file to version control. Always add it to `.gitignore` to protect your API keys.
+
+### Configure and Connect to Xians
 
 Replace the entire contents of `Program.cs` with the following:
+
+**Using .env file (Recommended):**
+
+```csharp
+using DotNetEnv;
+using Xians.Lib.Agents.Core;
+
+// Load environment variables from .env file
+Env.Load();
+
+// Get configuration from environment variables
+var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") 
+    ?? throw new InvalidOperationException("OPENAI_API_KEY not found in environment variables");
+var serverUrl = Environment.GetEnvironmentVariable("XIANS_SERVER_URL") 
+    ?? throw new InvalidOperationException("XIANS_SERVER_URL not found in environment variables");
+var xiansApiKey = Environment.GetEnvironmentVariable("XIANS_API_KEY") 
+    ?? throw new InvalidOperationException("XIANS_API_KEY not found in environment variables");
+
+// Initialize Xians Platform
+var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
+{
+    ServerUrl = serverUrl,
+    ApiKey = xiansApiKey
+});
+
+// Register a new agent with Xians
+var xiansAgent = xiansPlatform.Agents.Register(new ()
+{
+    Name = "My Conversational Agent",
+    SystemScoped = true  // See important notes below
+});
+
+// Define a built-in conversational workflow
+var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
+
+// Create your MAF agent instance
+var mafSubAgent = new MafSubAgent(openAiApiKey);
+
+// Handle incoming user messages
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    var response = await mafSubAgent.RunAsync(context.Message.Text);
+    await context.Messages.ReplyAsync(response);
+});
+
+// Start the agent and all workflows
+await xiansAgent.RunAllAsync();
+```
+
+**Or using direct configuration (for quick testing):**
 
 ```csharp
 using Xians.Lib.Agents.Core;
 
-// Configuration - replace with your actual values
+// Configuration - replace with your actual values (not recommended for production)
 var openAiApiKey = "your-openai-api-key";
 var serverUrl = "https://your-xians-server.com";
 var xiansApiKey = "your-xians-api-key";
