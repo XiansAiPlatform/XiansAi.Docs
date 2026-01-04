@@ -1,15 +1,15 @@
 # SDK Access Patterns
 
-The Xians SDK is designed around **explicit ownership** - every operation is accessed through its logical owner. No confusion, no guessing. Just four simple access patterns that cover everything.
+The Xians SDK is designed around **explicit ownership**—every operation is accessed through its logical owner. No confusion, no guessing. Just four simple access patterns that cover everything.
 
 ## Quick Reference
 
 | Access Pattern | What It's For | Available In | Common Examples |
 |----------------|---------------|--------------|-----------------|
-| **`UserMessageContext`** | Message-specific operations | Message handlers only | `context.Messages.ReplyAsync()`<br>`context.Messages.GetHistoryAsync()` |
+| **`UserMessageContext`** | Message-specific operations | Message handlers only | `context.ReplyAsync()`<br>`context.GetChatHistoryAsync()` |
 | **`CurrentAgent`** | Agent-level data | All workflows | `XiansContext.CurrentAgent.Knowledge.SearchAsync()`<br>`XiansContext.CurrentAgent.Documents.SaveAsync()` |
 | **`CurrentWorkflow`** | Workflow-level operations | All workflows | `XiansContext.CurrentWorkflow.Schedules.Create()`<br>`XiansContext.CurrentWorkflow.WorkflowId` |
-| **`XiansContext`** | Cross-cutting orchestration | All workflows | `XiansContext.Messaging.SendChatAsync()`<br>`XiansContext.Messaging.A2A.SendMessageAsync()`<br>`XiansContext.Workflows.StartAsync<T>()`<br>`XiansContext.GetAgent()` / `GetWorkflow()` |
+| **`XiansContext`** | Cross-cutting orchestration | All workflows | `XiansContext.Messaging.SendChatAsync()`<br>`XiansContext.A2A.SendChatAsync()`<br>`XiansContext.Workflows.StartAsync<T>()`<br>`XiansContext.GetAgent()` / `GetWorkflow()` |
 
 ## The Four Access Patterns
 
@@ -21,18 +21,21 @@ When handling user messages in built-in workflows, use the `UserMessageContext` 
 conversationalWorkflow.OnUserChatMessage(async (context) => 
 {
     // Message metadata
-    var userId = context.ParticipantId;
-    var threadId = context.ThreadId;
+    var userId = context.Message.ParticipantId;
+    var threadId = context.Message.ThreadId;
     
     // Reply to THIS message
-    await context.Messages.ReplyAsync("Response");
+    await context.ReplyAsync("Response");
     
     // Get THIS conversation's history
-    var history = await context.Messages.GetHistoryAsync();
+    var history = await context.GetChatHistoryAsync();
     
-    // A2A from message context
+    // A2A communication
     var targetWorkflow = XiansContext.GetWorkflow("Agent:Workflow");
-    var response = await context.Messages.A2A.SendChatAsync(targetWorkflow, "message");
+    var response = await XiansContext.A2A.SendChatAsync(
+        targetWorkflow, 
+        new A2AMessage { Text = "message" }
+    );
 });
 ```
 
@@ -43,7 +46,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 
 ### 2. **CurrentAgent** → For Agent-Level Data
 
-Access knowledge and documents - data that belongs to your agent across all workflows.
+Access knowledge and documents—data that belongs to your agent across all workflows.
 
 ```csharp
 // Search agent's knowledge base
@@ -87,7 +90,7 @@ var taskQueue = XiansContext.CurrentWorkflow.TaskQueue;
 
 ### 4. **XiansContext** → For Cross-Cutting Operations
 
-Access orchestration features - messaging, sub-workflows, and agent/workflow discovery.
+Access orchestration features—messaging, sub-workflows, and agent/workflow discovery.
 
 ```csharp
 // Start a sub-workflow
@@ -104,9 +107,9 @@ await XiansContext.Messaging.SendChatAsync(
 
 // A2A communication
 var analyzer = XiansContext.GetWorkflow("Analyzer:Process");
-var result = await XiansContext.Messaging.A2A.SendMessageAsync(
+var result = await XiansContext.A2A.SendChatAsync(
     analyzer,
-    "Analyze this content"
+    new A2AMessage { Text = "Analyze this content" }
 );
 
 // Discover agents and workflows

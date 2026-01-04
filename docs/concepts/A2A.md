@@ -1,6 +1,6 @@
 # Agent-to-Agent (A2A) Communication
 
-A2A enables workflows to communicate with each other - whether sending chat messages, data payloads, or invoking Temporal operations like signals, queries, and updates.
+A2A enables workflows to communicate with each other—whether sending chat messages, data payloads, or invoking Temporal operations like signals, queries, and updates.
 
 ## Overview
 
@@ -57,14 +57,14 @@ var workflow = agent.Workflows.DefineBuiltIn(name: "OrderProcessor");
 workflow.OnUserChatMessage(async context =>
 {
     var incomingText = context.Message.Text;
-    await context.Messages.ReplyAsync($"Processed: {incomingText}");
+    await context.ReplyAsync($"Processed: {incomingText}");
 });
 
 // Handle data messages
 workflow.OnUserDataMessage(async context =>
 {
-    var orderData = context.Data;
-    await context.Messages.ReplyWithDataAsync("Order received", new { status = "confirmed" });
+    var orderData = context.Message.Data;
+    await context.ReplyAsync("Order received", new { status = "confirmed" });
 });
 ```
 
