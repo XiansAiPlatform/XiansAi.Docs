@@ -1,4 +1,4 @@
-# Replying to Users
+# Messaging with Users
 
 Built-in workflows in Xians provide a powerful messaging system that allows your agents to listen for incoming messages and respond to users naturally. This guide covers everything you need to know about handling user messages and crafting responses.
 

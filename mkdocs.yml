@@ -17,7 +17,8 @@ nav:
     - Overview: concepts/overview.md
     - SDK Patterns: concepts/sdk-patterns.md
     - Agents: concepts/agents.md
-    - Replying: concepts/replying.md
+    - Messaging: concepts/replying.md
+    - Web SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md
     - Scheduling: concepts/scheduling.md
