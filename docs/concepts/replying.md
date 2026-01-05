@@ -141,20 +141,18 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-## Advanced Features
-
-### Scope
+## Message Scope
 
 **Scope** is a powerful feature for organizing messages into isolated topics within a conversation thread. When messages share the same scope value, they form a distinct topic, allowing you to manage multiple parallel conversations or subject areas with the same participant.
 
-#### How Scope Works
+### How Scope Works
 
 - Messages with the same scope string are grouped together as a topic
 - Each scope creates an isolated conversation context within the thread
 - Users and agents can set scope when sending messages or responding
 - Scope is optional - messages without a scope belong to the main conversation
 
-#### Accessing Current Message Scope
+### Accessing Current Message Scope
 
 ```csharp
 conversationalWorkflow.OnUserChatMessage(async (context) =>
@@ -172,7 +170,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-#### Best Practices for Scope
+### Best Practices for Scope
 
 **Use Human-Readable Scope Values**
 
@@ -189,7 +187,7 @@ var scope = "ord_12345_dlv_sts";
 var scope = "uuid-1234-5678-9abc";
 ```
 
-#### Creating Scoped Conversations
+### Creating Scoped Conversations
 
 When you want to start a new topic or respond within a specific scope, you can set the scope in your context. Messages will automatically inherit the current scope:
 
@@ -209,7 +207,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-#### Scope with Chat History
+### Scope with Chat History
 
 When retrieving chat history, only messages with the same scope are returned, maintaining topic isolation:
 
@@ -231,7 +229,53 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-### Retrieving Chat History
+### Reply Scope
+
+When you send a reply, it automatically inherits the scope from the incoming message, maintaining topic continuity:
+
+```csharp
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    // This reply automatically uses the same scope as context.Message.Scope
+    await context.ReplyAsync("Your message is within the current scope.");
+    
+    // The sent message will have the same scope as the incoming message
+});
+```
+
+### Null Scope
+
+Messages sent without a specified scope (scope is `null`) form their own isolated context - the general conversation area within the thread:
+
+```csharp
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    if (context.Message.Scope == null)
+    {
+        // This is a general conversation message
+        // History will only include other messages with null scope
+        var generalHistory = await context.GetChatHistoryAsync(pageSize: 20);
+        
+        await context.ReplyAsync("Discussing general topics.");
+    }
+    else
+    {
+        // This is a scoped topic message
+        var topicHistory = await context.GetChatHistoryAsync(pageSize: 20);
+        
+        await context.ReplyAsync($"Discussing: {context.Message.Scope}");
+    }
+});
+```
+
+**Key Points:**
+
+- Messages with `scope = null` are NOT accessible when querying with a specific scope
+- Messages with `scope = "Topic A"` are NOT accessible when querying with `scope = null` or `scope = "Topic B"`
+- Each scope (including `null`) forms a completely isolated conversation context
+- Scope isolation happens automatically - you don't need to manually filter messages
+
+## Chat History
 
 Access the conversation history to provide context-aware responses:
 
@@ -247,7 +291,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-#### Pagination
+### Pagination
 
 For longer conversations, use pagination:
 
@@ -256,7 +300,7 @@ For longer conversations, use pagination:
 var page2 = await context.GetChatHistoryAsync(page: 2, pageSize: 20);
 ```
 
-### Working with Hints
+## Working with Hints
 
 Retrieve the last hint to understand user intent or context:
 
@@ -272,7 +316,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-### Skipping Responses
+## Skipping Responses
 
 Sometimes you want to process a message without sending a response:
 
@@ -290,6 +334,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 ```
 
 This is useful for:
+
 - Analytics and logging
 - Background processing
 - Conditional response logic
@@ -309,7 +354,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-### Handing Off to Another Workflow
+## Handing Off to Another Workflow
 
 Transfer the conversation to a different workflow when needed:
 
@@ -386,7 +431,6 @@ var recentHistory = await context.GetChatHistoryAsync(pageSize: 5); // Good
 var allHistory = await context.GetChatHistoryAsync(pageSize: 1000); // Potentially slow
 ```
 
-
 ### 5. Use Descriptive Scopes for Topic Organization
 
 ```csharp
@@ -431,9 +475,96 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
+## Message Threads
+
+Message threads are the fundamental organizational unit for conversations between users and agents in the Xians platform. Every message exchange is associated with a specific thread that groups related interactions together.
+
+### Thread Identity
+
+Each message thread is uniquely identified by a composite primary key consisting of three components:
+
+1. **Tenant ID**: Identifies the organization or tenant
+2. **Workflow ID**: Identifies the specific workflow or agent instance  
+3. **Participant ID**: Identifies the user or participant in the conversation
+
+This three-part identifier ensures that conversations are properly isolated and organized across different tenants, workflows, and users.
+
+```csharp
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    // Thread identity components
+    var tenantId = context.Message.TenantId;           // Which organization
+    var workflowId = XiansContext.CurrentWorkflow.WorkflowType; // Which agent/workflow
+    var participantId = context.Message.ParticipantId; // Which user
+    
+    // Together, these three values uniquely identify this conversation thread
+    // All messages between this user and this workflow in this tenant
+    // belong to the same thread
+});
+```
+
+### Thread Continuity
+
+All conversations between a specific user and agent workflow are grouped within a single thread, maintaining context and conversation history throughout the interaction lifecycle:
+
+```csharp
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    var threadId = context.Message.ThreadId;
+    
+    if (threadId != null)
+    {
+        // This conversation has history
+        var allMessages = await context.GetChatHistoryAsync(pageSize: 100);
+        
+        await context.ReplyAsync(
+            $"We've exchanged {allMessages.Count} messages in this ongoing conversation."
+        );
+    }
+    else
+    {
+        // First message in this thread
+        await context.ReplyAsync("Welcome! This is the start of our conversation.");
+    }
+});
+```
+
+**Key Thread Characteristics:**
+
+- **Persistent**: Threads persist across multiple message exchanges and sessions
+- **Isolated**: Messages in one thread are never visible to other threads
+- **Tenant-Scoped**: Threads are isolated per tenant in multi-tenant applications
+- **Workflow-Specific**: Each workflow maintains separate threads with the same user
+- **User-Specific**: Each user has their own thread with each workflow
+
 ## Thread and Scope Management
 
-Threads and scopes work together to organize conversations:
+Threads and scopes work together in a hierarchical structure to organize conversations and manage context.
+
+### Hierarchical Organization
+
+The Xians messaging system uses a three-level hierarchy:
+
+```text
+Thread (Top Level)
+├── Scope: null (Default/General Conversation)
+│   ├── Message 1
+│   ├── Message 2
+│   └── Message 3
+├── Scope: "Order #12345"
+│   ├── Message 4
+│   ├── Message 5
+│   └── Message 6
+└── Scope: "Technical Support"
+    ├── Message 7
+    └── Message 8
+```
+
+**Hierarchy Breakdown:**
+
+1. **Thread**: The top-level container (identified by Tenant + Workflow + Participant)
+2. **Scope**: Sub-organization within the thread (optional string identifier)
+3. **Messages**: Individual messages within a specific scope
 
 ```csharp
 conversationalWorkflow.OnUserChatMessage(async (context) =>
@@ -455,7 +586,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
         }
         else
         {
-            // General thread conversation
+            // General thread conversation (null scope)
             await context.ReplyAsync("Continuing our conversation in this thread...");
         }
     }
@@ -467,26 +598,62 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-**Understanding Threads vs Scope:**
+### Understanding Threads vs Scope
 
 - **Thread**: A continuous conversation session between a user and agent workflow
+  - **Purpose**: Groups all interactions between a specific user and workflow
+  - **Lifetime**: Persists indefinitely across all message exchanges
+  - **Uniqueness**: One thread per (Tenant, Workflow, Participant) combination
+
 - **Scope**: Topics or subject areas within a thread for organizing messages
+  - **Purpose**: Isolates related messages into distinct topics within a thread
+  - **Lifetime**: Exists as long as messages reference it
+  - **Uniqueness**: Multiple scopes can exist within a single thread
 
 Think of it as:
 
-- **Thread** = The entire conversation
-- **Scope** = Individual topics or chapters within that conversation
+- **Thread** = The entire conversation book
+- **Scope** = Individual chapters within that book
+- **Messages** = Pages within each chapter
+
+### Practical Examples
+
+**Single Thread, Multiple Scopes:**
 
 ```csharp
 // Example: Multiple topics within one thread
 conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
     var threadId = context.Message.ThreadId; // e.g., "thread-123"
-    var scope = context.Message.Scope;       // e.g., "Order #5678"
+    var scope = context.Message.Scope;
     
     // Same thread, different scopes = different topics in the same conversation
-    // - Thread "thread-123", Scope "Order #5678"
-    // - Thread "thread-123", Scope "Shipping Questions"  
-    // - Thread "thread-123", Scope null (general chat)
+    // - Thread "thread-123", Scope "Order #5678" (messages about this order)
+    // - Thread "thread-123", Scope "Shipping Questions" (shipping-related messages)
+    // - Thread "thread-123", Scope null (general chat messages)
+    
+    // Each scope maintains its own isolated message history
+    var scopeHistory = await context.GetChatHistoryAsync(pageSize: 20);
+    // Only returns messages from the current scope
+});
+```
+
+**Multi-User, Multi-Workflow Isolation:**
+
+```csharp
+// Different users with same workflow = different threads
+// User A + Workflow "Sales" + Tenant "ACME" = Thread 1
+// User B + Workflow "Sales" + Tenant "ACME" = Thread 2
+
+// Same user with different workflows = different threads  
+// User A + Workflow "Sales" + Tenant "ACME" = Thread 1
+// User A + Workflow "Support" + Tenant "ACME" = Thread 3
+
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    // This user's history with THIS specific workflow
+    var workflowSpecificHistory = await context.GetChatHistoryAsync(pageSize: 50);
+    
+    // Messages from other workflows are never visible here
 });
 ```
