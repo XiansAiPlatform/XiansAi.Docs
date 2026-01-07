@@ -236,8 +236,8 @@
   background: var(--xians-bg-primary);
   border-bottom: 1px solid var(--xians-border-light);
   backdrop-filter: blur(10px);
-  padding-top: 0.25rem;
-  padding-bottom: 0;
+  padding-top: 0.75rem;
+  padding-bottom: 0rem;
 }
 
 .md-tabs__link {
@@ -1558,13 +1558,6 @@ img[loading="lazy"] {
 /* ==========================================================================
    END OF STYLES
    ========================================================================== */
-
-
-  border-radius: var(--xians-radius-xl);
-  margin: var(--xians-space-xl) 0;
-  text-align: center;
-  box-shadow: var(--xians-shadow-xl);
-}
 
 .hero h1 {
   color: white;
