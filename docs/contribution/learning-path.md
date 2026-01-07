@@ -29,8 +29,11 @@ Welcome to the Xians AI Platform development journey! Follow this structured pat
 
 Build a few first agents and learn core concepts:
 
+For example,
+
 - Agent with tools, MCPs
 - Agent with Custom Workflows (Scheduling, A2A Communication)
+- Etc.
 
 ---
 
@@ -58,7 +61,7 @@ Contribute to the core platform:
 
 ---
 
-## 🎯 Next Steps
+## Next Steps
 
 After completing this learning path, you'll be ready to:
 

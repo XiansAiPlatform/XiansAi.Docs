@@ -25,11 +25,11 @@ nav:
     - Human-in-the-Loop: concepts/hitl-tasks.md
     - Webhooks: concepts/webhook.md
     - Workflows: concepts/workflows.md
-  - Server Concepts:
-    - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
-    - HTTP User API: https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/user-api/index.md
+  - Server:
     - Encryption: server/encryption.md
     - Scaling: server/scaling.md
+    - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
+    - HTTP User API: https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/user-api/index.md
   - Contribution:
     - Learning Path: contribution/learning-path.md
     - Platform Development: contribution/platform-development.md
