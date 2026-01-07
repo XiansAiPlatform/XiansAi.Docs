@@ -18,7 +18,6 @@ nav:
     - SDK Patterns: concepts/sdk-patterns.md
     - Agents: concepts/agents.md
     - Messaging: concepts/replying.md
-    - Web SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md
     - Scheduling: concepts/scheduling.md
@@ -27,8 +26,13 @@ nav:
     - Webhooks: concepts/webhook.md
     - Workflows: concepts/workflows.md
   - Server Concepts:
+    - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
+    - HTTP User API: https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/user-api/index.md
     - Encryption: server/encryption.md
     - Scaling: server/scaling.md
+  - Contribution:
+    - Learning Path: contribution/learning-path.md
+    - Platform Development: contribution/platform-development.md
 
 
 site_name: Xians.ai Documentation
