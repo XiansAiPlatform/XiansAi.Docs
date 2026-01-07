@@ -42,6 +42,15 @@ else
 }
 ```
 
+!!! note "Durable Execution with Temporal"
+    The waiting mechanism in `GetResultAsync()` is powered by **Temporal's durable execution**. This means:
+    - **Survives restarts**: The workflow can wait even if your application restarts or crashes
+    - **Long-running**: Can wait for days, weeks, months, or even years if needed
+    - **No polling**: The wait is event-driven, not polling-based, so it's highly efficient
+    - **Guaranteed delivery**: When the task completes, the workflow will resume exactly where it left off
+    
+    This is a fundamental advantage of building on Temporal - your workflows can reliably wait for human input without tying up resources or risking data loss.
+
 **Key Methods:**
 
 - `CreateAndWaitAsync()` - Creates task and blocks until completion
