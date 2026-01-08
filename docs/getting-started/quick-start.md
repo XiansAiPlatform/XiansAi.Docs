@@ -130,7 +130,7 @@ Before proceeding, you need to:
 
 1. Set up your Xians platform instance
 2. Navigate to **Tenant Settings** in the platform UI
-3. Copy your **Agent API Key** and **Server URL**
+3. Copy your **Agent Certificate** and **Server URL**
 
 ![Xians API Key Location](../assets/images/xians-apikey.png)
 
@@ -160,7 +160,7 @@ OPENAI_API_KEY=your-openai-api-key
 
 # Xians Platform Configuration
 XIANS_SERVER_URL=https://your-xians-server.com
-XIANS_API_KEY=your-xians-api-key
+XIANS_API_KEY=your-xians-certificate
 ```
 
 **Add `.env` to your `.gitignore`** to prevent committing secrets:
@@ -231,7 +231,7 @@ using Xians.Lib.Agents.Core;
 // Configuration - replace with your actual values (not recommended for production)
 var openAiApiKey = "your-openai-api-key";
 var serverUrl = "https://your-xians-server.com";
-var xiansApiKey = "your-xians-api-key";
+var xiansApiKey = "your-agent-certificate";
 
 // Initialize Xians Platform
 var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
@@ -322,5 +322,3 @@ Congratulations! You've successfully created and deployed your first Xians agent
 - **Implement Chat History** - Connect chat history for context-aware responses
 
 Ready to dive deeper? Check out our Core Concepts or explore Advanced Workflows.
-
-

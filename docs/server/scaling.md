@@ -265,4 +265,3 @@ Use Temporal's built-in metrics and integrate with your monitoring stack (Promet
 | **Auto Scaling** | Queue-based scaling | Dynamic workload adaptation | External monitoring + orchestration |
 
 The Xians platform's integration with Temporal provides powerful, flexible scaling capabilities with minimal configuration. Start simple and scale as your workload demands.
-

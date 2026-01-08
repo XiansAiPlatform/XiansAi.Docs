@@ -150,14 +150,22 @@
 .md-header__title {
   font-size: 0.9rem;
   font-weight: 400;
-  cursor: pointer;
+  cursor: default;
   color: var(--xians-text-primary) !important;
   letter-spacing: -0.01em;
-  transition: color var(--xians-transition-fast);
+}
+
+/* Disable link on header title */
+.md-header__button.md-logo,
+a.md-header__button.md-logo,
+.md-header__title a,
+a[href].md-header__button {
+  pointer-events: none;
+  cursor: default;
 }
 
 .md-header__title:hover {
-  color: var(--xians-primary) !important;
+  color: var(--xians-text-primary) !important;
 }
 
 /* Logo styling - Hidden */
@@ -1395,18 +1403,52 @@ input:focus-visible,
   padding: var(--xians-space-md);
 }
 
+/* Cookie consent buttons - flat style */
+.md-consent button,
+.md-consent .md-button,
+.md-consent__button,
 .md-consent__action {
-  background-color: var(--xians-primary);
-  color: white;
-  border-radius: var(--xians-radius-md);
-  font-weight: 600;
-  transition: all var(--xians-transition-fast);
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: var(--xians-text-primary) !important;
+  border: 1px solid var(--xians-border-medium) !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
+.md-consent button:hover,
+.md-consent .md-button:hover,
+.md-consent__button:hover,
 .md-consent__action:hover {
-  background-color: var(--xians-primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--xians-shadow-md);
+  background: none !important;
+  background-color: transparent !important;
+  border-color: var(--xians-primary) !important;
+  color: var(--xians-primary) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Accept button - primary style */
+.md-consent button[data-md-consent="accept"],
+.md-consent button:first-of-type {
+  background: var(--xians-primary) !important;
+  background-color: var(--xians-primary) !important;
+  background-image: none !important;
+  color: white !important;
+  border: 1px solid var(--xians-primary) !important;
+}
+
+.md-consent button[data-md-consent="accept"]:hover,
+.md-consent button:first-of-type:hover {
+  background: var(--xians-primary-dark) !important;
+  background-color: var(--xians-primary-dark) !important;
+  border-color: var(--xians-primary-dark) !important;
+  color: white !important;
 }
 
 /* ==========================================================================

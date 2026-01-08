@@ -72,7 +72,7 @@ sequenceDiagram
 var xiansPlatform = await XiansPlatform.InitializeAsync(new XiansOptions
 {
     ServerUrl = "https://your-server.com",
-    ApiKey = "your-api-key"
+    ApiKey = "agent-certificate"
 });
 
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
