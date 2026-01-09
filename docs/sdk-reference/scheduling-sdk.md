@@ -992,7 +992,7 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
     SystemScoped = true
 });
 
-var workflow = await agent.Workflows.DefineCustom<DailyReportWorkflow>(workers: 1);
+var workflow = await agent.Workflows.DefineCustom<DailyReportWorkflow>(maxConcurrent: 100);
 
 var schedule = await workflow.Schedules!
     .Create("daily-morning-report")

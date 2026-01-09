@@ -206,7 +206,7 @@ public class MyCustomWorkflow
 |----------|------|-------------|
 | `WorkflowType` | `string` | Unique workflow type identifier (prefixed with agent name) |
 | `Name` | `string?` | Optional workflow name |
-| `Workers` | `int` | Number of worker instances |
+| `Workers` | `int` | Number of worker instances, Default is 100 |
 | `Schedules` | `ScheduleCollection?` | Scheduled execution management |
 
 ### Methods

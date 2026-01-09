@@ -6,7 +6,9 @@ Webhooks enable external systems to trigger and interact with your agent workflo
 
 ### 1. Register a Webhook Handler
 
-Built-in workflows can handle webhooks using the `OnWebhook()` method:
+Built-in workflows can handle webhooks using the `OnWebhook()` method. You can use either a **synchronous** or **async** handler:
+
+#### Synchronous Handler (for simple, non-async operations)
 
 ```csharp
 using DotNetEnv;
@@ -39,8 +41,8 @@ var xiansAgent = xiansPlatform.Agents.Register(new()
 // Define built-in workflow
 var integratorWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Integrator");
 
-// Handle incoming webhooks
-integratorWorkflow.OnWebhook(async (context) =>
+// Handle incoming webhooks (synchronous)
+integratorWorkflow.OnWebhook((context) =>
 {
     // Your webhook processing logic here
     Console.WriteLine($"Received: {context.Webhook.Name}");
@@ -49,6 +51,20 @@ integratorWorkflow.OnWebhook(async (context) =>
 
 // Start the agent
 await xiansAgent.RunAllAsync();
+```
+
+#### Async Handler (when you need async operations)
+
+Use the async version when you need to perform async operations like database calls, HTTP requests, etc.:
+
+```csharp
+// Handle incoming webhooks (async)
+integratorWorkflow.OnWebhook(async (context) =>
+{
+    // Perform async operations
+    var result = await ProcessWebhookAsync(context.Webhook.Payload);
+    context.Respond(new { status = "success", result });
+});
 ```
 
 ### 2. Call Your Webhook
@@ -123,7 +139,7 @@ This makes it easy to monitor, debug, and audit webhook integrations without nee
 The `WebhookContext` provides access to all webhook data through the `Webhook` property:
 
 ```csharp
-integratorWorkflow.OnWebhook(async (context) =>
+integratorWorkflow.OnWebhook((context) =>
 {
     // Extract webhook metadata
     var webhookName = context.Webhook.Name;           // "OrderCompleted"
@@ -169,7 +185,7 @@ You have three ways to respond, all with full control over HTTP status codes, he
 Perfect for straightforward JSON responses:
 
 ```csharp
-integratorWorkflow.OnWebhook(async (context) =>
+integratorWorkflow.OnWebhook((context) =>
 {
     // Process webhook...
     
@@ -187,7 +203,7 @@ integratorWorkflow.OnWebhook(async (context) =>
 For custom status codes, headers, and content types:
 
 ```csharp
-integratorWorkflow.OnWebhook(async (context) =>
+integratorWorkflow.OnWebhook((context) =>
 {
     context.Response = new WebhookResponse
     {
@@ -277,7 +293,7 @@ integratorWorkflow.OnWebhook(async (context) =>
 ### Payload Validation
 
 ```csharp
-integratorWorkflow.OnWebhook(async (context) =>
+integratorWorkflow.OnWebhook((context) =>
 {
     if (context.Webhook.Payload is not JsonElement payload)
     {

@@ -10,6 +10,37 @@ HITL tasks are the foundation of human-agent collaboration in Xians. When a work
 - **Rejected** - Human rejects with a reason, workflow handles accordingly  
 - **Refined** - Human or agent iteratively updates the draft work before final decision
 
+## Enabling HITL Tasks
+
+HITL tasks are **optional** and must be explicitly enabled for each agent. This keeps your agent lightweight if tasks aren't needed:
+
+```csharp
+// Register agent
+var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
+{
+    Name = "MyAgent",
+    SystemScoped = false
+});
+
+// Define your workflows
+agent.Workflows.DefineBuiltIn("Conversational");
+agent.Workflows.DefineCustom<ContentApprovalWorkflow>();
+
+// Enable HITL tasks (optional)
+await agent.Workflows.WithTasks();  // Uses default max concurrent (100)
+// await agent.Workflows.WithTasks(maxConcurrent: 200);  // Or customize if needed
+
+// Run all workflows
+await agent.RunAllAsync();
+```
+
+**Key Points:**
+
+- Tasks are **not enabled by default** - call `WithTasks()` to enable
+- Each agent gets its own task workflow: `{AgentName}:Task Workflow`
+- Configurable maxConcurrent allow scaling based on expected task volume
+- Omit `WithTasks()` if your agent doesn't need human interaction
+
 ## Creating Tasks in Workflows
 
 Tasks are created from within workflows using the `XiansContext.CurrentAgent.Tasks` API:
@@ -214,12 +245,36 @@ This is useful for external integrations, webhooks, or administrative tools that
 
 ## Best Practices
 
-1. **Always use hints** - Link tasks to conversations for contextual agent interaction
-2. **Descriptive titles and descriptions** - Help users understand what they're approving
-3. **Meaningful draft work** - Pre-populate drafts to give users a starting point
-4. **Handle rejections gracefully** - Use rejection reasons to improve or retry
-5. **Proactive agents** - Configure agents to check for pending tasks and prompt users
-6. **Use metadata** - Store additional context (URLs, references, etc.) for rich interactions
+1. **Enable only when needed** - Call `WithTasks()` only if your agent requires human interaction
+2. **Use sensible defaults** - Default max concurrent (100) handles most scenarios well
+3. **Scale when necessary** - Customize only for high-volume scenarios:
+   - `WithTasks()` - Default (100 concurrent tasks) - suitable for most use cases
+   - `WithTasks(maxConcurrent: 200)` - High volume scenarios with many simultaneous tasks
+   - `WithTasks(maxConcurrent: 50)` - Limit concurrency to control resource usage
+3. **Always use hints** - Link tasks to conversations for contextual agent interaction
+4. **Descriptive titles and descriptions** - Help users understand what they're approving
+5. **Meaningful draft work** - Pre-populate drafts to give users a starting point
+6. **Handle rejections gracefully** - Use rejection reasons to improve or retry
+7. **Proactive agents** - Configure agents to check for pending tasks and prompt users
+8. **Use metadata** - Store additional context (URLs, references, etc.) for rich interactions
+
+## Task Workflow Architecture
+
+When you call `WithTasks()`, Xians dynamically creates a workflow class:
+
+```csharp
+[Workflow("{AgentName}:Task Workflow")]
+public class DynamicTaskWorkflow : TaskWorkflow
+{
+    // Agent-specific task workflow implementation
+}
+```
+
+This ensures:
+- **Agent isolation** - Each agent has its own task queue
+- **Independent scaling** - Task workers scale independently per agent
+- **Multi-tenancy** - Tasks are automatically tenant-scoped
+- **No conflicts** - Multiple agents can use tasks simultaneously
 
 ---
 

@@ -1,17 +1,17 @@
 # Scaling
 
-The Xians platform provides flexible scaling options to handle varying workloads efficiently. You can scale both horizontally (multiple agent instances) and vertically (workers per workflow), with the platform automatically handling distribution and fault tolerance through Temporal.
+The Xians platform provides flexible scaling options to handle varying workloads efficiently. You can scale both horizontally (multiple agent instances) and vertically (maxConcurrent per workflow), with the platform automatically handling distribution and fault tolerance through Temporal.
 
 ## Horizontal Scaling - Multiple Agent Instances
 
-You can spawn **any number of agent console applications**, and the platform automatically takes care of scaling and fault tolerance of agent runtimes. This is handled through Temporal workers and activity distribution.
+You can spawn **any number of agent console applications**, and the platform automatically takes care of scaling and fault tolerance of agent runtimes. This is handled through Temporal maxConcurrent and activity distribution.
 
 ### How It Works
 
 When you start multiple instances of the same agent application:
 
 1. Each instance registers as a Temporal worker for the same task queue
-2. Temporal automatically distributes workflow executions and activities across all available workers
+2. Temporal automatically distributes workflow executions and activities across all available maxConcurrent
 3. If one instance fails, Temporal redistributs work to healthy instances
 4. No configuration changes needed - just start more instances
 
@@ -106,7 +106,7 @@ Then spawn 5 instances:
 
 ## Auto Scaling Based on Queue Metrics
 
-For dynamic scaling scenarios, you can monitor the Temporal queue size to automatically adjust the number of workers. This approach enables responsive scaling based on actual workload demand.
+For dynamic scaling scenarios, you can monitor the Temporal queue size to automatically adjust the number of maxConcurrent. This approach enables responsive scaling based on actual workload demand.
 
 ### Monitoring Queue Size for Auto Scaling
 
@@ -190,7 +190,7 @@ public class AutoScaler
 ### Auto Scaling Metrics to Monitor
 
 - **Task Queue Depth**: Number of pending workflow/activity executions
-- **Worker Utilization**: Percentage of busy workers
+- **Worker Utilization**: Percentage of busy maxConcurrent
 - **Execution Rate**: Workflows started vs completed per minute
 - **Latency**: Time from workflow start to first activity execution
 
@@ -223,7 +223,7 @@ public class AutoScaler
 ### Resource Limits
 
 - **Memory**: Each worker consumes memory; ensure adequate RAM
-- **CPU**: More workers = more CPU usage
+- **CPU**: More maxConcurrent = more CPU usage
 - **Connections**: Each worker maintains Temporal connections
 
 ### Temporal Configuration
@@ -237,11 +237,11 @@ Ensure your Temporal cluster can handle the load:
 ### Network Latency
 
 - Workers in different regions may have higher latency
-- Consider deploying Temporal workers close to Temporal server
+- Consider deploying Temporal maxConcurrent close to Temporal server
 
 ### Cost Optimization
 
-- Start with fewer workers and scale up as needed
+- Start with fewer maxConcurrent and scale up as needed
 - Monitor actual utilization vs provisioned capacity
 - Use auto-scaling to optimize costs during low-traffic periods
 
@@ -251,7 +251,7 @@ Track these metrics to optimize scaling:
 
 - **Workflow Execution Rate**: Throughput per worker/instance
 - **Queue Latency**: Time tasks wait before execution
-- **Worker Utilization**: Percentage of workers actively processing
+- **Worker Utilization**: Percentage of maxConcurrent actively processing
 - **Failure Rate**: Failed executions (may indicate overload)
 
 Use Temporal's built-in metrics and integrate with your monitoring stack (Prometheus, Grafana, etc.) for comprehensive observability.
