@@ -216,7 +216,7 @@ var mafSubAgent = new MafSubAgent(openAiApiKey);
 conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
     var response = await mafSubAgent.RunAsync(context.Message.Text);
-    await context.Messages.ReplyAsync(response);
+    await context.ReplyAsync(response);
 });
 
 // Start the agent and all workflows
@@ -257,7 +257,7 @@ var mafSubAgent = new MafSubAgent(openAiApiKey);
 conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
     var response = await mafSubAgent.RunAsync(context.Message.Text);
-    await context.Messages.ReplyAsync(response);
+    await context.ReplyAsync(response);
 });
 
 // Start the agent and all workflows
