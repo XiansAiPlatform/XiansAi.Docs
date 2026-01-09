@@ -136,7 +136,7 @@ Finally, update your `Program.cs` to pass the full context object to the agent:
 conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
     var response = await mafAgent.RunAsync(context);
-    await context.Messages.ReplyAsync(response);
+    await context.ReplyAsync(response);
 });
 ```
 
