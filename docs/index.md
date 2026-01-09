@@ -2,7 +2,7 @@
 
 <div style="text-align: left; padding: 0rem 0;">
   <p style="font-size: 1rem; color: var(--xians-text-secondary); max-width: 800px;">
- Build agents with whatever framework you like - Azure AI, Bedrock, Semantic Kernel, LangGraph, or your own custom runtime. Xians doesn't dictate how your agents think - <strong>it handles the plumbing that becomes painful once agents graduate beyond the demos</strong>. <br><br>Multi-tenancy, human-in-the-loop workflows, long-running processes, scheduling, external triggers, agent-to-agent collaboration, scalability, fault tolerance, and observability. The complete control plane you need but would never want to build yourself.
+ Build agents with the framework of your choice - Azure AI, Bedrock, Semantic Kernel, LangGraph, or your own custom runtime. Xians doesn't dictate how your agents think - <strong>it handles the plumbing that becomes painful once agents graduate beyond the demos</strong>. <br><br>Multi-tenancy, human-in-the-loop workflows, long-running processes, scheduling, external triggers, agent-to-agent collaboration, scalability, fault tolerance, and observability. The complete control plane you need but would never want to build yourself.
   </p>
   
   <div style="margin-top: 2rem;">
