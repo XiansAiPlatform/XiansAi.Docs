@@ -1,4 +1,4 @@
-# Multitenancy
+# Agents & Multitenancy
 
 The Xians platform supports a comprehensive multitenancy model that enables system administrators, tenant administrators, and end users to work with agents at different levels of control and customization.
 
