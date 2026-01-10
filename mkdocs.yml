@@ -17,6 +17,7 @@ nav:
     - Overview: concepts/overview.md
     - SDK Patterns: concepts/sdk-patterns.md
     - Agents: concepts/agents.md
+    - Multitenancy: concepts/multitenancy.md
     - Messaging: concepts/replying.md
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md

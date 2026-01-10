@@ -49,7 +49,7 @@ public class MafSubAgentTools
     public async Task<string> GetCurrentDateTime()
     {
         // User message related functionality
-        await _context.Messages.ReplyAsync($"The current date and time is: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        await _context.ReplyAsync($"The current date and time is: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         var now = DateTime.Now;
         return $"The current date and time is: {now:yyyy-MM-dd HH:mm:ss}";
     }

@@ -6,6 +6,7 @@ Deep dive into Xians' core concepts and patterns for building production-ready A
 | ---- | ----------- |
 | [SDK Patterns](sdk-patterns.md) | Understand key SDK design patterns for working with agents and workflows |
 | [Agents](agents.md) | Learn about agent registration, workflows, and multi-tenancy architecture |
+| [Multitenancy](multitenancy.md) | Explore strategies for securely isolating and serving multiple tenants |
 | [Temporal Workflows](workflows.md) | Start, execute, and communicate with Temporal-based workflows |
 | [Messaging](replying.md) | Master message handling, replies, threads, scopes, and conversational patterns |
 | [Web SDK](https://github.com/XiansAiPlatform/sdk-web-typescript) | Build web-based conversational UIs with the official TypeScript client |
