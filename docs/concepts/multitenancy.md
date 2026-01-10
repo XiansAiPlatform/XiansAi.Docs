@@ -6,6 +6,40 @@ The Xians platform supports a comprehensive multitenancy model that enables syst
 
 The agent lifecycle in Xians consists of three distinct phases: **Registration**, **Deployment**, and **Activation**. Each phase is controlled by different user roles and serves a specific purpose in the multitenant architecture.
 
+```mermaid
+sequenceDiagram
+    participant SA as System Admin
+    participant System as Xians Platform
+    participant TA as Tenant Admin
+    participant Tenant as Tenant Space
+    participant User as Tenant User
+    participant WF as Workflow Instance
+
+    SA->>System: Register Agent (SystemScoped=true)
+    System-->>System: Create Agent Template
+    Note over System: Available to all tenants
+    
+    TA->>System: Browse Agent Templates
+    TA->>Tenant: Deploy Agent
+    Note over Tenant: Agent available but inactive
+    
+    User->>Tenant: View Deployed Agents
+    User->>WF: Activate Workflow (with identity & config)
+    WF-->>User: Workflow Instance Running
+    User->>WF: Activate Another Instance
+    WF-->>User: Second Instance Running
+    
+    Note over SA,WF: Registration → Deployment → Activation
+```
+
+### Lifecycle Phase Overview
+
+| Phase | Role | Action | Scope | Output |
+|-------|------|--------|-------|--------|
+| **1. Registration** | System Administrator | Create agent template with `SystemScoped=true` | Platform-wide | Reusable agent template available to all tenants |
+| **2. Deployment** | Tenant Administrator | Deploy agent template to tenant | Tenant-specific | Agent visible and configurable within tenant |
+| **3. Activation** | Tenant Users | Activate workflow with unique identity | Workflow-specific | Running workflow instance with custom configuration |
+
 ### 1. Agent Registration (System-Scoped)
 
 **Who:** System Administrators
@@ -89,22 +123,15 @@ await agent.Knowledge.UploadEmbeddedResourceAsync(
 
 When a system-scoped agent is **deployed to a tenant**, the associated system-scoped knowledge is **automatically duplicated** and attached to the deployed agent under **tenant scope**:
 
-```text
-Registration (System Admin)
-├── Agent: "LeadDiscoveryAgent" (SystemScoped = true)
-└── Knowledge: "default-prompt" (SystemScoped = true)
-    └── Content: "You are a lead discovery assistant..."
-
-Deployment to Tenant "Acme Corp" (Tenant Admin)
-├── Agent: "LeadDiscoveryAgent" (deployed to tenant)
-└── Knowledge: "default-prompt" (duplicated, SystemScoped = false)
-    ├── TenantId: "acme-corp"
-    └── Content: "You are a lead discovery assistant..." (copied from system)
-```
-
 ## Workflow Types and Activation
 
 Agents in the Xians platform can contain multiple workflows, and these workflows are categorized into two types based on their activation behavior:
+
+| Feature | Built-In Workflows | Custom Workflows |
+|---------|-------------------|------------------|
+| **Input Requirements** | No user input needed | Requires user-provided parameters |
+| **Activation Timing** | Automatic upon invocation | Manual with configuration |
+| **Primary Use Case** | Event-driven operations | Scheduled & business processes |
 
 ### Built-In Workflows
 
@@ -135,65 +162,6 @@ Built-in workflows are designed for immediate use and require no additional setu
 - **Custom Integrations**: Workflows that need API keys, endpoints, or business-specific parameters
 
 Custom workflows enable users to tailor agent behavior to their specific needs while maintaining the reusability of the agent template.
-
-## Example: Lead Generation Agent
-
-Consider a Lead Generation agent that demonstrates the multitenancy model:
-
-### Registration (System Admin)
-
-```csharp
-var leadGenAgent = xiansPlatform.Agents.Register(new XiansAgentRegistration
-{
-    Name = "LeadGenerationAgent",
-    Description = "Generates and manages leads through multiple channels",
-    SystemScoped = true
-});
-```
-
-### Agent Structure
-
-The agent contains multiple workflows:
-
-**Built-In Workflows:**
-
-- **Webhook Handler**: Automatically processes lead submissions from web forms
-- **Conversation Handler**: Engages with potential leads via chat
-
-**Custom Workflows:**
-
-- **Scheduled Lead Enrichment**: Requires API keys and enrichment parameters
-- **Daily Lead Report**: Requires email configuration and report criteria
-
-### Deployment (Tenant Admin)
-
-Tenant admin for "Acme Corp" deploys the Lead Generation agent to their tenant through the UI portal.
-
-### Activation (Tenant Users)
-
-**Marketing Team Activation:**
-
-```
-Identity: "marketing-leads"
-Workflow: "Scheduled Lead Enrichment"
-Inputs:
-  - API Key: [Marketing API Key]
-  - Enrichment Source: "LinkedIn"
-  - Schedule: "Daily at 9 AM"
-```
-
-**Sales Team Activation:**
-
-```
-Identity: "sales-leads"
-Workflow: "Scheduled Lead Enrichment"
-Inputs:
-  - API Key: [Sales API Key]
-  - Enrichment Source: "CRM"
-  - Schedule: "Hourly"
-```
-
-Both teams use the same deployed agent but with different activation identities and configurations, allowing them to manage leads independently while sharing the same underlying agent template.
 
 ## Benefits of This Model
 
