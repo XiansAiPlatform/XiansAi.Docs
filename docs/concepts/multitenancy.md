@@ -112,6 +112,9 @@ await agent.Knowledge.UploadEmbeddedResourceAsync(
 // ✅ Knowledge is stored with SystemScoped = true
 ```
 
+!!! info "Learn More About Knowledge"
+    For detailed information on embedding knowledge files, configuring your project, and managing knowledge resources, see the [Knowledge documentation](knowledge.md).
+
 **Characteristics of system-scoped knowledge:**
 
 - Shared across all tenants as default/template knowledge
