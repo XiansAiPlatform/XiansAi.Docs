@@ -30,10 +30,6 @@ AI agents need to be proactive, not just reactive. Schedules let your agents:
 Here's a workflow that schedules itself to run every day at 9 AM:
 
 ```csharp
-using Xians.Lib.Agents;
-using Xians.Lib.Agents.Scheduling;
-using Temporalio.Workflows;
-
 [Workflow("Daily Report Workflow")]
 public class DailyReportWorkflow
 {
@@ -43,24 +39,18 @@ public class DailyReportWorkflow
         // Do the work
         await GenerateReport(reportType);
         
-        // Schedule next run
+        // Schedule next run (idempotent - safe to call repeatedly)
         var schedule = await XiansContext.CurrentWorkflow.Schedules!
             .Create("daily-report")
             .Daily(hour: 9, timezone: "America/New_York")
             .WithInput(reportType)
             .SkipIfRunning()
-            .WithRetryPolicy(new RetryPolicy
-            {
-                MaximumAttempts = 3,
-                InitialInterval = TimeSpan.FromSeconds(10),
-                BackoffCoefficient = 2.0
-            })
-            .StartAsync();
+            .CreateIfNotExistsAsync(); // Returns existing or creates new
     }
 }
 ```
 
-That's it. The workflow runs, does its work, and schedules the next execution. Your agent is now autonomous.
+That's it. The workflow runs, does its work, and schedules itself. Your agent is now autonomous.
 
 ## Scheduling Options
 
@@ -125,6 +115,35 @@ What happens when a schedule triggers but the previous execution is still runnin
 
 **Recommendation**: Use `.SkipIfRunning()` by default. It prevents execution pile-up when workflows take longer than the schedule interval.
 
+## Creation Methods
+
+Choose the right method for your use case:
+
+```csharp
+// 1. CreateIfNotExistsAsync() - Idempotent (recommended)
+// Returns existing schedule or creates new one. Safe to call repeatedly.
+var schedule = await workflow.Schedules!
+    .Create("my-schedule")
+    .Daily(hour: 9)
+    .CreateIfNotExistsAsync();
+
+// 2. CreateAsync() - Strict
+// Fails if schedule exists. Use when you need to guarantee a new schedule.
+var schedule = await workflow.Schedules!
+    .Create("unique-schedule")
+    .EveryHours(2)
+    .CreateAsync(); // Throws ScheduleAlreadyExistsException if exists
+
+// 3. RecreateAsync() - Replace
+// Deletes existing and creates new. Use when updating schedule configuration.
+var schedule = await workflow.Schedules!
+    .Create("my-schedule")
+    .EveryMinutes(30) // Changed from every hour!
+    .RecreateAsync(); // Deletes old, creates new
+```
+
+**Rule of thumb**: Use `CreateIfNotExistsAsync()` unless you have a specific reason not to.
+
 ## Managing Schedules
 
 Full lifecycle control from within workflows:
@@ -145,7 +164,7 @@ await schedule.TriggerAsync();
 // Delete
 await schedule.DeleteAsync();
 
-// List all schedules (tenant-filtered)
+// List all schedules (tenant-filtered automatically)
 var allSchedules = await workflow.Schedules!.ListAsync();
 ```
 
@@ -175,6 +194,7 @@ public class TenantTaskWorkflow
 
 - Schedules prefixed with tenant ID internally
 - `ListAsync()` only returns current tenant's schedules
+- Search attributes automatically inherited from parent workflow
 - Cross-tenant access blocked automatically
 - No manual tenant filtering needed
 
@@ -195,13 +215,13 @@ public class ContentCrawlerWorkflow
         var content = await CrawlContent(url);
         await ProcessContent(content);
         
-        // Schedule next run
+        // Schedule next run (idempotent)
         await XiansContext.CurrentWorkflow.Schedules!
             .Create($"crawler-{url}")
             .EveryHours(intervalHours)
             .WithInput(url, intervalHours)
             .SkipIfRunning()
-            .StartAsync();
+            .CreateIfNotExistsAsync();
     }
 }
 ```
@@ -233,7 +253,7 @@ public class ResearchSetupWorkflow
                 .Weekdays(hour: 8, timezone: "America/New_York")
                 .WithInput(company)
                 .SkipIfRunning()
-                .StartAsync();
+                .CreateIfNotExistsAsync();
         }
     }
 }
@@ -246,16 +266,16 @@ The scheduling SDK is **context-aware**:
 **Inside workflows**:
 
 - SDK detects `Workflow.InWorkflow == true`
-- Automatically uses pre-registered `ScheduleActivities`
-- Maintains determinism
-- No manual activity registration needed
+- Routes to pre-registered `ScheduleActivities` for determinism
+- Search attributes automatically inherited from parent workflow
+- Tenant context passed through seamlessly
 
 **Outside workflows**:
 
 - Direct Temporal client calls
-- No workflow context required
+- Explicit tenant/user context required
 
-**Important**: `XiansContext.CurrentWorkflow` only works inside workflows/activities. Using it elsewhere throws `InvalidOperationException`.
+**Important**: `XiansContext.CurrentWorkflow` only works inside workflows/activities.
 
 ## Production Features
 
@@ -288,22 +308,22 @@ await workflow.Schedules!
         { "priority", "high" }
     })
     
-    .StartAsync();
+    .CreateIfNotExistsAsync();
 ```
 
 ## Best Practices
 
 **Do:**
 
+- Use `CreateIfNotExistsAsync()` for most cases (idempotent)
 - Use `.SkipIfRunning()` to prevent execution pile-up
 - Add retry policies for production schedules
 - Specify timezones for time-based schedules
 - Use descriptive IDs: `daily-sync-{company}` not `schedule1`
-- Check `ExistsAsync()` before creating for idempotency
 
 **Don't:**
 
-- Mix schedule creation with business logic
+- Use `CreateAsync()` unless you need strict failure on duplicates
 - Forget to handle timezone differences
 - Create schedules without overlap policies
 - Use generic schedule IDs
