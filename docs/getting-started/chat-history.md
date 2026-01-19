@@ -28,12 +28,11 @@ To enable chat history in MAF (Microsoft Agent Framework), we need to implement 
 Create a new class that implements MAF's `ChatMessageStore` interface:
 
 ```csharp
+
 using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Xians.Lib.Agents.Messaging;
-
-namespace Xians.SimpleAgent.Utils;
 
 internal sealed class XiansChatMessageStore : ChatMessageStore
 {
@@ -44,11 +43,12 @@ internal sealed class XiansChatMessageStore : ChatMessageStore
         _context = context;
     }
 
-    public override async Task<IEnumerable<ChatMessage>> GetMessagesAsync(
+    public override async ValueTask<IEnumerable<ChatMessage>> InvokingAsync(
+        InvokingContext context,
         CancellationToken cancellationToken)
     {
         // Get chat history from Xians
-        var xiansMessages = await _context.Messages.GetHistoryAsync(page: 1, pageSize: 10);
+        var xiansMessages = await _context.GetChatHistoryAsync(page: 1, pageSize: 10);
         
         // Convert to ChatMessage format
         var chatMessages = xiansMessages
@@ -62,18 +62,18 @@ internal sealed class XiansChatMessageStore : ChatMessageStore
         return chatMessages;
     }
 
-    public override Task AddMessagesAsync(
-        IEnumerable<ChatMessage> messages,
+    public override ValueTask InvokedAsync(
+        InvokedContext context,
         CancellationToken cancellationToken)
     {
         // No-op: Xians automatically stores messages
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     public override JsonElement Serialize(JsonSerializerOptions? jsonSerializerOptions = null)
     {
         // Serialize the thread ID for state persistence
-        return JsonSerializer.SerializeToElement(_context.ThreadId);
+        return JsonSerializer.SerializeToElement(_context.Message.ThreadId);
     }
 }
 ```
@@ -99,26 +99,50 @@ internal sealed class XiansChatMessageStore : ChatMessageStore
 Now let's wire up the message store to your MAF agent. Notice we're now passing the entire `UserMessageContext` instead of just the message text:
 
 ```csharp
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using OpenAI;
+using OpenAI.Chat;
+using Xians.Lib.Agents.Core;
+using Xians.Lib.Agents.Messaging;
+
 public class MafSubAgent
 {
     private readonly ChatClient _chatClient;
-
     public MafSubAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
     {
         _chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
     }
 
+    private async Task<string> GetSystemPromptAsync(UserMessageContext context)
+    {
+        // You need to create a KnowledgeItem with the name "System Prompt" in the Xians platform.
+        var systemPrompt = await XiansContext.CurrentAgent.Knowledge.GetAsync("System Prompt");
+        return systemPrompt?.Content ?? "You are a helpful assistant.";
+    }
+
     public async Task<string> RunAsync(UserMessageContext context)
     {
+        if (string.IsNullOrWhiteSpace(context.Message.Text))
+        {
+            return "I didn't receive any message. Please send a message.";
+        }
+
+        // Create tools instance with the UserMessageContext
+        var tools = new MafSubAgentTools(context);
+
+        // Configure the AI agent with tools
         var agent = _chatClient.CreateAIAgent(new ChatClientAgentOptions
         {
             ChatOptions = new ChatOptions
             {
-                Instructions = "You are a helpful assistant."
+                Instructions = await GetSystemPromptAsync(context)
             },
+            // Use Xians chat message store for conversation history
             ChatMessageStoreFactory = ctx => new XiansChatMessageStore(context)
         });
 
+        // Run the agent and return the response
         var response = await agent.RunAsync(context.Message.Text);
         return response.Text;
     }

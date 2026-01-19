@@ -34,7 +34,6 @@ Here's a complete example showing how to create a tool class that integrates wit
 ```csharp
 using System.ComponentModel;
 using Xians.Lib.Agents.Messaging;
-using Xians.Lib.Agents.Core;
 
 public class MafSubAgentTools
 {
@@ -54,12 +53,18 @@ public class MafSubAgentTools
         return $"The current date and time is: {now:yyyy-MM-dd HH:mm:ss}";
     }
 
-    [Description("Get the target market description.")]
-    public async Task<string> GetTargetMarketDescription()
+    [Description("Get the order data.")]
+    public async Task<string> GetOrderData(int orderNumber)
     {
-        // Agent related functionality
-        var targetMarketDescription = await XiansContext.CurrentAgent.Knowledge.GetAsync("Market Description");
-        return targetMarketDescription?.Content ?? "I couldn't find the target market description.";
+        await Task.CompletedTask;
+        // Returning elaborated dummy info for demonstration
+        return $"Order #{orderNumber}:\n" +
+               $"- Customer: John Doe\n" +
+               $"- Item: Widget Pro X100\n" +
+               $"- Quantity: 3\n" +
+               $"- Status: Shipped\n" +
+               $"- Estimated Delivery: {DateTime.Today.AddDays(3):yyyy-MM-dd}\n" +
+               $"- Total: $299.97";
     }
 }
 ```
@@ -70,13 +75,26 @@ Once you've created your tool class, you need to associate it with your agent. T
 
 ```csharp
 
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using OpenAI;
+using OpenAI.Chat;
+using Xians.Lib.Agents.Core;
+using Xians.Lib.Agents.Messaging;
+
 public class MafSubAgent
 {
     private readonly ChatClient _chatClient;
-
     public MafSubAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
     {
         _chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
+    }
+
+    private async Task<string> GetSystemPromptAsync(UserMessageContext context)
+    {
+        // You need to create a KnowledgeItem with the name "System Prompt" in the Xians platform.
+        var systemPrompt = await XiansContext.CurrentAgent.Knowledge.GetAsync("System Prompt");
+        return systemPrompt?.Content ?? "You are a helpful assistant.";
     }
 
     public async Task<string> RunAsync(UserMessageContext context)
@@ -94,11 +112,11 @@ public class MafSubAgent
         {
             ChatOptions = new ChatOptions
             {
-                Instructions = "You are a helpful assistant.",
+                Instructions = await GetSystemPromptAsync(context),
                 Tools =
                 [
                     AIFunctionFactory.Create(tools.GetCurrentDateTime),
-                    AIFunctionFactory.Create(tools.GetTargetMarketDescription)
+                    AIFunctionFactory.Create(tools.GetOrderData)
                 ]
             },
             // Use Xians chat message store for conversation history

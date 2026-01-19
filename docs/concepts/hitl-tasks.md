@@ -1,281 +1,302 @@
 # Human-in-the-Loop Tasks
 
-Human-in-the-Loop (HITL) tasks are a special type of workflow that enable seamless collaboration between agents and humans. They allow workflows to pause and wait for human approval, rejection, or iterative refinement before proceeding.
+Human-in-the-Loop (HITL) tasks enable workflows to pause and wait for human decisions. Unlike rigid automation, tasks create a collaborative space where humans and agents work together, each contributing their unique strengths.
 
 ## Overview
 
-HITL tasks are the foundation of human-agent collaboration in Xians. When a workflow needs human input - whether to approve content, provide feedback, or make a decision - it creates a task that waits for human interaction. The task can be:
+When a workflow needs human input—whether to approve an order, review content, or make a business decision—it creates a task with **custom actions** that fit your domain:
 
-- **Approved** - Human accepts the work and workflow continues
-- **Rejected** - Human rejects with a reason, workflow handles accordingly  
-- **Refined** - Human or agent iteratively updates the draft work before final decision
+```csharp
+Actions = ["approve", "reject", "hold"]           // Order processing
+Actions = ["publish", "revise", "reject"]         // Content review  
+Actions = ["ship", "refund", "escalate"]          // Customer service
+```
+
+The human performs one of these actions with an optional comment, and the workflow continues based on their choice. It's that simple.
 
 ## Enabling HITL Tasks
 
-HITL tasks are **optional** and must be explicitly enabled for each agent. This keeps your agent lightweight if tasks aren't needed:
+Tasks are **opt-in**. Enable them only for agents that need human collaboration:
 
 ```csharp
-// Register agent
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 {
-    Name = "MyAgent",
+    Name = "OrderProcessor",
     SystemScoped = false
 });
 
-// Define your workflows
-agent.Workflows.DefineBuiltIn("Conversational");
-agent.Workflows.DefineCustom<ContentApprovalWorkflow>();
+agent.Workflows.DefineCustom<OrderWorkflow>();
 
-// Enable HITL tasks (optional)
-await agent.Workflows.WithTasks();  // Uses default max concurrent (100)
-// await agent.Workflows.WithTasks(maxConcurrent: 200);  // Or customize if needed
+// Enable tasks - creates OrderProcessor:Task Workflow
+await agent.Workflows.WithTasks();
 
-// Run all workflows
 await agent.RunAllAsync();
 ```
 
 **Key Points:**
 
-- Tasks are **not enabled by default** - call `WithTasks()` to enable
 - Each agent gets its own task workflow: `{AgentName}:Task Workflow`
-- Configurable maxConcurrent allow scaling based on expected task volume
-- Omit `WithTasks()` if your agent doesn't need human interaction
+- Optional `maxConcurrent` parameter (defaults to 100)
+- Omit `WithTasks()` if your agent doesn't need human input
 
 ## Creating Tasks in Workflows
 
-Tasks are created from within workflows using the `XiansContext.CurrentAgent.Tasks` API:
+Create tasks with domain-specific actions:
 
 ```csharp
-// Start a task and get a handle (non-blocking)
 var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
     new TaskWorkflowRequest
     {
-        TaskId = $"content-approval-{Workflow.NewGuid()}",
-        Title = "Approve Content",
-        Description = "Approve the content before it is published",
-        ParticipantId = userId,
-        DraftWork = contentUrl
+        TaskId = $"order-{orderId}",
+        Title = "Review High-Value Order",
+        Description = $"Order for ${amount} requires approval",
+        ParticipantId = reviewerUserId, // optional, this is usually inherited from the parent workflow
+        DraftWork = orderDetails,
+        Actions = ["approve", "reject", "request-info"]  // Custom actions
     }
 );
 
-// Later, wait for the task to complete
+// Later, wait for the result
 var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
 
-if (result.Success)
+// Handle based on the action performed
+switch (result.PerformedAction)
 {
-    // Task was approved - continue with finalWork
-    await PublishContentAsync(result.FinalWork);
-}
-else
-{
-    // Task was rejected - handle rejection
-    _logger.LogWarning("Task rejected: {Reason}", result.RejectionReason);
+    case "approve":
+        await ProcessOrder(result.FinalWork);
+        break;
+    case "reject":
+        await CancelOrder(result.Comment);
+        break;
+    case "request-info":
+        await RequestMoreInfo(result.Comment);
+        break;
 }
 ```
 
-!!! note "Durable Execution with Temporal"
-    The waiting mechanism in `GetResultAsync()` is powered by **Temporal's durable execution**. This means:
-    - **Survives restarts**: The workflow can wait even if your application restarts or crashes
-    - **Long-running**: Can wait for days, weeks, months, or even years if needed
-    - **No polling**: The wait is event-driven, not polling-based, so it's highly efficient
-    - **Guaranteed delivery**: When the task completes, the workflow will resume exactly where it left off
-    
-    This is a fundamental advantage of building on Temporal - your workflows can reliably wait for human input without tying up resources or risking data loss.
+!!! tip "Durable Waiting with Temporal"
+    `GetResultAsync()` uses Temporal's durable execution—your workflow can wait days, weeks, or months without tying up resources. It survives restarts and guarantees the workflow resumes exactly where it left off when the human responds.
 
-**Key Methods:**
+**Available Methods:**
 
-- `CreateAndWaitAsync()` - Creates task and blocks until completion
-- `StartTaskAsync()` - Creates task and returns handle immediately  
-- `GetResultAsync()` - Waits for task completion using handle
-- `CreateAsync()` - Fire-and-forget task creation (no result needed)
+| Method | Purpose |
+|--------|---------|
+| `CreateAndWaitAsync()` | Create task and block until completion |
+| `StartTaskAsync()` | Create task, return handle immediately |
+| `GetResultAsync()` | Wait for task completion using handle |
+| `CreateAsync()` | Fire-and-forget (no result needed) |
 
 ## Linking Tasks to Conversations
 
-The power of HITL tasks comes from linking them to conversational contexts using **message hints**:
+Connect tasks to conversations using **message hints**:
 
 ```csharp
-// Send message with task workflow ID as a hint
+// Send message with task workflow ID as hint
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    conversationWorkflow,
+    "MyAgent:Conversational",
     userId,
-    "This article is ready to be published. Please review.",
-    scope: contentUrl,
-    hint: taskHandle.Id  // Task workflow ID becomes the hint
+    "I found a high-value order. Please review it.",
+    scope: orderId,
+    hint: taskHandle.Id  // Links task to this conversation
 );
 ```
 
-The hint associates the task with the conversation scope, allowing agents to retrieve and interact with the task contextually.
+The hint makes the task available to conversational agents, enabling natural task management through chat.
 
 ## Interacting with Tasks via Agents
 
-Conversational agents can interact with tasks using the `HitlTask` class. The typical pattern retrieves the task from the conversation hint:
+Conversational agents retrieve and manage tasks using `HitlTask`:
 
 ```csharp
-// In an agent tool function
+// In an agent tool
 var taskWorkflowId = await context.GetLastHintAsync();
 var task = await HitlTask.FromWorkflowIdAsync(taskWorkflowId);
 
-// Get task information
+// Check available actions
 var info = await task.GetInfoAsync();
-var draft = await task.GetDraftAsync();
+Console.WriteLine($"Available: {string.Join(", ", info.AvailableActions)}");
 
-// Update the draft
-await task.UpdateDraftAsync(updatedContent);
+// Perform an action with a comment
+await task.PerformActionAsync("approve", "Verified by support team");
 
-// Approve or reject
-await task.ApproveAsync();
-// or
-await task.RejectAsync("Content needs more detail");
+// Or use convenience methods
+await task.ApproveAsync("Looks good!");
+await task.RejectAsync("Missing required documentation");
 ```
 
-**Common HitlTask Methods:**
+**HitlTask Methods:**
 
-- `GetInfoAsync()` - Get full task details (title, description, status, draft, metadata)
-- `GetDraftAsync()` - Get current draft work
-- `UpdateDraftAsync()` - Update draft work (collaborative editing)
-- `ApproveAsync()` / `CompleteAsync()` - Approve the task
-- `RejectAsync()` - Reject with a reason
-- `IsCompletedAsync()`, `IsPendingAsync()`, `IsRejectedAsync()` - Check task state
+| Method | Description |
+|--------|-------------|
+| `GetInfoAsync()` | Get task details, available actions, status |
+| `PerformActionAsync(action, comment)` | Perform any available action |
+| `ApproveAsync(comment)` | Shortcut for "approve" action |
+| `RejectAsync(comment)` | Shortcut for "reject" action |
+| `UpdateDraftAsync(draft)` | Update work in progress |
+| `GetDraftAsync()` | Get current draft |
+| `GetAvailableActionsAsync()` | Get actions for this task |
 
-## Complete Example: Content Approval Workflow
+## Complete Example: Order Processing
 
-Here's how all the pieces come together in a real workflow:
+Here's how it all comes together:
 
 ```csharp
-[WorkflowRun]
-public async Task<string?> RunAsync(string contentUrl, string userId)
+[Workflow("OrderProcessor:Order Workflow")]
+public class OrderWorkflow
 {
-    // 1. Notify user about new content
-    await XiansContext.Messaging.SendChatAsWorkflowAsync(
-        ConversationWorkflow, 
-        userId, 
-        $"New article found: {contentUrl}", 
-        scope: contentUrl);
-
-    // 2. Create approval task
-    var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
-        new TaskWorkflowRequest
+    [WorkflowRun]
+    public async Task<OrderResult> RunAsync(string customerId, decimal amount)
+    {
+        // Auto-approve small orders
+        if (amount <= 100)
         {
-            TaskId = $"content-approval-{Workflow.NewGuid()}",
-            Title = "Approve Content",
-            Description = "Approve the content before publishing",
-            ParticipantId = userId,
-            DraftWork = contentUrl
+            return new OrderResult { Status = "Auto-Approved", Amount = amount };
         }
-    );
 
-    // 3. Link task to conversation via hint
-    await XiansContext.Messaging.SendChatAsWorkflowAsync(
-        ConversationWorkflow,
-        userId,
-        "Please review. Should I publish this article?",
-        scope: contentUrl,
-        hint: taskHandle.Id);  // Critical: task ID as hint
+        // High-value orders need human review
+        var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
+            new TaskWorkflowRequest
+            {
+                Title = "Review Order",
+                Description = $"Customer {customerId} - ${amount}",
+                Actions = ["approve", "reject", "hold", "escalate"]
+            }
+        );
 
-    // 4. Wait for human decision
-    var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
+        var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
 
-    // 5. Handle result
-    return result.Success 
-        ? $"Published: {result.FinalWork}"
-        : $"Rejected: {result.RejectionReason}";
+        return result.PerformedAction switch
+        {
+            "approve" => ProcessApprovedOrder(result.Comment),
+            "reject" => CancelOrder(result.Comment),
+            "hold" => PutOnHold(result.Comment),
+            "escalate" => EscalateToManager(result.Comment),
+            _ => throw new InvalidOperationException($"Unknown action: {result.PerformedAction}")
+        };
+    }
 }
 ```
+
+**TaskWorkflowResult Properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `TaskId` | `string` | The unique identifier for the task |
+| `InitialWork` | `string?` | The original draft when the task was created |
+| `FinalWork` | `string?` | The final draft when the task completed (may have been updated) |
+| `PerformedAction` | `string?` | The action that was performed (e.g., "approve", "reject") |
+| `Comment` | `string?` | Optional comment provided with the action |
+| `CompletedAt` | `DateTime` | When the task was completed |
+
+You can compare `InitialWork` and `FinalWork` to see if the draft was modified during the task lifecycle.
 
 ## Agent Tools for Task Management
 
-Conversational agents expose tasks through AI function tools:
+Expose tasks through AI function tools:
 
 ```csharp
-[Description("Get information about the current task")]
+[Description("Get information about the current task including available actions")]
 public async Task<string> GetTaskInfo()
 {
-    var taskWorkflowId = await _context.GetLastHintAsync();
-    var task = await HitlTask.FromWorkflowIdAsync(taskWorkflowId);
+    var taskId = await _context.GetLastHintAsync();
+    var task = await HitlTask.FromWorkflowIdAsync(taskId);
     var info = await task.GetInfoAsync();
     
+    var actions = string.Join(", ", info.AvailableActions ?? []);
+    var status = info.IsCompleted 
+        ? $"Completed ({info.PerformedAction})" 
+        : "Pending";
+    
     return $"Task: {info.Title}\n" +
-           $"Status: {(info.IsCompleted ? "Complete" : "Pending")}\n" +
-           $"Draft: {info.CurrentDraft}";
+           $"Status: {status}\n" +
+           $"Available Actions: {actions}\n" +
+           $"Draft: {info.CurrentDraft ?? "None"}";
 }
 
-[Description("Approve and complete the current task")]
-public async Task<string> ApproveTask()
+[Description("Perform an action on the current task")]
+public async Task<string> PerformAction(
+    [Description("The action to perform (e.g., approve, reject)")] string action,
+    [Description("Optional comment for the action")] string? comment = null)
 {
-    var taskWorkflowId = await _context.GetLastHintAsync();
-    var task = await HitlTask.FromWorkflowIdAsync(taskWorkflowId);
-    await task.ApproveAsync();
-    return "Task approved successfully.";
+    var taskId = await _context.GetLastHintAsync();
+    var task = await HitlTask.FromWorkflowIdAsync(taskId);
+    
+    await task.PerformActionAsync(action, comment);
+    
+    return $"Task action '{action}' performed successfully.";
 }
 ```
 
-These tools empower the AI agent to understand pending tasks and facilitate human decisions through natural conversation.
+The AI agent can now naturally guide humans through task decisions in conversation.
 
 ## The Hint Pattern
 
-The **hint pattern** is central to Xians HITL design:
+The **hint pattern** connects long-running workflows with conversational agents:
 
-1. **Workflow** creates a task and sends a message with the task workflow ID as a hint
-2. **Message hint** scopes the task to that conversation context
-3. **Agent tool** retrieves the hint from conversation context (`GetLastHintAsync()`)
-4. **HitlTask** is reconstructed from the workflow ID to interact with the task
-5. **Human** approves/rejects through conversation, agent executes via tools
-6. **Workflow** resumes when task completes
+1. **Workflow** creates a task → sends message with task ID as hint
+2. **Hint** scopes the task to the conversation context
+3. **Agent** retrieves hint → reconstructs `HitlTask` from workflow ID
+4. **Human** decides through natural conversation
+5. **Agent** performs action via tools
+6. **Workflow** resumes instantly
 
-This pattern creates a seamless bridge between long-running workflows and conversational agents, enabling natural human-agent collaboration without exposing workflow complexity to the user.
+This creates seamless human-agent collaboration without exposing workflow complexity to users.
 
-## Direct Task Operations (Outside Workflows)
+## Direct Task Operations
 
-You can also manage tasks directly from non-workflow code using the Temporal client:
+Manage tasks outside workflows (e.g., webhooks, admin tools):
 
 ```csharp
-// From outside a workflow
-var task = new HitlTask(taskId, tenantId, temporalClient);
-
-// Or from workflow ID
 var task = await HitlTask.FromWorkflowIdAsync(workflowId);
 
-// Query and control
 var info = await task.GetInfoAsync();
 await task.UpdateDraftAsync(updatedContent);
-await task.ApproveAsync();
+await task.PerformActionAsync("approve", "Verified externally");
 ```
 
-This is useful for external integrations, webhooks, or administrative tools that need to interact with tasks outside the workflow context.
+## Default Actions
 
-## Best Practices
-
-1. **Enable only when needed** - Call `WithTasks()` only if your agent requires human interaction
-2. **Use sensible defaults** - Default max concurrent (100) handles most scenarios well
-3. **Scale when necessary** - Customize only for high-volume scenarios:
-   - `WithTasks()` - Default (100 concurrent tasks) - suitable for most use cases
-   - `WithTasks(maxConcurrent: 200)` - High volume scenarios with many simultaneous tasks
-   - `WithTasks(maxConcurrent: 50)` - Limit concurrency to control resource usage
-3. **Always use hints** - Link tasks to conversations for contextual agent interaction
-4. **Descriptive titles and descriptions** - Help users understand what they're approving
-5. **Meaningful draft work** - Pre-populate drafts to give users a starting point
-6. **Handle rejections gracefully** - Use rejection reasons to improve or retry
-7. **Proactive agents** - Configure agents to check for pending tasks and prompt users
-8. **Use metadata** - Store additional context (URLs, references, etc.) for rich interactions
-
-## Task Workflow Architecture
-
-When you call `WithTasks()`, Xians dynamically creates a workflow class:
+If you don't specify actions, tasks default to `["approve", "reject"]`:
 
 ```csharp
-[Workflow("{AgentName}:Task Workflow")]
-public class DynamicTaskWorkflow : TaskWorkflow
+new TaskWorkflowRequest
 {
-    // Agent-specific task workflow implementation
+    Title = "Simple Approval",
+    // Actions defaults to ["approve", "reject"]
 }
 ```
 
+## Best Practices
+
+**Design**
+- Use domain-specific actions that match your business process
+- Keep action names simple and clear (`ship`, `refund`, not `initiateShippingProcess`)
+- Provide meaningful titles and descriptions
+
+**Implementation**
+- Enable tasks only for agents that need human input
+- Always use hints to link tasks to conversations
+- Handle all possible actions in your workflow logic
+
+**User Experience**
+- Pre-populate draft work to give context
+- Use comments to capture rationale for decisions
+- Configure agents to proactively notify users of pending tasks
+
+## Architecture
+
+When you call `WithTasks()`, Xians creates an agent-specific workflow:
+
+```
+{AgentName}:Task Workflow
+```
+
 This ensures:
-- **Agent isolation** - Each agent has its own task queue
-- **Independent scaling** - Task workers scale independently per agent
+- **Isolation** - Each agent has its own task queue
+- **Independent scaling** - Task workers scale per agent
 - **Multi-tenancy** - Tasks are automatically tenant-scoped
 - **No conflicts** - Multiple agents can use tasks simultaneously
 
 ---
 
-HITL tasks transform workflows from rigid automation into collaborative experiences where humans and agents work together naturally, each contributing their unique strengths.
+HITL tasks transform rigid automation into flexible collaboration, letting humans and agents each do what they do best.

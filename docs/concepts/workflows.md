@@ -17,10 +17,12 @@ The Xians SDK provides `XiansContext.Workflows` to start and execute child workf
 
 | Method | Description |
 |--------|-------------|
-| `StartAsync<TWorkflow>(string? idPostfix, params object[] args)` | Start child workflow by type without waiting |
-| `StartAsync(string workflowType, string? idPostfix, params object[] args)` | Start child workflow by type string without waiting |
-| `ExecuteAsync<TWorkflow, TResult>(string? idPostfix, params object[] args)` | Execute child workflow and wait for result |
-| `ExecuteAsync<TResult>(string workflowType, string? idPostfix, params object[] args)` | Execute child workflow by type string and wait for result |
+| `StartAsync<TWorkflow>(object[] args, string? uniqueKey = null)` | Start child workflow by type without waiting |
+| `StartAsync(string workflowType, object[] args, string? uniqueKey = null)` | Start child workflow by type string without waiting |
+| `ExecuteAsync<TWorkflow, TResult>(object[] args, string? uniqueKey = null)` | Execute child workflow and wait for result |
+| `ExecuteAsync<TResult>(string workflowType, object[] args, string? uniqueKey = null)` | Execute child workflow by type string and wait for result |
+
+**Note:** Parent's `idPostfix` is always automatically extracted from workflow/activity context when available. The `uniqueKey` parameter provides additional uniqueness beyond the parent's context.
 
 ### Starting Workflows (Fire and Forget)
 
@@ -39,9 +41,9 @@ public class ParentWorkflow
     public async Task RunAsync(string taskId)
     {
         // Start child workflow by type - fire and forget
+        // Parent's idPostfix is automatically included in workflow ID
         await XiansContext.Workflows.StartAsync<BackgroundTaskWorkflow>(
-            idPostfix: taskId,
-            args: new object[] { "param1", "param2" }
+            new object[] { "param1", "param2" }
         );
         
         // Continue without waiting for child to complete
@@ -49,9 +51,9 @@ public class ParentWorkflow
         
         // You can start multiple workflows in parallel
         await Task.WhenAll(
-            XiansContext.Workflows.StartAsync<Task1Workflow>(idPostfix: "task1"),
-            XiansContext.Workflows.StartAsync<Task2Workflow>(idPostfix: "task2"),
-            XiansContext.Workflows.StartAsync<Task3Workflow>(idPostfix: "task3")
+            XiansContext.Workflows.StartAsync<Task1Workflow>(Array.Empty<object>()),
+            XiansContext.Workflows.StartAsync<Task2Workflow>(Array.Empty<object>()),
+            XiansContext.Workflows.StartAsync<Task3Workflow>(Array.Empty<object>())
         );
     }
 }
@@ -64,10 +66,10 @@ public class ParentWorkflow
 public async Task RunAsync(string workflowType, string taskId)
 {
     // Start workflow by type string (useful for dynamic workflow selection)
+    // Parent's idPostfix is automatically included in workflow ID
     await XiansContext.Workflows.StartAsync(
-        workflowType: "MyAgent:DynamicWorkflow",
-        idPostfix: taskId,
-        args: new object[] { "param1", "param2" }
+        "MyAgent:DynamicWorkflow",
+        new object[] { "param1", "param2" }
     );
 }
 ```
@@ -86,9 +88,9 @@ public class ParentWorkflow
     public async Task<ProcessingResult> RunAsync(string data)
     {
         // Execute child workflow and wait for result
+        // Parent's idPostfix is automatically included in workflow ID
         var result = await XiansContext.Workflows.ExecuteAsync<ProcessingWorkflow, string>(
-            idPostfix: "process",
-            args: new object[] { data }
+            new object[] { data }
         );
         
         // Use the result
@@ -106,10 +108,10 @@ public class ParentWorkflow
 public async Task<string> RunAsync(string workflowType, string input)
 {
     // Execute workflow by type string and wait for result
+    // Parent's idPostfix is automatically included in workflow ID
     var result = await XiansContext.Workflows.ExecuteAsync<string>(
-        workflowType: "MyAgent:DataProcessor",
-        idPostfix: "processor",
-        args: new object[] { input }
+        "MyAgent:DataProcessor",
+        new object[] { input }
     );
     
     return result;
@@ -118,17 +120,35 @@ public async Task<string> RunAsync(string workflowType, string input)
 
 ### Workflow ID Generation
 
-The `idPostfix` parameter controls how workflow IDs are generated:
+Workflow IDs are automatically constructed with the following format:
 
-- **With idPostfix**: Workflow ID format is `{workflowType}-{idPostfix}`
-- **Without idPostfix (null)**: A GUID is automatically generated
+**Format**: `{tenantId}:{agentName}:{workflowName}[:{parent_idPostfix}][:{uniqueKey}]`
+
+- **parent_idPostfix**: Automatically extracted from parent workflow/activity context (always included when available)
+- **uniqueKey**: Optional parameter for additional uniqueness (e.g., order ID, task ID, session ID)
+
+**Examples**:
 
 ```csharp
-// Predictable ID: "MyAgent:Task-12345"
-await XiansContext.Workflows.StartAsync<TaskWorkflow>(idPostfix: "12345");
+// Inside workflow with parent idPostfix "session-abc123"
+// Result: tenant1:MyAgent:Task:session-abc123
+await XiansContext.Workflows.StartAsync<TaskWorkflow>(
+    Array.Empty<object>()
+);
 
-// Auto-generated ID: "MyAgent:Task-a1b2c3d4-e5f6-..."
-await XiansContext.Workflows.StartAsync<TaskWorkflow>(idPostfix: null);
+// Inside workflow with parent idPostfix "session-abc123" + uniqueKey
+// Result: tenant1:MyAgent:Task:session-abc123:order-456
+await XiansContext.Workflows.StartAsync<TaskWorkflow>(
+    Array.Empty<object>(),
+    uniqueKey: "order-456"
+);
+
+// Outside workflow context (no parent idPostfix)
+// Result: tenant1:MyAgent:Task:order-456
+await XiansContext.Workflows.StartAsync<TaskWorkflow>(
+    Array.Empty<object>(),
+    uniqueKey: "order-456"
+);
 ```
 
 ### Error Handling
@@ -141,8 +161,9 @@ public async Task RunAsync(string taskId)
 {
     try
     {
+        // Parent's idPostfix automatically included in workflow ID
         await XiansContext.Workflows.StartAsync<ProcessWorkflow>(
-            idPostfix: taskId
+            Array.Empty<object>()
         );
     }
     catch (WorkflowAlreadyStartedException ex)
@@ -180,16 +201,15 @@ public class OrderProcessorWorkflow
     public async Task<OrderResult> ProcessOrderAsync(Order order)
     {
         // Start payment processing in the background
+        // Parent's idPostfix is automatically included in workflow ID
         await XiansContext.Workflows.StartAsync<PaymentWorkflow>(
-            idPostfix: order.Id,
-            args: new object[] { order.PaymentInfo }
+            new object[] { order.PaymentInfo }
         );
         
         // Execute inventory check and wait for result
         var inventoryResult = await XiansContext.Workflows
             .ExecuteAsync<InventoryCheckWorkflow, bool>(
-                idPostfix: $"inventory-{order.Id}",
-                args: new object[] { order.Items }
+                new object[] { order.Items }
             );
         
         if (!inventoryResult)
@@ -200,8 +220,7 @@ public class OrderProcessorWorkflow
         // Execute shipping calculation and wait for result
         var shippingCost = await XiansContext.Workflows
             .ExecuteAsync<ShippingWorkflow, decimal>(
-                idPostfix: $"shipping-{order.Id}",
-                args: new object[] { order.ShippingAddress }
+                new object[] { order.ShippingAddress }
             );
         
         return new OrderResult 
@@ -243,9 +262,7 @@ using Xians.Lib.Agents.Core;
 
 // Get workflow handle using the workflow class and ID postfix
 // This automatically constructs the full workflow ID
-var workflowHandle = await XiansContext.Workflows.GetWorkflowHandleAsync<MyWorkflow>(
-    idPostfix: "12345"
-);
+var workflowHandle = await XiansContext.Workflows.GetWorkflowHandleAsync<MyWorkflow>("12345");
 
 // Send signal
 await workflowHandle.SignalAsync(
@@ -264,9 +281,10 @@ using Xians.Lib.Agents.Core;
 // Get the Temporal client
 var temporalClient = await XiansContext.Workflows.GetClientAsync();
 
-// Construct full workflow ID manually: {tenantId}:{agentName}:{workflowName}:{idPostfix}
+// Construct full workflow ID manually: {tenantId}:{agentName}:{workflowName}[:{parent_idPostfix}][:{uniqueKey}]
+// Example: tenant123:MyAgent:Task:session-abc:order-12345
 var workflowHandle = temporalClient.GetWorkflowHandle<MyWorkflow>(
-    workflowId: "tenant123:MyAgent:Task:12345"
+    workflowId: "tenant123:MyAgent:Task:session-abc:order-12345"
 );
 
 // Send signal
@@ -281,9 +299,7 @@ await workflowHandle.SignalAsync(
 using Xians.Lib.Agents.Core;
 
 // Get workflow handle (automatically constructs workflow ID)
-var workflowHandle = await XiansContext.Workflows.GetWorkflowHandleAsync<MyWorkflow>(
-    idPostfix: "12345"
-);
+var workflowHandle = await XiansContext.Workflows.GetWorkflowHandleAsync<MyWorkflow>("12345");
 
 // Query workflow state
 var status = await workflowHandle.QueryAsync(wf => wf.GetStatus());

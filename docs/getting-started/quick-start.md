@@ -30,6 +30,8 @@ You can use any framework that supports .NET Core to create your agent. In this 
 
 ### Install Required Packages
 
+Note: Please check if stable releases are available from Microsoft and use accordingly.
+
 ```bash
 dotnet add package Azure.AI.OpenAI --prerelease
 dotnet add package Azure.Identity
@@ -85,10 +87,10 @@ Replace the contents of `Program.cs` with:
 
 ```csharp
 // Get OpenAI API key (replace with your actual key or use environment variable)
-var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "your-openai-api-key";
+var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "your-openai-api-key";
 
 // Create the agent
-var agent = new MafSubAgent(apiKey);
+var agent = new MafSubAgent(openAiApiKey);
 
 // Process a user message
 var response = await agent.RunAsync("Hello! Can you write a one sentence story about a cat?");
@@ -203,7 +205,7 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
 var xiansAgent = xiansPlatform.Agents.Register(new ()
 {
     Name = "My Conversational Agent",
-    SystemScoped = true  // See important notes below
+    SystemScoped = false  // See important notes below
 });
 
 // Define a built-in conversational workflow
@@ -244,7 +246,7 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
 var xiansAgent = xiansPlatform.Agents.Register(new ()
 {
     Name = "My Conversational Agent",
-    SystemScoped = true  // See important notes below
+    SystemScoped = false  // See important notes below
 });
 
 // Define a built-in conversational workflow
