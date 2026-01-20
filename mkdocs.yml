@@ -25,6 +25,7 @@ nav:
     - Human-in-the-Loop: concepts/hitl-tasks.md
     - Webhooks: concepts/webhook.md
     - Workflows: concepts/workflows.md
+    - Usage Tracking: concepts/usage-tracking.md
   - Server:
     - Encryption: server/encryption.md
     - Scaling: server/scaling.md

@@ -15,6 +15,7 @@ Deep dive into Xians' core concepts and patterns for building production-ready A
 | [Agent-to-Agent (A2A)](A2A.md) | Enable workflow communication through messages, signals, queries, and updates |
 | [Human-in-the-Loop](hitl-tasks.md) | Implement approval workflows where agents pause for human review |
 | [Webhooks](webhook.md) | Integrate external systems using incoming and outgoing HTTP callbacks |
+| [Usage Tracking](usage-tracking.md) | Track LLM token usage with built-in reporting to the platform |
 
 ---
 
