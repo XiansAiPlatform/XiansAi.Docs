@@ -5,7 +5,7 @@ nav:
   - Home: index.md
   - Introduction:
     - Overview: introduction/overview.md
-    - Where does it fit: introduction/where-does-it-fit.md
+    - Architecture: introduction/where-does-it-fit.md
     - Features: introduction/features.md
   - Getting Started:
     - Overview: getting-started/overview.md

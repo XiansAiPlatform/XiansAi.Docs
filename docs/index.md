@@ -1,8 +1,8 @@
-# AI Agent Control Center
+# Open Source Agent Control Plane
 
 <div style="text-align: left; padding: 0rem 0;">
   <p style="font-size: 1rem; color: var(--xians-text-secondary); max-width: 800px;">
- Build agents with the framework of your choice - Azure AI, Bedrock, Semantic Kernel, LangGraph, or your own custom runtime. Xians doesn't dictate how your agents think - <strong>it handles the plumbing that becomes painful once agents graduate beyond the demos</strong>. <br><br>Multi-tenancy, human-in-the-loop workflows, long-running processes, scheduling, external triggers, agent-to-agent collaboration, scalability, fault tolerance, and observability. The complete control plane you need but would never want to build yourself.
+ Build agents with the framework of your choice - Azure AI, Bedrock, Semantic Kernel, LangGraph, or your own custom runtime. Xians doesn't dictate how your agents think - <strong>it provides centralized governance, orchestration, and monitoring for your entire agent fleet</strong>. <br><br>Multi-tenant governance with centralized control. Fault-tolerant durable workflows for business process automation. Horizontal scalability with workers in private subnets (no incoming ports). Centralized prompt and knowledge management. Real-time monitoring with distributed tracing. The complete control plane you need but would never want to build yourself.
   </p>
   
   <div style="margin-top: 2rem;">
@@ -15,9 +15,20 @@
 
 <div style="margin: 3rem 0;">
   <img src="assets/images/xians-screenshot.png" alt="Xians Platform - Deployed Agents Dashboard" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--xians-border-medium); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+  Image: Xians developer portal to manage and monitor all agent operations.
 </div>
 
-## Useful Resources
+
+<div style="margin: 3rem 0;">
+  <img src="assets/images/agent-studio.png" alt="Xians Platform - Deployed Agents Dashboard" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--xians-border-medium); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+  Image: Xians (optional) end user portal where end users can collaborate with agents.
+</div>
+
+
+Looking to integrate your custom UI with Xians? Explore the comprehensive Server API documentation here:<br>
+[Server API Docs](https://api.agentri.ai/api-docs/index.html)
+
+## Other Useful Resources
 
 - [GitHub Organization](https://github.com/XiansAiPlatform)
 - [Official Website](https://xians.ai)

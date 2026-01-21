@@ -52,12 +52,20 @@ var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
         Description = $"Order for ${amount} requires approval",
         ParticipantId = reviewerUserId, // optional, this is usually inherited from the parent workflow
         DraftWork = orderDetails,
-        Actions = ["approve", "reject", "request-info"]  // Custom actions
+        Actions = ["approve", "reject", "request-info"],  // Custom actions
+        Timeout = TimeSpan.FromHours(24)  // Optional: auto-timeout after 24 hours
     }
 );
 
 // Later, wait for the result
 var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
+
+// Check if task timed out
+if (result.TimedOut)
+{
+    await HandleTimeout(result.TaskId);
+    return;
+}
 
 // Handle based on the action performed
 switch (result.PerformedAction)
@@ -85,6 +93,71 @@ switch (result.PerformedAction)
 | `StartTaskAsync()` | Create task, return handle immediately |
 | `GetResultAsync()` | Wait for task completion using handle |
 | `CreateAsync()` | Fire-and-forget (no result needed) |
+
+## Task Timeouts
+
+Tasks can specify an optional timeout to automatically complete after a given duration:
+
+```csharp
+var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
+    new TaskWorkflowRequest
+    {
+        Title = "Review Content",
+        Description = "Please review before publishing",
+        Actions = ["publish", "reject", "revise"],
+        Timeout = TimeSpan.FromHours(48)  // Auto-complete after 48 hours
+    }
+);
+
+var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
+
+// Check if task timed out
+if (result.TimedOut)
+{
+    // Handle timeout case - PerformedAction and Comment will be null
+    _logger.LogWarning("Task {TaskId} timed out without human action", result.TaskId);
+    await HandleTimeoutLogic();
+}
+else if (result.Completed)
+{
+    // Normal completion - human performed an action
+    await ProcessAction(result.PerformedAction, result.Comment);
+}
+```
+
+**Timeout Behavior:**
+
+- When a timeout occurs, the task completes with `TimedOut = true`
+- `PerformedAction` and `Comment` will be `null` for timed-out tasks
+- `Completed` will be `false` (only `true` when a human performed an action)
+- The workflow can distinguish between timeouts and explicit human actions
+- If no timeout is specified, the task waits indefinitely
+
+**Use Cases:**
+
+- **SLA Enforcement**: Auto-escalate support tickets after 24 hours
+- **Default Actions**: Auto-approve low-risk changes after review period
+- **Workflow Progression**: Prevent workflows from waiting forever
+- **Business Logic**: Implement time-based decision rules
+
+```csharp
+// Example: Auto-approve after 72 hours if not reviewed
+var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
+
+if (result.TimedOut)
+{
+    // Auto-approve on timeout
+    await ApproveOrder("Auto-approved after 72-hour review period");
+}
+else if (result.PerformedAction == "reject")
+{
+    await RejectOrder(result.Comment);
+}
+else
+{
+    await ApproveOrder(result.Comment);
+}
+```
 
 ## Linking Tasks to Conversations
 
@@ -159,11 +232,18 @@ public class OrderWorkflow
             {
                 Title = "Review Order",
                 Description = $"Customer {customerId} - ${amount}",
-                Actions = ["approve", "reject", "hold", "escalate"]
+                Actions = ["approve", "reject", "hold", "escalate"],
+                Timeout = TimeSpan.FromHours(48)  // Auto-timeout after 48 hours
             }
         );
 
-        var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
+        var result = await taskHandle.GetResultAsync(taskHandle);
+
+        // Handle timeout case
+        if (result.TimedOut)
+        {
+            return new OrderResult { Status = "Escalated-Timeout", Amount = amount };
+        }
 
         return result.PerformedAction switch
         {
@@ -184,11 +264,13 @@ public class OrderWorkflow
 | `TaskId` | `string` | The unique identifier for the task |
 | `InitialWork` | `string?` | The original draft when the task was created |
 | `FinalWork` | `string?` | The final draft when the task completed (may have been updated) |
-| `PerformedAction` | `string?` | The action that was performed (e.g., "approve", "reject") |
-| `Comment` | `string?` | Optional comment provided with the action |
-| `CompletedAt` | `DateTime` | When the task was completed |
+| `PerformedAction` | `string?` | The action that was performed (e.g., "approve", "reject"). `null` if timed out |
+| `Comment` | `string?` | Optional comment provided with the action. `null` if timed out |
+| `CompletedAt` | `DateTime` | When the task was completed (either by action or timeout) |
+| `TimedOut` | `bool` | `true` if the task timed out, `false` if completed by human action |
+| `Completed` | `bool` | `true` if a human performed an action, `false` if timed out |
 
-You can compare `InitialWork` and `FinalWork` to see if the draft was modified during the task lifecycle.
+You can compare `InitialWork` and `FinalWork` to see if the draft was modified during the task lifecycle. Use `TimedOut` to distinguish between timeout and explicit human completion.
 
 ## Agent Tools for Task Management
 
@@ -256,13 +338,14 @@ await task.PerformActionAsync("approve", "Verified externally");
 
 ## Default Actions
 
-If you don't specify actions, tasks default to `["approve", "reject"]`:
+If you don't specify actions, tasks default to `["approve", "reject"]`. Timeout is optional and tasks wait indefinitely if not specified:
 
 ```csharp
 new TaskWorkflowRequest
 {
     Title = "Simple Approval",
     // Actions defaults to ["approve", "reject"]
+    // Timeout is null by default (waits indefinitely)
 }
 ```
 
@@ -272,16 +355,20 @@ new TaskWorkflowRequest
 - Use domain-specific actions that match your business process
 - Keep action names simple and clear (`ship`, `refund`, not `initiateShippingProcess`)
 - Provide meaningful titles and descriptions
+- Set appropriate timeouts based on SLAs and business requirements
 
 **Implementation**
 - Enable tasks only for agents that need human input
 - Always use hints to link tasks to conversations
 - Handle all possible actions in your workflow logic
+- Always check `result.TimedOut` before processing `PerformedAction`
+- Consider timeout behavior as part of your business logic, not just error handling
 
 **User Experience**
 - Pre-populate draft work to give context
 - Use comments to capture rationale for decisions
 - Configure agents to proactively notify users of pending tasks
+- Send reminders before tasks timeout (using scheduled workflows)
 
 ## Architecture
 
