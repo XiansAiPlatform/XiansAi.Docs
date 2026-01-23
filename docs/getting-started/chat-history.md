@@ -128,9 +128,6 @@ public class MafSubAgent
             return "I didn't receive any message. Please send a message.";
         }
 
-        // Create tools instance with the UserMessageContext
-        var tools = new MafSubAgentTools(context);
-
         // Configure the AI agent with tools
         var agent = _chatClient.CreateAIAgent(new ChatClientAgentOptions
         {

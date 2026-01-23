@@ -18,7 +18,8 @@ nav:
     - SDK Patterns: concepts/sdk-patterns.md
     - Agents: concepts/agents.md
     - Multitenancy: concepts/multitenancy.md
-    - Messaging: concepts/replying.md
+    - Replying to User: concepts/replying.md
+    - Proactive Messaging: concepts/messaging.md
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md
     - Scheduling: concepts/scheduling.md
@@ -295,8 +296,8 @@ extra:
 
 # Copyright and legal
 copyright: |
-  &copy; 2024 <a href="https://xians.ai" target="_blank" rel="noopener">Xians.ai</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+  &copy; 2026 <a href="https://xians.ai" target="_blank" rel="noopener">Xians.ai</a> &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#__consent">Cookie Settings</a> &nbsp;&nbsp;|&nbsp;&nbsp;
-  <a href="https://xians.ai/privacy" target="_blank" rel="noopener">Privacy Policy</a> &nbsp;&nbsp;|&nbsp;&nbsp;
-  <a href="https://xians.ai/terms" target="_blank" rel="noopener">Terms of Service</a>
+  <a href="/other/privacy-policy/">Privacy Policy</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="/other/terms-of-service/">Terms of Service</a>
 
