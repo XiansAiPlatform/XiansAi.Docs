@@ -177,8 +177,6 @@ echo ".env" >> .gitignore
 
 Replace the entire contents of `Program.cs` with the following:
 
-**Using .env file (Recommended):**
-
 ```csharp
 using DotNetEnv;
 using Xians.Lib.Agents.Core;
@@ -221,50 +219,25 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
     await context.ReplyAsync(response);
 });
 
+// Upload workflow definitions (includes source code for visualization)
+await xiansAgent.UploadWorkflowDefinitionsAsync();
+
 // Start the agent and all workflows
 await xiansAgent.RunAllAsync();
 ```
 
-**Or using direct configuration (for quick testing):**
+**Or for direct configuration (quick testing),** update `Program.cs` with the following changes: use `using Xians.Lib.Agents.Core;` only (remove `DotNetEnv`), remove the `Env.Load();` call, and replace the environment-variable block with:
 
 ```csharp
-using Xians.Lib.Agents.Core;
-
 // Configuration - replace with your actual values (not recommended for production)
 var openAiApiKey = "your-openai-api-key";
 var serverUrl = "https://your-xians-server.com";
 var xiansApiKey = "your-agent-certificate";
-
-// Initialize Xians Platform
-var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
-{
-    ServerUrl = serverUrl,
-    ApiKey = xiansApiKey
-});
-
-// Register a new agent with Xians
-var xiansAgent = xiansPlatform.Agents.Register(new ()
-{
-    Name = "My Conversational Agent",
-    SystemScoped = false  // See important notes below
-});
-
-// Define a built-in conversational workflow
-var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
-
-// Create your MAF agent instance
-var mafSubAgent = new MafSubAgent(openAiApiKey);
-
-// Handle incoming user messages
-conversationalWorkflow.OnUserChatMessage(async (context) =>
-{
-    var response = await mafSubAgent.RunAsync(context.Message.Text);
-    await context.ReplyAsync(response);
-});
-
-// Start the agent and all workflows
-await xiansAgent.RunAllAsync();
 ```
+
+The rest of `Program.cs` stays the same.
+
+> **Note:** Using `DefineBuiltIn` enables the **Visualize** button in the portal for this workflow (see Step 6). No `.csproj` or embedded-resource setup is required.
 
 ### Important Configuration Notes
 
@@ -313,6 +286,94 @@ Now for the exciting part - talking to your agent!
 4. Start chatting with your agent!
 
 ![Agent Conversations](../assets/images/agent-conversations.png)
+
+---
+
+## Step 6: Visualizing the Flow's Logic
+
+You may have noticed a **Visualize** button in the Xians Manager portal when viewing your agent's workflow.
+
+### When is the Visualize button enabled?
+
+The **Visualize** button behaviour depends on the workflow type:
+
+#### Built-in workflows (automatic)
+
+For **built-in workflows** (such as `DefineBuiltIn(name: "Conversational")` configured in `Program.cs`), visualization is **automatic**. The platform generates and uploads the workflow source needed for visualization—no embedded resources or `.csproj` changes are required.
+
+#### Custom workflows (requires configuration)
+
+For **custom workflows** (`DefineCustom<T>()`), you need to make the following updates to enable the Visualize button:
+
+**1. Create `ConversationalWorkflow.cs`** – Add a new file with your custom workflow class:
+
+```csharp
+using Temporalio.Workflows;
+using Xians.Lib.Temporal.Workflows;
+
+namespace MyAgent
+{
+    /// <summary>
+    /// Custom conversational workflow that extends BuiltinWorkflow.
+    /// This workflow can be visualized because it has a source file that can be embedded.
+    /// </summary>
+    [Workflow("MyAgent:Conversational")]
+    public class ConversationalWorkflow : BuiltinWorkflow
+    {
+        /// <summary>
+        /// Main workflow execution method.
+        /// This calls the base implementation which handles message processing.
+        /// </summary>
+        [WorkflowRun]
+        public override async Task RunAsync()
+        {
+            // Call base implementation to handle message processing
+            await base.RunAsync();
+        }
+    }
+}
+```
+
+**2. Update `Program.cs` with the following changes** – Replace the `// Handle incoming user messages` section with:
+
+```csharp
+// Handle incoming user messages
+var tenantId = xiansPlatform.Options?.CertificateTenantId;
+BuiltinWorkflow.RegisterChatHandler(
+    workflowType: "MyAgent:Conversational",
+    handler: async (context) =>
+    {
+        var response = await mafSubAgent.RunAsync(context.Message.Text);
+        await context.ReplyAsync(response);
+    },
+    agentName: xiansAgent.Name,
+    tenantId: xiansAgent.SystemScoped ? null : tenantId,
+    systemScoped: xiansAgent.SystemScoped);
+```
+
+> **Note:** The `workflowType` must match the `[Workflow("...")]` attribute on your custom workflow class (e.g. `"MyAgent:Conversational"`).
+
+**3. Update your `.csproj` file** – Embed the workflow source file as a resource:
+
+```xml
+<!-- Embed workflow source for visualization -->
+<ItemGroup>
+  <EmbeddedResource Include="ConversationalWorkflow.cs">
+    <LogicalName>%(Filename)%(Extension)</LogicalName>
+  </EmbeddedResource>
+</ItemGroup>
+```
+
+After these changes, rebuild your project and run the agent. The Visualize button will now be enabled for your custom workflow.
+
+### How to view the flow diagram
+
+1. Log in to the **Xians Manager** portal.
+2. Go to **Agent Definitions** and select your agent.
+3. Open the workflow (e.g. **Conversational**).
+4. Click **Visualize** to see the flow diagram.
+
+![Workflow Visualization](../assets/images/workflow-visualize.png)
 
 ---
 
