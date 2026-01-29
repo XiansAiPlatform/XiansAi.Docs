@@ -317,7 +317,7 @@ namespace MyAgent
     /// Custom conversational workflow that extends BuiltinWorkflow.
     /// This workflow can be visualized because it has a source file that can be embedded.
     /// </summary>
-    [Workflow("MyAgent:Conversational")]
+    [Workflow("My New Agent:Conversational")]
     public class ConversationalWorkflow : BuiltinWorkflow
     {
         /// <summary>
