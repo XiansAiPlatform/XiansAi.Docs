@@ -17,6 +17,7 @@ nav:
     - Overview: concepts/overview.md
     - SDK Patterns: concepts/sdk-patterns.md
     - Agents: concepts/agents.md
+    - Operating Context: concepts/context.md
     - Multitenancy: concepts/multitenancy.md
     - Replying to User: concepts/replying.md
     - Proactive Messaging: concepts/messaging.md
@@ -27,6 +28,7 @@ nav:
     - Human-in-the-Loop: concepts/hitl-tasks.md
     - Webhooks: concepts/webhook.md
     - Workflows: concepts/workflows.md
+    - Logging: concepts/logging.md
   - Server:
     - Encryption: server/encryption.md
     - Scaling: server/scaling.md

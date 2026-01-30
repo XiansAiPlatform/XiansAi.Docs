@@ -342,8 +342,8 @@ await workflow.Schedules!
 
 ## What's Next?
 
-- **[Scheduling SDK](../sdk-reference/scheduling-sdk.md)** - Complete API reference and advanced examples
 - **[Agents](agents.md)** - Agent architecture and patterns
+- **[Workflows](workflows.md)** - Workflow patterns and lifecycle
 
 ---
 

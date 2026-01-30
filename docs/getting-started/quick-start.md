@@ -207,7 +207,7 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
 var xiansAgent = xiansPlatform.Agents.Register(new ()
 {
     Name = "My Conversational Agent",
-    SystemScoped = false  // See important notes below
+    IsTemplate = false  // See important notes below
 });
 
 // Define a built-in conversational workflow
@@ -231,11 +231,11 @@ await xiansAgent.RunAllAsync();
 
 ### Important Configuration Notes
 
-**SystemScoped Setting:**
+**IsTemplate Setting:**
 
-- **`SystemScoped = true`**: Adds the agent to the global **Agent Templates** library, making it available for any tenant admin to deploy. This option is only available if you're a **system administrator**.
+- **`IsTemplate = true`**: Adds the agent to the global **Agent Templates** library, making it available for any tenant admin to deploy. This option is only available if you're a **system administrator**.
   
-- **`SystemScoped = false`** (default): Immediately deploys the agent to your current tenant. Use this if you only have tenant-level permissions.
+- **`IsTemplate = false`** (default): Immediately deploys the agent to your current tenant. Use this if you only have tenant-level permissions.
 
 **Understanding Workflows:**
 
@@ -250,7 +250,7 @@ await xiansAgent.RunAllAsync();
 
 ### For System-Scoped Agents
 
-If you registered your agent with `SystemScoped = true`, you'll find it in the **Agent Templates** section:
+If you registered your agent with `IsTemplate = true`, you'll find it in the **Agent Templates** section:
 
 ![Agent Templates](../assets/images/agent-templates.png)
 
@@ -258,7 +258,7 @@ Tenant administrators can then deploy instances of this template to their tenant
 
 ### For Tenant-Scoped Agents
 
-If you used `SystemScoped = false`, or after deploying a system template, your agent appears under **Deployed Agents**:
+If you used `IsTemplate = false`, or after deploying a system template, your agent appears under **Deployed Agents**:
 
 ![Deployed Agents](../assets/images/deployed-agents.png)
 

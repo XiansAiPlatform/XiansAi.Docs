@@ -80,7 +80,7 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
     Name = "MyAgent",
     Version = "1.0.0",
     Description = "My intelligent agent",
-    SystemScoped = true  // or false for tenant-specific
+    IsTemplate = true  // or false for tenant-specific
 });
 ```
 
@@ -100,7 +100,7 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 | `Name` | `string` | Unique identifier for the agent |
 | `Version` | `string?` | Optional version identifier |
 | `Description` | `string?` | Human-readable description |
-| `SystemScoped` | `bool` | Whether agent is multi-tenant template |
+| `IsTemplate` | `bool` | Whether agent is multi-tenant template |
 | `Workflows` | `WorkflowCollection` | Collection of workflows |
 | `Knowledge` | `KnowledgeCollection` | Knowledge base management |
 | `Documents` | `DocumentCollection` | Document storage and retrieval |

@@ -15,7 +15,7 @@ sequenceDiagram
     participant User as Tenant User
     participant WF as Workflow Instance
 
-    SA->>System: Register Agent (SystemScoped=true)
+    SA->>System: Register Agent (IsTemplate=true)
     System-->>System: Create Agent Template
     Note over System: Available to all tenants
     
@@ -36,7 +36,7 @@ sequenceDiagram
 
 | Phase | Role | Action | Scope | Output |
 |-------|------|--------|-------|--------|
-| **1. Registration** | System Administrator | Create agent template with `SystemScoped=true` | Platform-wide | Reusable agent template available to all tenants |
+| **1. Registration** | System Administrator | Create agent template with `IsTemplate=true` | Platform-wide | Reusable agent template available to all tenants |
 | **2. Deployment** | Tenant Administrator | Deploy agent template to tenant | Tenant-specific | Agent visible and configurable within tenant |
 | **3. Activation** | Tenant Users | Activate workflow with unique identity | Workflow-specific | Running workflow instance with custom configuration |
 
@@ -44,7 +44,7 @@ sequenceDiagram
 
 **Who:** System Administrators
 
-**What:** System administrators can register agents as **SystemScoped** through agent code. These agents become reusable templates that are available across all tenants in the platform.
+**What:** System administrators can register agents as **IsTemplate** through agent code. These agents become reusable templates that are available across all tenants in the platform.
 
 **How:** Agents are registered programmatically using the agent registration API:
 
@@ -55,11 +55,11 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
     Description = "A lead discovery agent that can discover leads from a given company",
     Version = "1.0.0",
     Author = "99x",
-    SystemScoped = true  // Makes this agent available as a template for all tenants
+    IsTemplate = true  // Makes this agent available as a template for all tenants
 });
 ```
 
-When an agent is registered with `SystemScoped = true`, it becomes an **agent template** that can be deployed to any tenant without needing to duplicate the agent code.
+When an agent is registered with `IsTemplate = true`, it becomes an **agent template** that can be deployed to any tenant without needing to duplicate the agent code.
 
 ### 2. Agent Deployment
 
@@ -101,7 +101,7 @@ When knowledge is uploaded with a **system-scoped agent** (during registration),
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 {
     Name = "LeadDiscoveryAgent",
-    SystemScoped = true  // Agent is system-scoped
+    IsTemplate = true  // Agent is system-scoped
 });
 
 // Upload knowledge - automatically becomes system-scoped
@@ -109,7 +109,7 @@ await agent.Knowledge.UploadEmbeddedResourceAsync(
     resourcePath: "prompts/system-prompt.md",
     knowledgeName: "default-prompt"
 );
-// ✅ Knowledge is stored with SystemScoped = true
+// ✅ Knowledge is stored with IsTemplate = true
 ```
 
 !!! info "Learn More About Knowledge"

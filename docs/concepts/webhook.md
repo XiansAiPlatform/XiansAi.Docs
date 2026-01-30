@@ -35,7 +35,7 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new()
 var xiansAgent = xiansPlatform.Agents.Register(new()
 {
     Name = "WebhookTestAgent",
-    SystemScoped = true
+    IsTemplate = true
 });
 
 // Define built-in workflow

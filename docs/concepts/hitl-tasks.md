@@ -22,7 +22,7 @@ Tasks are **opt-in**. Enable them only for agents that need human collaboration:
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 {
     Name = "OrderProcessor",
-    SystemScoped = false
+    IsTemplate = false
 });
 
 agent.Workflows.DefineCustom<OrderWorkflow>();
