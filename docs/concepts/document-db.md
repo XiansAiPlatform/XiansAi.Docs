@@ -34,6 +34,7 @@ Type = "analytics-event"  // Event logs
 ```
 
 **Why it matters:**
+
 - Query all documents of a specific type
 - Organize your data semantically
 - Create natural data partitions per use case
@@ -50,6 +51,7 @@ Key = "config-email-smtp"    // Configuration name
 ```
 
 **Why it matters:**
+
 - Instantly know what the document is
 - Debug easily in logs and dashboards
 - Retrieve without remembering random IDs
@@ -59,7 +61,7 @@ Key = "config-email-smtp"    // Configuration name
 The real magic happens when you combine them:
 
 ```csharp
-// Save with Type + Key as unique identifier
+// Save with Type + Key as unique identifier (default behavior)
 var doc = new Document
 {
     Type = "user-preferences",
@@ -67,11 +69,9 @@ var doc = new Document
     Content = JsonSerializer.SerializeToElement(prefs)
 };
 
-await agent.Documents.SaveAsync(doc, new DocumentOptions
-{
-    UseKeyAsIdentifier = true,  // Type+Key becomes the unique identifier
-    Overwrite = true            // Update if already exists
-});
+// Type+Key becomes the unique identifier by default
+// Updates existing documents by default
+await agent.Documents.SaveAsync(doc);
 
 // Retrieve directly with Type + Key
 var userPrefs = await agent.Documents.GetByKeyAsync("user-preferences", "user-12345");
@@ -88,7 +88,23 @@ Each agent can have multiple document types, and each type can have many documen
 
 ## Core Operations
 
-Every agent gets its own document collection. Documents are automatically scoped to your agent - no manual filtering required.
+Every agent gets its own document collection with automatic multi-level scoping:
+
+- **Agent isolation** - Documents are automatically tagged with agent name
+- **Context-based scoping** - When in workflows, documents get additional ActivationName and ParticipantId scoping  
+- **Tenant isolation** - All operations include tenant-level security
+
+No manual scoping or filtering required - it's all automatic.
+
+### Default Behaviors
+
+Document DB now comes with sensible defaults:
+
+- **Type + Key Identifier**: `UseKeyAsIdentifier = true` by default - documents are uniquely identified by their Type+Key combination
+- **Overwrite Mode**: `Overwrite = true` by default - saving a document with the same Type+Key updates the existing one
+- **No Expiration**: `TtlMinutes = null` by default - documents persist indefinitely unless TTL is explicitly set
+
+You can override any of these defaults by explicitly setting `DocumentOptions`.
 
 ### Save & Retrieve
 
@@ -122,7 +138,8 @@ await agent.Documents.SaveAsync(new Document
     Type = "user-preferences",
     Key = $"user-{userId}",
     Content = JsonSerializer.SerializeToElement(preferences)
-}, new DocumentOptions { UseKeyAsIdentifier = true, Overwrite = true });
+});
+// Type+Key identifier and overwrite behavior are now default
 
 // Configuration: Named settings
 await agent.Documents.SaveAsync(new Document
@@ -130,7 +147,7 @@ await agent.Documents.SaveAsync(new Document
     Type = "config",
     Key = "email-templates",
     Content = JsonSerializer.SerializeToElement(templates)
-}, new DocumentOptions { UseKeyAsIdentifier = true, Overwrite = true });
+});
 
 // Retrieve by Type + Key - no GUID needed!
 var userPrefs = await agent.Documents.GetByKeyAsync("user-preferences", $"user-{userId}");
@@ -139,10 +156,10 @@ var emailConfig = await agent.Documents.GetByKeyAsync("config", "email-templates
 
 ### Query & Filter
 
-Find exactly what you need:
+Find exactly what you need with automatic scoping:
 
 ```csharp
-// Query by type
+// Query by type - automatically scoped to current agent and context
 var activeUsers = await agent.Documents.QueryAsync(new DocumentQuery
 {
     Type = "user-profile",
@@ -153,7 +170,13 @@ var activeUsers = await agent.Documents.QueryAsync(new DocumentQuery
     },
     Limit = 50
 });
+// AgentId, ActivationName, and ParticipantId are automatically added to the query
 ```
+
+**Automatic Query Scoping:**
+- `AgentId` is always added to limit results to your agent's documents
+- When in workflow context, `ActivationName` and `ParticipantId` are automatically added for context-specific filtering
+- You can override these by explicitly setting them in your query if needed
 
 ### Update & Delete
 
@@ -176,7 +199,9 @@ bool exists = await agent.Documents.ExistsAsync(profileId);
 
 ### Time-to-Live (TTL)
 
-Auto-expire temporary data:
+**Default Behavior:** Documents persist indefinitely by default.
+
+**Optional TTL:** Set expiration when needed for temporary data:
 
 ```csharp
 var session = new Document
@@ -189,28 +214,70 @@ await agent.Documents.SaveAsync(session, new DocumentOptions
 {
     TtlMinutes = 60  // Expires in 1 hour
 });
+
+// Most documents persist indefinitely (default behavior)
+await agent.Documents.SaveAsync(configDoc);
+// No expiration - document persists until manually deleted
 ```
 
 ### Metadata Enrichment
 
-Every document automatically includes:
-- `AgentId` - Scoped to your agent
-- `WorkflowId` - Linked to the workflow that created it (when applicable)
+Every document is automatically enriched with metadata for scoping and tracking:
+
+**Always Populated:**
+
+- `AgentId` - The agent name that owns this document
 - `CreatedAt`, `UpdatedAt` - Automatic timestamps
-- `ExpiresAt` - When TTL is set
+- `ExpiresAt` - Only set when TTL is explicitly specified
 
-### Agent Isolation
+**Populated When in Workflow/Activity Context:**
 
-Documents are private to each agent. Agent A cannot access Agent B's documents - it's automatic:
+- `WorkflowId` - The specific workflow instance that created it
+- `ActivationName` - The workflow type postfix for context-based scoping
+- `ParticipantId` - The participant/user context for user-specific isolation
+- `CreatedBy`, `UpdatedBy` - User information from workflow context
+
+This automatic enrichment enables powerful scoping and auditing without any manual work.
+
+### Multi-Level Document Scoping
+
+Documents are automatically scoped at multiple levels for complete isolation:
+
+**1. Agent-Level Scoping**
+Every document is automatically tagged with the agent's name (`AgentId`). Agents cannot access other agents' documents:
 
 ```csharp
-// Agent 1 saves a document
-var doc = await agent1.Documents.SaveAsync(myDoc);
+// Agent "OrderProcessor" saves a document
+var doc = await orderAgent.Documents.SaveAsync(myDoc);
 
-// Agent 2 tries to get it
-var result = await agent2.Documents.GetAsync(doc.Id);
-// Returns null - different agent, can't access
+// Agent "UserManager" tries to access it
+var result = await userAgent.Documents.GetAsync(doc.Id);
+// Returns null - different agent, access denied
 ```
+
+**2. Context-Based Scoping (When in Workflows)**
+When documents are created within workflow/activity contexts, they get additional scoping:
+
+- **`ActivationName`** - The workflow type postfix for fine-grained isolation
+- **`ParticipantId`** - The specific participant/user context  
+- **`WorkflowId`** - Links to the specific workflow instance
+
+```csharp
+// Documents saved in workflow context are automatically scoped
+// to the current ActivationName and ParticipantId
+var sessionDoc = await agent.Documents.SaveAsync(new Document
+{
+    Type = "session",
+    Key = "current-state",
+    Content = JsonSerializer.SerializeToElement(sessionData)
+});
+// Automatically populated: AgentId, ActivationName, ParticipantId, WorkflowId
+```
+
+**3. Tenant-Level Isolation**
+All document operations include tenant isolation via headers, ensuring multi-tenant security.
+
+This multi-level scoping ensures documents are isolated not just by agent, but also by workflow context and participant, providing granular access control.
 
 ## Common Patterns
 
@@ -263,11 +330,8 @@ public async Task SaveUserPreferences(string userId, object prefs)
         Content = JsonSerializer.SerializeToElement(prefs)
     };
     
-    await agent.Documents.SaveAsync(doc, new DocumentOptions
-    {
-        UseKeyAsIdentifier = true,
-        Overwrite = true
-    });
+    // UseKeyAsIdentifier and Overwrite are true by default
+    await agent.Documents.SaveAsync(doc);
 }
 ```
 
@@ -283,10 +347,9 @@ var session = new Document
 
 await agent.Documents.SaveAsync(session, new DocumentOptions
 {
-    UseKeyAsIdentifier = true,
-    TtlMinutes = 30,  // Auto-cleanup
-    Overwrite = true
+    TtlMinutes = 30  // Optional: Auto-cleanup after 30 minutes
 });
+// UseKeyAsIdentifier and Overwrite are true by default
 ```
 
 ### Event Log
@@ -323,12 +386,17 @@ Examples:
 ## What You Get
 
 - **Schema-less** - Store any JSON structure  
-- **Auto-scoped** - Documents isolated per agent  
+- **Multi-level scoping** - Automatic agent, context, and tenant isolation  
+- **Agent isolation** - Documents private per agent with automatic AgentId tagging  
+- **Context-aware** - Workflow-based ActivationName and ParticipantId scoping  
 - **Type-based categorization** - Organize by document type  
-- **Semantic keys** - Human-readable identifiers  
-- **Type + Key lookup** - Direct retrieval without GUIDs  
+- **Semantic keys** - Human-readable identifiers (enabled by default)  
+- **Type + Key lookup** - Direct retrieval without GUIDs (default behavior)  
+- **Update-friendly** - Overwrites existing documents by default  
+- **Persistent by default** - Documents last indefinitely unless TTL is set  
+- **Optional TTL** - Auto-expire temporary data when needed  
+- **Auto-scoped queries** - Queries automatically limited to your scope  
 - **Queryable** - Filter by type, metadata, keys  
-- **TTL Support** - Auto-expire temporary data  
 - **Scalable** - Handles small configs to large datasets  
 - **Type-safe** - Full C# typing with `JsonSerializer`
 

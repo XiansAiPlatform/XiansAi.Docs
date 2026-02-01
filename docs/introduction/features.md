@@ -357,6 +357,46 @@ The control plane provides comprehensive **logs, distributed tracing, and audit 
 
 Debug complex multi-agent workflows by tracing requests across the entire system. View complete execution history to understand what happened and when.
 
+## Metrics & Usage Tracking
+
+*Part of: Visibility & Monitoring*
+
+The control plane provides comprehensive **metrics tracking for everything your agents do** - from LLM token usage to business outcomes - with zero configuration required.
+
+Track agent work across **technical** (tokens, API calls), **business** (approvals, documents), and **operational** (HITL tasks) layers. The metrics system auto-captures context (tenant, user, workflow) so you focus on tracking what matters to your business.
+
+**Key capabilities:**
+
+- **Automatic context**: Every metric includes tenant, user, workflow, and agent attribution automatically
+- **Flexible tracking**: Track any metric with any label - tokens, business outcomes, performance data
+- **Universal API**: Same metrics API works in workflows, activities, and message handlers
+- **Smart routing**: A2A-aware and workflow-aware with automatic determinism handling
+- **Custom correlation**: Link metrics to your external systems with custom identifiers
+
+**Common patterns:**
+
+```csharp
+// Track LLM usage
+await context.Metrics
+    .ForModel("gpt-4")
+    .WithMetrics(
+        ("tokens", "prompt", 45, "tokens"),
+        ("tokens", "completion", 105, "tokens")
+    )
+    .ReportAsync();
+
+// Track business outcomes  
+await context.Metrics
+    .WithMetrics(
+        ("approvals", "submitted", 1, "count"),
+        ("documents", "generated", 1, "count"),
+        ("emails", "sent", 3, "count")
+    )
+    .ReportAsync();
+```
+
+**→ [Complete Metrics Guide](../concepts/metrics.md)** for detailed usage patterns and advanced features.
+
 ## Performance Metrics
 
 *Part of: Visibility & Monitoring*

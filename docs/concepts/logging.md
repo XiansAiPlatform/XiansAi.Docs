@@ -2,19 +2,41 @@
 
 ## Overview
 
-Xians provides a powerful, context-aware logging system that automatically captures workflow metadata and routes logs to appropriate destinations. The `Logger<T>` wrapper simplifies logging across workflows, activities, and message handlers.
+Xians provides a context-aware logging system that automatically captures workflow metadata and routes logs to appropriate destinations. 
 
 ## Quick Start
 
 ### 1. Add the Logger to Your Class
+
+You can create loggers using two different approaches:
+
+**Option A: Type-based Logger (Best for static classes)**
+
+```csharp
+using Xians.Lib.Logging;
+
+public static class MyWorkflow
+{
+    // Create using typeof() - ideal for static classes and runtime types
+    private static readonly IXiansLogger _logger = Logger.For(typeof(MyWorkflow));
+    
+    public static async Task ProcessAsync()
+    {
+        _logger.LogInformation("Processing started");
+        // Your code here
+    }
+}
+```
+
+**Option B: Generic Logger (Best for instance classes)**
 
 ```csharp
 using Xians.Lib.Logging;
 
 public class MyWorkflow
 {
-    // Create a static logger instance - created once and reused
-    private static readonly Logger<MyWorkflow> _logger = Logger<MyWorkflow>.For();
+    // Create using generic type parameter - clean syntax for instance classes
+    private static readonly IXiansLogger _logger = Logger<MyWorkflow>.For();
     
     public async Task ProcessAsync()
     {
@@ -24,7 +46,11 @@ public class MyWorkflow
 }
 ```
 
-### 2. Configure Log Levels
+> **💡 Which approach to use?** Both return the same `IXiansLogger` interface. Use `Logger.For(typeof())` in **static classes** or when working with runtime types. Use `Logger<T>.For()` in **instance classes** for cleaner generic syntax.
+
+### 2. Enable Server Logging (Required)
+
+> **🚨 Important:** Server log upload is **disabled by default**. To enable logs to be sent to the Xians server, you must set the `ServerLogLevel` property during platform initialization.
 
 ```csharp
 using Xians.Lib.Agents.Core;
@@ -35,9 +61,11 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
     ServerUrl = serverUrl,
     ApiKey = xiansApiKey,
     ConsoleLogLevel = LogLevel.Information,  // Console output
-    ServerLogLevel = LogLevel.Warning         // Uploaded to server
+    ServerLogLevel = LogLevel.Warning         // ✨ This enables server upload!
 });
 ```
+
+> **✨ Automatic Initialization:** Setting `ServerLogLevel` to any value automatically enables server log upload. No manual initialization required!
 
 ---
 
@@ -50,11 +78,18 @@ Xians uses **two independent log level configurations**:
 | Configuration | Where Logs Go | Default | Purpose |
 |--------------|---------------|---------|---------|
 | **ConsoleLogLevel** | Terminal/Console | `Debug` | Development visibility |
-| **ServerLogLevel** | Xians Server | `Error` | Production monitoring |
+| **ServerLogLevel** | Xians Server | **Disabled** | Production monitoring |
+
+> **⚠️ Server Logging Disabled by Default:** To enable server log upload, you must explicitly set `ServerLogLevel` to any log level (e.g., `LogLevel.Warning`). If not set, logs are only displayed in the console.
 
 > **⏰ Server Log Retention:** Logs uploaded to the server are automatically deleted after **15 days** (default TTL). To change retention, contact your server admin or modify the `mongodb-indexes.yaml` configuration file.
 
 ### How It Works
+
+**With `ConsoleLogLevel = Information` and `ServerLogLevel = Warning`:**
+
+- **Console** shows: Information, Warning, Error, Critical
+- **Server** receives: Warning, Error, Critical
 
 ```
 Your Code           Console              Server
@@ -67,15 +102,11 @@ Your Code           Console              Server
    └─ LogCritical  ────┼──> Displayed   ────┼──> Uploaded
 ```
 
-**With `ConsoleLogLevel = Information` and `ServerLogLevel = Warning`:**
-- **Console** shows: Information, Warning, Error, Critical
-- **Server** receives: Warning, Error, Critical
-
 ---
 
 ## Configuration
 
-### Option 1: Programmatic (Recommended)
+### Option 1: Programmati
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -87,9 +118,11 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
     
     // Set log levels in code
     ConsoleLogLevel = LogLevel.Information,  // Console threshold
-    ServerLogLevel = LogLevel.Warning         // Server upload threshold
+    ServerLogLevel = LogLevel.Warning        // ✨ Enables & configures server upload
 });
 ```
+
+> **✨ Setting `ServerLogLevel` automatically enables server log upload** - no additional configuration needed!
 
 ### Option 2: Environment Variables
 
@@ -100,6 +133,24 @@ SERVER_LOG_LEVEL=WARNING
 ```
 
 **Priority:** Code configuration > Environment variables > Defaults
+
+---
+
+### Performance & Caching
+
+All logger creation patterns use the same underlying infrastructure:
+
+- **Thread-safe caching** - Each type gets one cached logger instance
+- **Lazy initialization** - Underlying ILogger created only when first used  
+- **Automatic cleanup** - Cached instances cleared when app shuts down
+- **Zero performance difference** - Both patterns have identical performance
+
+```csharp
+// These all return the same cached instance for MyClass
+var logger1 = Logger.For(typeof(MyClass));
+var logger2 = Logger.For(typeof(MyClass)); // Same instance as logger1
+var logger3 = Logger<MyClass>.For();       // Same instance as logger1 & logger2
+```
 
 ---
 
@@ -125,8 +176,13 @@ using Xians.Lib.Logging;
 
 public class OrderProcessingWorkflow
 {
-    private static readonly Logger<OrderProcessingWorkflow> _logger = 
-        Logger<OrderProcessingWorkflow>.For();
+    // Option 1: Type-based logger (good for static classes)
+    private static readonly IXiansLogger _logger = 
+        Logger.For(typeof(OrderProcessingWorkflow));
+    
+    // Option 2: Generic logger (good for instance classes)  
+    // private static readonly IXiansLogger _logger = 
+    //     Logger<OrderProcessingWorkflow>.For();
     
     public async Task ProcessOrderAsync(string orderId)
     {
@@ -181,197 +237,6 @@ The logger **automatically** includes workflow metadata:
 
 ---
 
-## Usage in Message Handlers
-
-### OnUserChatMessage Handler
-
-```csharp
-using Xians.Lib.Logging;
-using Xians.Lib.Agents.Core;
-
-public class CustomerSupportAgent
-{
-    private static readonly Logger<CustomerSupportAgent> _logger = 
-        Logger<CustomerSupportAgent>.For();
-    
-    public void SetupWorkflow(XiansWorkflow workflow)
-    {
-        workflow.OnUserChatMessage(async (context) =>
-        {
-            var userId = context.ParticipantId;
-            var message = context.Message.Content;
-            
-            _logger.LogInformation(
-                "Received message from user {UserId}: {MessagePreview}", 
-                userId, 
-                message.Substring(0, Math.Min(50, message.Length))
-            );
-            
-            try
-            {
-                var response = await GenerateResponse(message);
-                await context.ReplyAsync(response);
-                
-                _logger.LogInformation("Response sent to user {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    "Failed to process message for user {UserId}", 
-                    ex, 
-                    userId
-                );
-                
-                await context.ReplyAsync("I apologize, I encountered an error. Please try again.");
-            }
-        });
-    }
-}
-```
-
-### OnWebhook Handler
-
-```csharp
-public class WebhookProcessor
-{
-    private static readonly Logger<WebhookProcessor> _logger = 
-        Logger<WebhookProcessor>.For();
-    
-    public void SetupWebhook(XiansWorkflow workflow)
-    {
-        workflow.OnWebhook((context) =>
-        {
-            var webhookName = context.Webhook.Name;
-            var payload = context.Webhook.Payload;
-            
-            _logger.LogInformation(
-                "Processing webhook: {WebhookName}", 
-                webhookName
-            );
-            
-            try
-            {
-                // Process webhook
-                ProcessWebhookPayload(payload);
-                
-                context.Respond(new { status = "success" });
-                _logger.LogInformation("Webhook {WebhookName} processed", webhookName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    "Webhook processing failed: {WebhookName}", 
-                    ex, 
-                    webhookName
-                );
-                
-                context.Respond(new 
-                { 
-                    status = "error", 
-                    message = "Processing failed" 
-                });
-            }
-        });
-    }
-}
-```
-
----
-
-## Complete Example: E-commerce Agent
-
-```csharp
-using Xians.Lib.Agents.Core;
-using Xians.Lib.Logging;
-using Microsoft.Extensions.Logging;
-
-public class EcommerceAgent
-{
-    private static readonly Logger<EcommerceAgent> _logger = 
-        Logger<EcommerceAgent>.For();
-    
-    public static async Task Main(string[] args)
-    {
-        // Configure logging
-        var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
-        {
-            ServerUrl = Environment.GetEnvironmentVariable("XIANS_SERVER_URL"),
-            ApiKey = Environment.GetEnvironmentVariable("XIANS_API_KEY"),
-            
-            // Development: See debug info, upload warnings+
-            ConsoleLogLevel = LogLevel.Debug,
-            ServerLogLevel = LogLevel.Warning
-        });
-        
-        var agent = xiansPlatform.Agents.Register(new ()
-        {
-            Name = "EcommerceAgent",
-            IsTemplate = true
-        });
-        
-        var orderWorkflow = agent.Workflows.DefineBuiltIn(
-            name: "Order Processing"
-        );
-        
-        // Handle customer messages
-        orderWorkflow.OnUserChatMessage(async (context) =>
-        {
-            var userId = context.ParticipantId;
-            var message = context.Message.Content;
-            
-            _logger.LogInformation(
-                "Customer {UserId} inquiry: {Message}", 
-                userId, 
-                message
-            );
-            
-            if (message.Contains("order status", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogDebug("Checking order status for user {UserId}", userId);
-                
-                try
-                {
-                    var status = await GetOrderStatus(userId);
-                    await context.ReplyAsync($"Your order status: {status}");
-                    
-                    _logger.LogInformation(
-                        "Order status retrieved for {UserId}: {Status}", 
-                        userId, 
-                        status
-                    );
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(
-                        "Failed to retrieve order status for {UserId}", 
-                        ex, 
-                        userId
-                    );
-                    
-                    await context.ReplyAsync(
-                        "I'm having trouble accessing your order. Please try again."
-                    );
-                }
-            }
-            else
-            {
-                _logger.LogDebug("General inquiry from {UserId}", userId);
-                await context.ReplyAsync("How can I help you today?");
-            }
-        });
-        
-        _logger.LogInformation("EcommerceAgent started successfully");
-        await agent.RunAllAsync();
-    }
-    
-    private static async Task<string> GetOrderStatus(string userId)
-    {
-        // Implementation
-        return "Shipped";
-    }
-}
-```
-
 ## How Logs Are Uploaded to Server
 
 ### Batch Upload Mechanism
@@ -390,12 +255,14 @@ Logs are **not** uploaded immediately. Instead, they are queued and uploaded in 
 
 **⏱️ Delay:** Logs may take **up to 60 seconds** to appear on the server dashboard.
 
-**🔄 Reliability:** 
+**🔄 Reliability:**
+
 - Failed uploads are automatically retried
 - Logs are flushed on application shutdown
 - Network issues won't cause immediate log loss
 
 **📊 Performance:**
+
 - Minimal impact on application performance
 - Batching reduces server API calls
 - Asynchronous upload doesn't block your code
@@ -415,6 +282,7 @@ LoggingServices.ConfigureBatchSettings(
 ```
 
 **When to customize:**
+
 - **Smaller batches + frequent uploads** → Critical systems needing near real-time logs
 - **Larger batches + less frequent** → High-volume systems to reduce API calls
 
@@ -436,3 +304,61 @@ Server logs are automatically deleted after **15 days** by default due to MongoD
 ### How to Change Retention
 
 **Consult with your server administrator** before making changes.
+
+---
+
+## Troubleshooting
+
+### "My logs aren't appearing on the server"
+
+**Most common cause:** Server logging is disabled by default.
+
+**✅ Solution:** Set `ServerLogLevel` to enable server upload:
+
+```csharp
+var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
+{
+    ServerUrl = serverUrl,
+    ApiKey = xiansApiKey,
+    ServerLogLevel = LogLevel.Warning  // ✅ This enables server logging
+});
+```
+
+### Other Common Issues
+
+**Issue: Logs appear in console but not on server**
+
+- ✅ **Check:** Is `ServerLogLevel` set?
+- ✅ **Check:** Are your logs meeting the server threshold?
+- ✅ **Check:** Wait up to 60 seconds for batch upload
+
+**Issue: Only some logs appear on server**
+
+- ✅ **Check:** Server log level threshold (only logs at or above the level are uploaded)
+- Example: `ServerLogLevel = LogLevel.Warning` → only Warning, Error, Critical uploaded
+
+**Issue: No logs at all (console or server)**
+
+- ✅ **Check:** Logger creation and method calls
+- ✅ **Check:** Log level meets console threshold
+- ✅ **Check:** Application lifecycle (logs flushed on shutdown)
+
+**Issue: Server logging explicitly disabled**
+
+- ✅ **Check:** `DisableServerLogging = false` (default)
+- ✅ **Environment:** Ensure test environment allows server connections
+
+### Verification
+
+**Confirm server logging is enabled:**
+
+```csharp
+// Log a test message at server threshold level
+_logger.LogWarning("Test message - server logging verification");
+
+// Check logging service status
+var (queuedCount, retryingCount) = LoggingServices.GetLoggingStats();
+Console.WriteLine($"Queued logs: {queuedCount}, Retrying: {retryingCount}");
+```
+
+If `queuedCount > 0`, server logging is working and logs are queued for upload.
