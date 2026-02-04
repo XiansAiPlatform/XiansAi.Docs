@@ -145,7 +145,32 @@ mkdocs build --strict
 
 ### Automatic Deployment
 
-Documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` branch via GitHub Actions.
+Documentation is automatically deployed to GitHub Pages via GitHub Actions in the following scenarios:
+
+- **Push to `main` branch** - Deploys the latest development version
+- **Version tags** - Deploys versioned releases (e.g., `v1.0.0`, `v2.1.0`)
+
+#### Deploying Regular Updates
+
+Push changes to the main branch:
+```bash
+git add .
+git commit -m "Update documentation"
+git push origin main
+```
+
+#### Deploying Versioned Releases
+
+Create and push a version tag:
+```bash
+# Create a version tag
+git tag v1.0.0
+
+# Push the tag to trigger deployment  
+git push origin v1.0.0
+```
+
+Or create a release through GitHub's web interface, which automatically creates and pushes the tag.
 
 The workflow is defined in `.github/workflows/deploy.yml`.
 

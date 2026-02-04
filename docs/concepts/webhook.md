@@ -345,5 +345,5 @@ integratorWorkflow.OnWebhook(async (context) =>
 ## Next Steps
 
 - Learn about [Agents & Workflows](./agents.md) for built-in workflows and system-scoped agents
-- Explore [Replying to Users](./replying.md) for more messaging capabilities
+- Explore [Replying to Users](./messaging-replying.md) for more messaging capabilities
 - Check out [SDK Patterns](./sdk-patterns.md) for common implementation patterns

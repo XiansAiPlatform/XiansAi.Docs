@@ -19,8 +19,8 @@ nav:
     - Agents: concepts/agents.md
     - Operating Context: concepts/context.md
     - Multitenancy: concepts/multitenancy.md
-    - Replying to User: concepts/replying.md
-    - Proactive Messaging: concepts/messaging.md
+    - Messaging - Reply: concepts/messaging-replying.md
+    - Messaging - Proactive: concepts/messaging-proactive.md
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md
     - Scheduling: concepts/scheduling.md

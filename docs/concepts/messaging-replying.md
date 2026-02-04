@@ -1,6 +1,45 @@
-# Messaging with Users
+# Replying to User Messages
 
 Built-in workflows in Xians provide a powerful messaging system that allows your agents to listen for incoming messages and respond to users naturally. This guide covers everything you need to know about handling user messages and crafting responses.
+
+## Two Flavors of Messaging
+
+Xians provides two distinct mechanisms for communicating with users:
+
+### 1. Replying to User Messages (This Document)
+
+When users send messages to your agent, you respond using **message context** methods available in your message listeners:
+
+```csharp
+conversationalWorkflow.OnUserChatMessage(async (context) =>
+{
+    // User initiated - you're responding
+    await context.ReplyAsync("I received your message!");
+});
+```
+
+**Key characteristics:**
+
+- **User-initiated**: Responding to incoming messages
+- **Context-aware**: Automatic participant ID, thread continuity, scope inheritance
+- **Conversational**: Interactive back-and-forth exchanges
+- **Access method**: `context.ReplyAsync()`, `context.SendDataAsync()`, `context.SendHandoffAsync()`
+
+### 2. Proactive Messaging
+
+When your agent needs to initiate conversations from background workflows, scheduled tasks, or events, use **XiansContext.Messaging**:
+
+```csharp
+// In any workflow or activity
+await XiansContext.Messaging.SendChatAsync(
+    participantId: "user-123",
+    text: "Your order has shipped!"
+);
+```
+
+📖 **Full documentation**: [Proactive Messaging](./messaging-proactive.md)
+
+---
 
 ## Overview
 
@@ -657,3 +696,9 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
     // Messages from other workflows are never visible here
 });
 ```
+
+## Next Steps
+
+- **[Proactive Messaging](./messaging-proactive.md)** - Learn how to initiate messages from background workflows using `XiansContext.Messaging`
+- **[Workflows](./workflows.md)** - Understand workflow structure and how to define built-in workflows
+- **[A2A Communication](./A2A.md)** - Enable agent-to-agent messaging for multi-agent systems

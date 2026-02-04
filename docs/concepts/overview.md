@@ -9,8 +9,8 @@ Deep dive into Xians' core concepts and patterns for building production-ready A
 | [Multitenancy](multitenancy.md) | Explore strategies for securely isolating and serving multiple tenants |
 | [Temporal Workflows](workflows.md) | Start, execute, and communicate with Temporal-based workflows |
 | [XiansContext]
-| [Replying to User](replying.md) | Master message handling, replies, threads, scopes, and conversational patterns |
-| [Proactive Messaging](messaging.md) | Initiate conversations, send notifications proactively from any workflow |
+| [Replying to User](messaging-replying.md) | Master message handling, replies, threads, scopes, and conversational patterns |
+| [Proactive Messaging](messaging-proactive.md) | Initiate conversations, send notifications proactively from any workflow |
 | [Web SDK](https://github.com/XiansAiPlatform/sdk-web-typescript) | Build web-based conversational UIs with the official TypeScript client |
 | [Knowledge](knowledge.md) | Manage prompts, instructions, and configuration shared between code and UI |
 | [Document DB](document-db.md) | Store and query structured JSON data with semantic keys and metadata |
