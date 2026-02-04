@@ -349,15 +349,45 @@ new TaskWorkflowRequest
 }
 ```
 
+## Task Lifecycle Control
+
+Tasks can be configured to survive beyond their parent workflow using the `SurviveParentClose` attribute:
+
+```csharp
+new TaskWorkflowRequest
+{
+    Title = "Long-Running Approval",
+    Description = "This task will continue even if parent workflow terminates",
+    Actions = ["approve", "reject"],
+    SurviveParentClose = true  // Task survives parent termination (defaults to false)
+}
+```
+
+**Behavior:**
+
+- **Default (`false`)**: When the parent workflow terminates, the task is automatically abandoned
+- **Enabled (`true`)**: The task continues to exist and wait for human action even after the parent workflow closes
+
+**Use Cases:**
+
+- **Independent Approvals**: Tasks that should complete regardless of the requesting workflow's state
+- **Audit Trails**: Ensure human decisions are recorded even if the initiating process fails
+- **Decoupled Processes**: When task completion doesn't need to update the parent workflow
+
+!!! warning "Important Consideration"
+    When `SurviveParentClose = true`, the parent workflow cannot retrieve the task result via `GetResultAsync()` since it may have already terminated. Design your workflow accordingly, such as having the task trigger a separate callback workflow upon completion.
+
 ## Best Practices
 
 **Design**
+
 - Use domain-specific actions that match your business process
 - Keep action names simple and clear (`ship`, `refund`, not `initiateShippingProcess`)
 - Provide meaningful titles and descriptions
 - Set appropriate timeouts based on SLAs and business requirements
 
 **Implementation**
+
 - Enable tasks only for agents that need human input
 - Always use hints to link tasks to conversations
 - Handle all possible actions in your workflow logic
@@ -365,6 +395,7 @@ new TaskWorkflowRequest
 - Consider timeout behavior as part of your business logic, not just error handling
 
 **User Experience**
+
 - Pre-populate draft work to give context
 - Use comments to capture rationale for decisions
 - Configure agents to proactively notify users of pending tasks
@@ -379,6 +410,7 @@ When you call `WithTasks()`, Xians creates an agent-specific workflow:
 ```
 
 This ensures:
+
 - **Isolation** - Each agent has its own task queue
 - **Independent scaling** - Task workers scale per agent
 - **Multi-tenancy** - Tasks are automatically tenant-scoped
