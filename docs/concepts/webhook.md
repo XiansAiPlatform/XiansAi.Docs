@@ -89,6 +89,7 @@ POST {SERVER_URL}/api/user/webhooks/builtin
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
+| `activationName` | Optional activation identifier to distinguish multiple instances | `instance-1` |
 | `timeoutSeconds` | Request timeout (default: 30s) | `60` |
 | `scope` | Custom scope for context (same as Chat messages) | `tenant-123` |
 | `authorization` | Auth token for your logic | `Bearer jwt-token` |
@@ -105,13 +106,58 @@ Send your webhook payload as JSON in the request body:
 }
 ```
 
-#### Complete Example
+#### Complete Examples
+
+##### Basic Webhook Call with cURL
 
 ```bash
-curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-zSsUNO5KaeyHefrWEyQvvyOBmX0&timeoutSeconds=30&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&scope=tenant-123&authorization=Bearer-token&participantId=customer@example.com" \
+curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-zSsUNO5KaeyHefrWEyQvvyOBmX0&timeoutSeconds=30&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&participantId=customer@example.com" \
   -H "Content-Type: application/json" \
   -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
 ```
+
+##### With Activation Name (for multiple instances)
+
+Use `activationName` to target specific workflow instances:
+
+```bash
+curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc123&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&activationName=instance-1&participantId=customer@example.com" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
+```
+
+##### With Scope and Authorization
+
+```bash
+curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc123&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&scope=tenant-123&authorization=Bearer-token&participantId=customer@example.com" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
+```
+
+##### Using Postman
+
+1. **Method**: POST
+2. **URL**: `http://localhost:5005/api/user/webhooks/builtin`
+3. **Query Parameters**:
+   - `apikey`: `sk-Xnai-abc123`
+   - `agentName`: `WebhookTestAgent`
+   - `workflowName`: `Integrator`
+   - `webhookName`: `OrderCompleted`
+   - `participantId`: `customer@example.com`
+   - `activationName` (optional): `instance-1`
+   - `timeoutSeconds` (optional): `60`
+   - `scope` (optional): `tenant-123`
+   - `authorization` (optional): `Bearer jwt-token`
+4. **Headers**:
+   - `Content-Type`: `application/json`
+5. **Body** (raw JSON):
+   ```json
+   {
+     "orderId": "12345",
+     "amount": 99.99,
+     "status": "completed"
+   }
+   ```
 
 ### 3. Monitor Webhooks in the UI
 
@@ -149,19 +195,24 @@ integratorWorkflow.OnWebhook((context) =>
     var requestId = context.Webhook.RequestId;        // Unique request ID
     var tenantId = context.Webhook.TenantId;          // Tenant context
     
-    // Extract payload (from POST body)
-    var payload = context.Webhook.Payload;
-    
-    // For typed access, cast or deserialize:
-    if (payload is JsonElement jsonElement)
+    // Payload comes as a JSON string - deserialize it
+    if (context.Webhook.Payload is not string jsonString)
     {
-        var orderId = jsonElement.GetProperty("orderId").GetString();
-        var amount = jsonElement.GetProperty("amount").GetDecimal();
-        var status = jsonElement.GetProperty("status").GetString();
-        
-        Console.WriteLine($"Processing order {orderId} for ${amount}");
+        Console.WriteLine("Invalid payload type");
+        return;
     }
+    
+    var payload = JsonSerializer.Deserialize<OrderPayload>(jsonString);
+    Console.WriteLine($"Processing order {payload.OrderId} for ${payload.Amount}");
 });
+
+// Define your payload type
+public class OrderPayload
+{
+    public string OrderId { get; set; }
+    public decimal Amount { get; set; }
+    public string Status { get; set; }
+}
 ```
 
 ### Available Webhook Properties
@@ -170,7 +221,7 @@ integratorWorkflow.OnWebhook((context) =>
 |----------|------|-------------|
 | `Name` | `string` | Webhook name from query parameter |
 | `ParticipantId` | `string` | Participant identifier |
-| `Payload` | `object?` | Request body data (JSON) |
+| `Payload` | `string?` | Request body as JSON string (deserialize to use) |
 | `Scope` | `string?` | Optional scope context |
 | `Authorization` | `string?` | Optional auth token |
 | `RequestId` | `string` | Unique request identifier |
@@ -295,13 +346,24 @@ integratorWorkflow.OnWebhook(async (context) =>
 ```csharp
 integratorWorkflow.OnWebhook((context) =>
 {
-    if (context.Webhook.Payload is not JsonElement payload)
+    if (context.Webhook.Payload is not string jsonString)
     {
         context.Response = WebhookResponse.BadRequest("Invalid payload format");
         return;
     }
     
-    if (!payload.TryGetProperty("orderId", out var orderIdElement))
+    OrderPayload? payload;
+    try
+    {
+        payload = JsonSerializer.Deserialize<OrderPayload>(jsonString);
+    }
+    catch (JsonException)
+    {
+        context.Response = WebhookResponse.BadRequest("Invalid JSON payload");
+        return;
+    }
+    
+    if (string.IsNullOrEmpty(payload?.OrderId))
     {
         context.Response = WebhookResponse.BadRequest("Missing required field: orderId");
         return;
@@ -317,12 +379,12 @@ integratorWorkflow.OnWebhook((context) =>
 integratorWorkflow.OnWebhook(async (context) =>
 {
     var webhookName = context.Webhook.Name;
-    var payload = context.Webhook.Payload;
+    var payloadJson = context.Webhook.Payload as string;
     
     // Start async processing
     _ = Task.Run(async () => 
     {
-        await ProcessLongRunningTaskAsync(webhookName, payload);
+        await ProcessLongRunningTaskAsync(webhookName, payloadJson);
     });
     
     // Respond immediately
