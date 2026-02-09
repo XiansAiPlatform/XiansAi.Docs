@@ -159,18 +159,7 @@ git commit -m "Update documentation"
 git push origin main
 ```
 
-#### Deploying Versioned Releases
-
-Create and push a version tag:
-```bash
-# Create a version tag
-git tag v1.0.0
-
-# Push the tag to trigger deployment  
-git push origin v1.0.0
-```
-
-Or create a release through GitHub's web interface, which automatically creates and pushes the tag.
+#### Deploying
 
 The workflow is defined in `.github/workflows/deploy.yml`.
 
@@ -180,6 +169,17 @@ To manually deploy to GitHub Pages:
 
 ```bash
 mkdocs gh-deploy --force --clean
+```
+
+## Releases
+
+```bash
+# Define the version
+export VERSION=3.10.1 # or 1.3.7-beta for pre-release
+
+# Create and push a version tag
+git tag -a v$VERSION -m "Release v$VERSION"
+git push origin v$VERSION
 ```
 
 ## 🤝 Contributing

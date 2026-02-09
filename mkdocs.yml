@@ -36,6 +36,7 @@ nav:
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
     - HTTP User API: https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/user-api/index.md
     - Slack Integration: server/slack-integration.md
+    - Teams Integration: server/teams-integration.md
   - Contribution:
     - Learning Path: contribution/learning-path.md
     - Platform Development: contribution/platform-development.md
