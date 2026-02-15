@@ -1,4 +1,4 @@
-# Temporal Workflows
+# Getting Started: Temporal Workflows for Business Process Execution
 
 Use Temporal workflows to run durable, fault-tolerant business processes with Xians. Workflows orchestrate **activities**—units of work that can call external APIs, access databases, or perform other non-deterministic operations.
 
@@ -165,6 +165,7 @@ Workflows run in Temporal’s durable execution environment. If a worker crashes
 
 ## Further Reading
 
+- **[Child Workflows](../concepts/workflows.md)** — Start workflows from other workflows using `XiansContext.Workflows.StartAsync` (fire-and-forget) or `ExecuteAsync` (wait for result). Includes workflow ID generation and context scoping.
 - **[Unit Testing Temporal Workflows](../concepts/unit-tests.md)** — Test workflows in isolation with Temporal's time-skipping environment and Xians Local Mode. Includes setup, embedding knowledge, and running tests.
 - **[Scheduling Workflows](../concepts/scheduling.md)** — Run workflows on a schedule (cron, interval, or one-shot). Configure schedules per workflow and manage them programmatically or via the platform UI.
 
