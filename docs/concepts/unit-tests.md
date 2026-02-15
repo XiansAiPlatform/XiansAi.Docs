@@ -1,12 +1,19 @@
-# Unit Testing Temporal Workflows
+# Unit Testing Temporal Workflows with Xians
 
 Run your Temporal workflows in isolation—no server, no network, just fast, deterministic tests. This guide shows you how to combine **Temporal's time-skipping test environment** with **Xians Local Mode** to unit test workflows that use knowledge.
 
-Unit testing with Temporal's built-in **time-skipping** environment and Xians test setup lets you:
+---
+
+## Why This Matters
+
+Workflows orchestrate activities, retries, and long-running logic. Testing them end-to-end against a real Temporal server is slow and flaky. Unit testing with Temporal's built-in **time-skipping** environment lets you:
 
 - Execute workflows **in-process** with mocked time
 - Resolve **knowledge** from embedded resources (no server calls)
+- Assert on workflow results in milliseconds
 - Run in CI without Docker or external services
+
+> **Note:** Unit testing currently supports **Logs** and **Knowledge** usage out of the box. If your workflows or activities use other Xians functionality—such as DocumentDb, Tasks, or Messaging—you must abstract those dependencies behind interfaces and mock them in tests. Inject the abstractions into your activities so tests can supply fake implementations.
 
 ---
 
@@ -28,11 +35,11 @@ Unit testing with Temporal's built-in **time-skipping** environment and Xians te
 └─────────────────────────────────────────────────────────────────┘
          │
          ▼
-┌───────────────────────────────────────────────────────────────────┐
-│ YourWorkflow  ──►  YourActivities  ──►  XiansContext.CurrentAgent │
-│                                             .Knowledge.GetAsync() │
-│                                             (from embedded DLLs)  │
-└───────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│  YourWorkflow  ──►  YourActivities  ──►  XiansContext.CurrentAgent │
+│                                              .Knowledge.GetAsync() │
+│                                              (from embedded DLLs)  │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -227,6 +234,26 @@ public class GreetingWorkflowTests : IClassFixture<EnvFixture>, IDisposable
     }
 }
 ```
+
+---
+
+## How Knowledge Discovery Works
+
+When your activity calls `XiansContext.CurrentAgent.Knowledge.GetAsync("Greeting Config")` in **Local Mode**:
+
+1. **XiansPlatform.InitializeForTestsAsync()** sets `LocalMode = true`, so no HTTP or Temporal server is used.
+2. The **LocalKnowledgeProvider** resolves knowledge by:
+   - Searching the **in-memory store** first (for knowledge uploaded via `UploadEmbeddedResourceAsync` during setup).
+   - Falling back to **embedded resources** in all loaded assemblies.
+3. It scans `Assembly.GetManifestResourceNames()` in each non-system assembly.
+4. It matches resources by:
+   - **Strict:** `{AgentName}.Knowledge.{KnowledgeName}.{ext}`
+   - **Fallback:** any resource ending with `.{normalized-name}.{ext}` (e.g. `.greeting-config.json`).
+
+Because your test project references your agent project, the agent DLL is loaded and its embedded resources are searchable. Embedding in the **agent** `.csproj` ensures the knowledge travels with the assembly.
+
+- **`"Greeting Config"`** → normalizes to `greeting-config` → matches `*.greeting-config.json`
+- **`"Article Extraction Schema"`** → normalizes to `article-extraction-schema` → matches `*.article-extraction-schema.json`
 
 ---
 
