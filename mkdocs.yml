@@ -13,6 +13,7 @@ nav:
     - Quick Start: getting-started/quick-start.md
     - Chat History: getting-started/chat-history.md
     - Tool Execution: getting-started/tool-execution.md
+    - Temporal Workflows: getting-started/workflows.md
   - Agent Concepts:
     - Overview: concepts/overview.md
     - SDK Patterns: concepts/sdk-patterns.md
