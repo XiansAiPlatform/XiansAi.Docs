@@ -1,4 +1,4 @@
-# Getting Started: Temporal Workflows for Business Process Execution
+# Temporal Workflows
 
 Use Temporal workflows to run durable, fault-tolerant business processes with Xians. Workflows orchestrate **activities**—units of work that can call external APIs, access databases, or perform other non-deterministic operations.
 
@@ -11,6 +11,19 @@ This guide shows a minimal setup: one workflow, one activity, and all configurat
 - .NET 9 SDK
 - Xians platform instance (server URL and agent certificate)
 - See [Quick Start](quick-start.md) for project creation and Xians connection
+
+---
+
+## Project Setup
+
+Add the required packages:
+
+```bash
+dotnet add package DotNetEnv
+dotnet add package Xians.Lib
+```
+
+Add a project reference to Xians.Lib if using a local build, or the NuGet package as shown above.
 
 ---
 
@@ -111,12 +124,13 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new()
 // Register agent
 var agent = xiansPlatform.Agents.Register(new()
 {
-    Name = "MyAgent"
+    Name = "MyAgent",
+    IsTemplate = false,
 });
 
 // Define workflow and attach activities
 agent.Workflows
-    .DefineCustom<GreetingWf>()
+    .DefineCustom<GreetingWf>(new WorkflowOptions { Activable = true })
     .AddActivity(new GreetingActivities());
 
 // Start the agent (connects to Temporal and runs workers)
@@ -149,8 +163,9 @@ Workflows run in Temporal’s durable execution environment. If a worker crashes
 
 ---
 
-## Next Steps
+## Further Reading
 
-- [Logging](../concepts/logging.md) — Use `Workflow.Logger` in workflows and Xians Logger in activities
-- [Unit Testing](../concepts/unit-tests.md) — Test workflows with Temporal’s time-skipping environment
-- [Scheduling](../concepts/scheduling.md) — Run workflows on a schedule
+- **[Unit Testing Temporal Workflows](../concepts/unit-tests.md)** — Test workflows in isolation with Temporal's time-skipping environment and Xians Local Mode. Includes setup, embedding knowledge, and running tests.
+- **[Scheduling Workflows](../concepts/scheduling.md)** — Run workflows on a schedule (cron, interval, or one-shot). Configure schedules per workflow and manage them programmatically or via the platform UI.
+
+See also [Logging](../concepts/logging.md) for workflow and activity logging.

@@ -246,10 +246,10 @@ dev_addr: '127.0.0.1:8000'
 extra:
   generator: false                 # Hide "Made with Material for MkDocs"
   
-  # Version information (optional)
-  version:
-    provider: mike
-    default: stable
+  # Version information - disabled (use mike for deployment to enable version selector)
+  # version:
+  #   provider: mike
+  #   default: stable
   
   # Social links
   social:
