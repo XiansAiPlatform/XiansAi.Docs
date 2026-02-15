@@ -30,6 +30,7 @@ nav:
     - Workflows: concepts/workflows.md
     - Metrics: concepts/metrics.md
     - Logging: concepts/logging.md
+    - Unit Testing: concepts/unit-tests.md
   - Server:
     - Encryption: server/encryption.md
     - Scaling: server/scaling.md

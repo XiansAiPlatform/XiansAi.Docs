@@ -34,7 +34,7 @@ This guide shows you how to connect a Slack workspace to a XiansAi agent activat
 
 ## Step 3: Install App to Workspace
 
-1. Scroll up to **"OAuth Tokens"** - **Install to <Your Workspace>**
+1. Scroll up to **"OAuth Tokens for Your Workspace"**
 2. Click **"Install to Workspace"**
 3. Review permissions and click **"Allow"**
 4. **Copy the "Bot User OAuth Token"** (starts with `xoxb-`)
@@ -198,7 +198,7 @@ curl -X POST "${BASE_URL}/api/v1/admin/tenants/${TENANT_ID}/integrations" \
 7. Click **"Save Changes"**
 8. If prompted, **"Reinstall App"** to apply changes
 
-## Step 8: Enable Direct Messages
+## Step 8: Enable Direct Messages (Optional)
 
 To allow users to DM the bot:
 
