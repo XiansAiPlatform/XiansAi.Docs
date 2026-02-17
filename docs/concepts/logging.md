@@ -2,20 +2,20 @@
 
 ## Overview
 
-Xians provides a context-aware logging system that automatically captures workflow metadata and routes logs to the console and/or the Xians server.
+Xians provides a context-aware logging system that automatically captures workflow metadata and routes logs to the console and/or the Xians server. Use the standard **ILogger** interface from `Microsoft.Extensions.Logging` for all logging.
 
 ---
 
 ## Logging in Workflows and Activities
 
-| Context | Logger | Example |
-|---------|--------|---------|
-| **Workflows** | Temporal's `Workflow.Logger` | `Workflow.Logger.LogDebug($"Source {name} has {count} items")` |
-| **Activities** | Xians Logger | `Logger.For(typeof(MyActivities))` |
+| Context | Logger | How to Obtain |
+|---------|--------|---------------|
+| **Workflows** | Temporal's `Workflow.Logger` | Built-in; Xians uploads these logs to the server |
+| **Activities** | `ILogger` via XiansLogger | `XiansLogger.GetLogger<T>()` or `XiansLogger.ForILogger(Type)` |
 
 ### Workflow Logging: Workflow.Logger
 
-Workflows run in Temporal's deterministic environment. Use **Temporal's built-in logger**:
+Workflows run in Temporal's deterministic environment. Use **Temporal's built-in `Workflow.Logger`**—Xians captures these logs and uploads them to the Xians server.
 
 ```csharp
 using Temporalio.Exceptions;
@@ -48,18 +48,19 @@ public class NewsSearchWf
 }
 ```
 
-### Activity Logging: Xians Logger
+### Activity Logging: ILogger via XiansLogger
 
-Activities use the **Xians Logger**. Create it with `Logger.For(typeof(YourActivities))`:
+In activities, obtain an **ILogger** using `XiansLogger.GetLogger<T>()` or `XiansLogger.ForILogger(Type)`:
 
 ```csharp
+using Microsoft.Extensions.Logging;
 using Temporalio.Activities;
 using Xians.Lib.Logging;
 
 public class NewsSearchActivities
 {
     private readonly IDataContext _data;
-    private static readonly IXiansLogger _logger = Logger.For(typeof(NewsSearchActivities));
+    private static readonly ILogger _logger = XiansLogger.GetLogger<NewsSearchActivities>();
 
     public NewsSearchActivities(IDataContext data) => _data = data;
 
@@ -67,7 +68,7 @@ public class NewsSearchActivities
     public async Task<IReadOnlyList<NewsSourceItem>> FetchGenericNewsSourcesAsync()
     {
         var sources = await _data.NewsSources.GetActiveGenericSourcesAsync();
-        _logger.LogDebug($"Fetched {sources.Count} generic news sources");
+        _logger.LogDebug("Fetched {Count} generic news sources", sources.Count);
         return sources.Select(s => new NewsSourceItem(s.Id, s.Url, s.Name)).ToList();
     }
 
@@ -76,20 +77,26 @@ public class NewsSearchActivities
     {
         if (string.IsNullOrWhiteSpace(item.Link))
         {
-            _logger.LogWarning($"Skipping item with no link: {item.Title}");
+            _logger.LogWarning("Skipping item with no link: {Title}", item.Title);
             return 0;
         }
-        _logger.LogDebug($"Saved article for {item.Link}");
+        _logger.LogDebug("Saved article for {Link}", item.Link);
         return 1;
     }
 }
 ```
 
-> Both `Logger.For(typeof(T))` and `Logger<T>.For()` return the same `IXiansLogger`.
+**Using runtime type:**
+
+```csharp
+private static readonly ILogger _logger = XiansLogger.ForILogger(typeof(NewsSearchActivities));
+```
+
+All standard `ILogger` extension methods are available: `LogTrace`, `LogDebug`, `LogInformation`, `LogWarning`, `LogError`, `LogCritical`, plus structured logging with message templates.
 
 ### Automatic Context Capture
 
-Both loggers **automatically** include workflow metadata when logs are uploaded:
+Both workflow and activity logs **automatically** include workflow metadata when uploaded to the server:
 
 ```json
 {
@@ -127,13 +134,13 @@ With `ConsoleLogLevel = LogLevel.Debug` and `ServerLogLevel = LogLevel.Informati
 - **Server** receives: Information, Warning, Error, Critical
 
 ```text
-Your Code           Console              Server
-   ├─ LogTrace     ────┼────────────────────┼──── (Below both)
-   ├─ LogDebug     ────┼──> Displayed       │     (Console only)
-   ├─ LogInfo      ────┼──> Displayed   ────┼──> Uploaded
-   ├─ LogWarning   ────┼──> Displayed   ────┼──> Uploaded
-   ├─ LogError     ────┼──> Displayed   ────┼──> Uploaded
-   └─ LogCritical ────┼──> Displayed   ────┼──> Uploaded
+Your Code                Console              Server
+   ├─ LogTrace        ────┼────────────────────┼──── (Below both)
+   ├─ LogDebug        ────┼──> Displayed       │     (Console only)
+   ├─ LogInformation  ────┼──> Displayed   ────┼──> Uploaded
+   ├─ LogWarning      ────┼──> Displayed   ────┼──> Uploaded
+   ├─ LogError        ────┼──> Displayed   ────┼──> Uploaded
+   └─ LogCritical     ────┼──> Displayed   ────┼──> Uploaded
 ```
 
 ### Enable Server Upload
