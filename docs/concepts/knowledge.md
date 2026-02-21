@@ -108,6 +108,27 @@ var knowledge = await agent.Knowledge.GetAsync("greeting");
 ✅ **Instance personalization** - Individual agent runs can be further customized  
 ✅ **Efficient storage** - Only store overrides, not duplicate defaults
 
+## Caching
+
+Knowledge reads are **cached** for better performance. The cache is invalidated automatically when you update or delete knowledge.
+
+Cache duration is configurable via `XiansOptions.Cache.Knowledge.TtlMinutes`:
+
+```csharp
+var platform = await XiansPlatform.InitializeAsync(new XiansOptions
+{
+    ApiKey = yourApiKey,
+    Cache = new CacheOptions
+    {
+        Knowledge = new CacheAspectOptions
+        {
+            Enabled = true,
+            TtlMinutes = 10   // Default: 10 minutes
+        }
+    }
+});
+```
+
 ## Agent Isolation
 
 Each agent's knowledge is **completely isolated**:
