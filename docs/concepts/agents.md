@@ -218,6 +218,7 @@ public class MyCustomWorkflow
 | `AddActivities(params object[])` | Register multiple activity instances |
 | `OnUserChatMessage(Func<UserMessageContext, Task>)` | Register chat message handler (built-in only) |
 | `OnUserDataMessage(Func<UserMessageContext, Task>)` | Register data message handler (built-in only) |
+| `OnFileUpload(Func<UserMessageContext, Task>)` | Register file upload handler (built-in only) |
 | `RunAsync(CancellationToken)` | Start workflow workers |
 
 ## Message Context

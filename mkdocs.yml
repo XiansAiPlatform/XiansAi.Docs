@@ -21,13 +21,15 @@ nav:
     - Operating Context: concepts/context.md
     - Multitenancy: concepts/multitenancy.md
     - Messaging - Reply: concepts/messaging-replying.md
+    - Messaging - File Upload: concepts/messaging-fileupload.md
     - Messaging - Proactive: concepts/messaging-proactive.md
+    - Messaging - Progress: concepts/messaging-progress.md
+    - Messaging - Webhooks: concepts/webhook.md
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md
     - Scheduling: concepts/scheduling.md
     - Agent-to-Agent (A2A): concepts/A2A.md
     - Human-in-the-Loop: concepts/hitl-tasks.md
-    - Webhooks: concepts/webhook.md
     - Workflows: concepts/workflows.md
     - Metrics: concepts/metrics.md
     - Logging: concepts/logging.md

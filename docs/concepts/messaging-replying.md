@@ -79,6 +79,22 @@ conversationalWorkflow.OnUserDataMessage(async (context) =>
 });
 ```
 
+### Listening to File Uploads
+
+For file uploads (base64-encoded files sent with `type: "File"`), use `OnFileUpload`:
+
+```csharp
+conversationalWorkflow.OnFileUpload(async (context) =>
+{
+    var base64Content = context.Message.Data?.ToString();
+    var fileBytes = Convert.FromBase64String(base64Content ?? "");
+    // Process the uploaded file...
+    await context.ReplyAsync("File received!");
+});
+```
+
+📖 **Full documentation**: [File Upload Messaging](./messaging-fileupload.md)
+
 ## Accessing Message Properties
 
 The `context.Message` property gives you access to all incoming message details:
@@ -699,6 +715,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 
 ## Next Steps
 
+- **[Message Progress](./messaging-progress.md)** - Stream reasoning and tool execution updates before the final reply
 - **[Proactive Messaging](./messaging-proactive.md)** - Learn how to initiate messages from background workflows using `XiansContext.Messaging`
 - **[Workflows](./workflows.md)** - Understand workflow structure and how to define built-in workflows
 - **[A2A Communication](./A2A.md)** - Enable agent-to-agent messaging for multi-agent systems
