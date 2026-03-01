@@ -16,19 +16,17 @@ The human performs one of these actions with an optional comment, and the workfl
 
 ## Enabling HITL Tasks
 
-Tasks are **opt-in**. Enable them only for agents that need human collaboration:
+Tasks are **opt-in**. Enable them only for agents that need human collaboration by setting `EnableTasks = true` when registering the agent:
 
 ```csharp
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 {
     Name = "OrderProcessor",
-    IsTemplate = false
+    IsTemplate = false,
+    EnableTasks = true  // Creates OrderProcessor:Task Workflow at RunAllAsync
 });
 
 agent.Workflows.DefineCustom<OrderWorkflow>();
-
-// Enable tasks - creates OrderProcessor:Task Workflow
-await agent.Workflows.WithTasks();
 
 await agent.RunAllAsync();
 ```
@@ -36,8 +34,8 @@ await agent.RunAllAsync();
 **Key Points:**
 
 - Each agent gets its own task workflow: `{AgentName}:Task Workflow`
-- Optional `maxConcurrent` parameter (defaults to 100)
-- Omit `WithTasks()` if your agent doesn't need human input
+- Set `EnableTasks = true` only for agents that need human input
+- When `EnableTasks` is `false` or omitted, the Task Workflow is not registered
 
 ## Creating Tasks in Workflows
 
@@ -403,7 +401,7 @@ new TaskWorkflowRequest
 
 ## Architecture
 
-When you call `WithTasks()`, Xians creates an agent-specific workflow:
+When `EnableTasks = true` is set on agent registration, Xians creates an agent-specific workflow at `RunAllAsync()`:
 
 ```
 {AgentName}:Task Workflow

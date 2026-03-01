@@ -8,10 +8,11 @@ The Xians SDK provides `XiansContext.Workflows` to start and execute child workf
 
 ### XiansContext.Workflows API
 
-`XiansContext.Workflows` provides methods for two primary patterns:
+`XiansContext.Workflows` provides methods for three primary patterns:
 
 1. **Fire and Forget** - Start a workflow without waiting for completion (`StartAsync`)
 2. **Wait for Result** - Execute a workflow and wait for its result (`ExecuteAsync`)
+3. **Signal** - Send a signal to a running workflow (`SignalAsync`)
 
 #### Method Reference
 
@@ -21,8 +22,10 @@ The Xians SDK provides `XiansContext.Workflows` to start and execute child workf
 | `StartAsync(string workflowType, object[] args, string? uniqueKey = null)` | Start child workflow by type string without waiting |
 | `ExecuteAsync<TWorkflow, TResult>(object[] args, string? uniqueKey = null)` | Execute child workflow and wait for result |
 | `ExecuteAsync<TResult>(string workflowType, object[] args, string? uniqueKey = null)` | Execute child workflow by type string and wait for result |
+| `SignalAsync<TWorkflow>(string signalName, params object[] signalArgs)` | Send signal to workflow by type |
+| `SignalAsync(string workflowType, string signalName, params object[] signalArgs)` | Send signal to workflow by type string |
 
-**Note:** Parent's `idPostfix` is always automatically extracted from workflow/activity context when available. The `uniqueKey` parameter provides additional uniqueness beyond the parent's context.
+**Note:** Parent's `idPostfix` is always automatically extracted from workflow/activity context when available. For `StartAsync` and `ExecuteAsync`, the `uniqueKey` parameter provides additional uniqueness. For `SignalAsync`, the workflow ID is built from context only—unique keys cannot be passed externally.
 
 ### Starting Workflows (Fire and Forget)
 
@@ -118,6 +121,46 @@ public async Task<string> RunAsync(string workflowType, string input)
 }
 ```
 
+### Signaling Workflows
+
+Use `SignalAsync` to send a signal to a running workflow. The workflow must already be running; signals cannot be sent to closed workflows. Workflow ID is built from context only (parent's `idPostfix` when in workflow/activity); unique keys cannot be passed externally.
+
+#### Signal By Workflow Type
+
+```csharp
+[Workflow("MyAgent:ParentWorkflow")]
+public class ParentWorkflow
+{
+    [WorkflowRun]
+    public async Task RunAsync()
+    {
+        // Signal a workflow by type - e.g. approve or update state
+        // Workflow ID is built from context (idPostfix) only
+        await XiansContext.Workflows.SignalAsync<GreetingWorkflow>(
+            "ApproveAsync",
+            new ApproveInput("MyUser")
+        );
+    }
+}
+```
+
+#### Signal By Workflow Type String
+
+```csharp
+[WorkflowRun]
+public async Task RunAsync(string workflowType, string signalName)
+{
+    // Signal workflow by type string (useful for dynamic workflow selection)
+    await XiansContext.Workflows.SignalAsync(
+        workflowType,
+        signalName,
+        new ApproveInput("MyUser")
+    );
+}
+```
+
+**Note:** The signal name must match a handler with `[WorkflowSignal]` on the target workflow. The call returns when the server accepts the signal; it does not wait for the workflow to process it.
+
 ### Workflow ID Generation
 
 Workflow IDs are automatically constructed with the following format:
@@ -183,8 +226,8 @@ public async Task RunAsync(string taskId)
 
 | Context | Behavior |
 |---------|----------|
-| **Inside Workflow** | Starts/executes as a child workflow |
-| **Outside Workflow** | Starts/executes as a new workflow using the Temporal client |
+| **Inside Workflow** | Starts/executes as child workflow; signals via external workflow handle |
+| **Outside Workflow** | Starts/executes/signals via the Temporal client |
 
 This allows you to use the same API consistently throughout your application.
 
@@ -234,7 +277,7 @@ public class OrderProcessorWorkflow
 
 ## Communicating with Workflows
 
-For signaling, querying, or updating workflows after they've been started, use the standard Temporal .NET SDK. Xians does not provide wrapper methods for these operations to keep your workflows from depending on the Xians platform.
+For signaling workflows, you can use `XiansContext.Workflows.SignalAsync()` (see [Signaling Workflows](#signaling-workflows)) or obtain a workflow handle for more control. For querying and updating, use the standard Temporal .NET SDK via `GetWorkflowHandleAsync()` or the Temporal client.
 
 ### Obtaining the Temporal Client
 
@@ -253,9 +296,24 @@ The client is automatically configured when you initialize the platform with `Xi
 
 ### Signal Example
 
-#### Using GetWorkflowHandleAsync (Recommended)
+#### Using SignalAsync (Recommended for context-scoped signals)
 
-The simplest way to get a workflow handle is using `XiansContext.Workflows.GetWorkflowHandleAsync()`, which automatically constructs the workflow ID:
+When you want to signal the workflow identified by the current context (idPostfix), use `SignalAsync`:
+
+```csharp
+using Xians.Lib.Agents.Core;
+
+// Send signal by workflow type - workflow ID built from context only
+// Works both inside and outside workflow context
+await XiansContext.Workflows.SignalAsync<MyWorkflow>(
+    "HandleSignalAsync",
+    new SignalData { Message = "Update" }
+);
+```
+
+#### Using GetWorkflowHandleAsync (Typed signals)
+
+Use `GetWorkflowHandleAsync()` when you need the typed signal API (lambda expression) or want to chain multiple operations (signal + query):
 
 ```csharp
 using Xians.Lib.Agents.Core;
@@ -264,7 +322,7 @@ using Xians.Lib.Agents.Core;
 // This automatically constructs the full workflow ID
 var workflowHandle = await XiansContext.Workflows.GetWorkflowHandleAsync<MyWorkflow>("12345");
 
-// Send signal
+// Send typed signal (compile-time checked)
 await workflowHandle.SignalAsync(
     wf => wf.HandleSignalAsync(new SignalData { Message = "Update" })
 );
