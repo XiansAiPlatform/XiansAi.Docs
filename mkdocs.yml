@@ -20,6 +20,7 @@ nav:
     - Agents: concepts/agents.md
     - Operating Context: concepts/context.md
     - Multitenancy: concepts/multitenancy.md
+    - Secret Vault: concepts/secret-vault.md
     - Messaging - Reply: concepts/messaging-replying.md
     - Messaging - File Upload: concepts/messaging-fileupload.md
     - Messaging - Proactive: concepts/messaging-proactive.md
