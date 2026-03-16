@@ -77,11 +77,12 @@ Base path: `/api/v1/admin/secrets`
 | POST | `/` | Create secret. Key must be unique. |
 | GET | `/` | List secrets (filter by tenantId, agentId, activationName). |
 | GET | `/fetch?key=...` | Fetch secret by key with strict scope; returns **value only** (plus metadata). |
-| GET | `/{id}` | Get secret by id (full record including decrypted value). |
-| PUT | `/{id}` | Update secret (value, scope, additionalData). |
-| DELETE | `/{id}` | Delete secret. |
+| PUT | `/` | Update secret (value, scope, additionalData) by key+scope. |
+| DELETE | `/` | Delete secret by key+scope (query: key, tenantId?, agentId?, userId?, activationName?). |
 
-### 2.3 Example – Create a Secret (Admin)
+### 2.3 Admin API Examples
+
+#### Create a Secret
 
 ```http
 POST /api/v1/admin/secrets HTTP/1.1
@@ -103,12 +104,22 @@ Content-Type: application/json
 }
 ```
 
-### 2.4 Example – Fetch by Key (Admin)
+#### List Secrets (optional filters)
+
+```http
+GET /api/v1/admin/secrets?tenantId=tenant-1&agentId=billing-agent HTTP/1.1
+Host: your-server
+Authorization: Bearer <ADMIN_API_KEY>
+Accept: application/json
+```
+
+#### Fetch by Key (strict scope)
 
 ```http
 GET /api/v1/admin/secrets/fetch?key=payment-api-key&tenantId=tenant-1&agentId=billing-agent HTTP/1.1
 Host: your-server
 Authorization: Bearer <ADMIN_API_KEY>
+Accept: application/json
 ```
 
 Response:
@@ -123,7 +134,39 @@ Response:
 }
 ```
 
-### 2.5 AdditionalData Rules (Summary)
+#### Update by Key + Scope
+
+```http
+PUT /api/v1/admin/secrets HTTP/1.1
+Host: your-server
+Authorization: Bearer <ADMIN_API_KEY>
+Content-Type: application/json
+
+{
+  "key": "payment-api-key",
+  "value": "sk_live_rotated_...",
+  "tenantId": "tenant-1",
+  "agentId": "billing-agent",
+  "userId": null,
+  "activationName": null,
+  "additionalData": {
+    "env": "prod",
+    "service": "payments",
+    "rev": 2
+  }
+}
+```
+
+#### Delete by Key + Scope
+
+```http
+DELETE /api/v1/admin/secrets?key=payment-api-key&tenantId=tenant-1&agentId=billing-agent HTTP/1.1
+Host: your-server
+Authorization: Bearer <ADMIN_API_KEY>
+Accept: application/json
+```
+
+### 2.4 AdditionalData Rules (Summary)
 
 - Must be a **flat object**
 - Values must be **string**, **number**, or **boolean**
@@ -144,72 +187,68 @@ All operations go through a **scope builder**:
 ```csharp
 using Xians.Lib.Agents.Secrets;
 
-// Resolve tenant from context/options, then refine
+// 1) Resolve tenant from context/options (or cross-tenant for system-scoped agents)
+//    Scope() will:
+//    - Use XiansContext.SafeTenantId when available (typical in workflows), or
+//    - Fall back to the agent's certificate tenant for non-system-scoped agents, or
+//    - Use null (cross-tenant) for system-scoped agents with no tenant in context.
+var fromContextOrCert = agent.Secrets.Scope();
+
+// 2) Explicit tenant scope: secret is only for that tenant.
+var explicitTenant = agent.Secrets.Scope()
+    .TenantScope("tenant-1");
+
+// 3) Explicit cross-tenant secret: TenantScope(null) sends tenantId: null (no tenant scope).
+var crossTenant = agent.Secrets.Scope()
+    .TenantScope(null);
+
+// Further refine scope (tenant + agent + user + activation):
 var secrets = agent.Secrets.Scope()
     .TenantScope("tenant-1")
-    .AgentScope(agent.Name)   // optional
-    .UserScope("user-1")      // optional
-    .ActivationScope("activation-1"); // optional
+    .AgentScope(agent.Name)
+    .UserScope("user-1")
+    .ActivationScope("activation-1");
 ```
 
 You can also use convenience methods:
 
 ```csharp
-// Tenant only
-var byTenant = agent.Secrets.TenantScope("tenant-1");
-
-// Tenant + agent
-var byTenantAgent = agent.Secrets.TenantScope("tenant-1", "billing-agent");
-
 // Full scope in one call
 var full = agent.Secrets.WithScope("tenant-1", "billing-agent", "user-1");
 ```
 
-### 3.2 Create & Fetch a Secret
+### 3.2 Create, List, Fetch, Update, Delete from Agents
 
 ```csharp
+// Choose a scope
 var scoped = agent.Secrets.TenantScope("tenant-1", "billing-agent");
 
 // Create
-var created = await scoped.CreateAsync(
+await scoped.CreateAsync(
     key: "payment-api-key",
     value: "sk_live_...",
     additionalData: new { env = "prod", service = "payments" }
 );
 
-// Later: fetch by key with the same scope
-var fetched = await scoped.FetchByKeyAsync("payment-api-key");
+// List (metadata only; no values)
+var list = await scoped.ListAsync();
 
+// Fetch by key with the same scope
+var fetched = await scoped.FetchByKeyAsync("payment-api-key");
 if (fetched != null)
 {
     var secretValue = fetched.Value; // "sk_live_..."
 }
-```
 
-### 3.3 List, Get by Id, Update, Delete
-
-```csharp
-var scoped = agent.Secrets.TenantScope("tenant-1");
-
-// List (no values returned)
-var list = await scoped.ListAsync();
-
-// Get a specific secret with value
-var first = list.FirstOrDefault();
-if (first != null)
-{
-    var full = await scoped.GetByIdAsync(first.Id);
-}
-
-// Update value and metadata
-await scoped.UpdateAsync(
-    id: first!.Id,
+// Update by key + scope (omit scope params to use the builder's current scope)
+await scoped.UpdateByKeyAsync(
+    key: "payment-api-key",
     value: "sk_live_rotated_...",
-    additionalData: new { env = "prod", rev = 2 }
+    additionalData: new { env = "prod", service = "payments", rev = 2 }
 );
 
-// Delete
-var deleted = await scoped.DeleteAsync(first.Id);
+// Delete by key + scope
+var deleted = await scoped.DeleteByKeyAsync("payment-api-key");
 ```
 
 ---
@@ -227,14 +266,14 @@ Each secret can be scoped across four dimensions:
 
 ### 4.1 How scopes behave
 
-You can think of **null** (or “not set”) as **global** for that dimension:
+If you omit a scope method, the effective access is:
 
-- If you **do not set `tenantId`**, the secret becomes **system-scoped** and can be used from any tenant (subject to server-side permissions).
-- If you **do not set `agentId`**, the secret is available **across all agents**.
-- If you **do not set `userId`**, **any user** can use the secret when your workflows run.
-- If you **do not set `activationName`**, **any activation** of the agent can access the secret.
+- **TenantScope**: If you do not call `TenantScope(...)`, `Scope()` uses the tenant from `XiansContext` or the agent's certificate; system-scoped agents with no tenant in context get cross-tenant (`null`).
+- **AgentScope**: If you do not call `AgentScope(...)`, the secret is available across all agents in that tenant.
+- **UserScope**: If you do not call `UserScope(...)`, any user in that tenant may access it (subject to server-side auth).
+- **ActivationScope**: If you do not call `ActivationScope(...)`, any activation of the agent can access it.
 
-If you **do set** a scope value, then the secret is limited to that specific tenant / agent / user / activation, and you should use the **same scope** when reading it back.
+If you **do set** a scope value, then the secret is limited to that specific tenant / agent / user / activation, and you should use the **same scope** when reading, updating and deleting it back.
 
 ---
 
