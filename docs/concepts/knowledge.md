@@ -16,6 +16,34 @@ Every agent has its own **private knowledge base**—a key-value store for infor
 
 Knowledge is **automatically scoped** to each agent. Agent A can't access Agent B's knowledge—perfect for multi-tenant applications.
 
+## Uploading Knowledge at Agent Initiation
+
+You can upload knowledge from local source code when the agent is initiating. This lets you ship prompts, docs, or config bundled with your agent assembly.
+
+1. **Embed files** in your project:
+
+```xml
+<ItemGroup>
+  <EmbeddedResource Include="**\*.md" />
+  <EmbeddedResource Include="**\*.json" />
+</ItemGroup>
+```
+
+2. **Upload during registration** using `UploadEmbeddedResourceAsync`:
+
+```csharp
+workflow.OnUserChatMessage(async (context) => { /* ... */ });
+
+// Upload knowledge when agent initializes (e.g. in Development only)
+await agent.Knowledge.UploadEmbeddedResourceAsync(
+    resourcePath: "Supervisor/supervisor-agent-prompt.md",
+    knowledgeName: "Supervisor Agent Prompt",
+    knowledgeType: "markdown"
+);
+```
+
+Use this pattern to keep agent prompts and documentation in version control alongside your code.
+
 ## Retrieving Knowledge
 
 ### Get Specific Knowledge
