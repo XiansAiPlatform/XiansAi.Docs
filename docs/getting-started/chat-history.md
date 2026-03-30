@@ -19,138 +19,159 @@ The good news? **Xians automatically stores all messages** with proper isolation
 
 The platform provides convenient methods to access this chat history for the current context, making your agents context-aware.
 
-## Implementing the Message Store
+## Implementing history with an AI context provider
 
-To enable chat history in MAF (Microsoft Agent Framework), we need to implement a message store class. This bridges Xians' message storage with MAF's expectations.
+To surface Xians thread history in MAF (Microsoft Agent Framework), implement an **`AIContextProvider`** that loads recent messages from `UserMessageContext` and merges them into the turn’s `AIContext`. One instance is typically created per agent run, bound to that turn’s context.
 
-### Step 1: Create the XiansChatMessageStore
+### Why override `InvokingCoreAsync`?
 
-Create a new class that implements MAF's `ChatMessageStore` interface:
+The framework default merges provider output with the current input as `currentInput.Concat(history)`. That ordering makes the **last** message the previous assistant turn instead of the **current user** message. Override **`InvokingCoreAsync`** so messages are merged as **`history.Concat(currentInput)`**: chronological past turns, then this turn’s input.
+
+### Step 1: Create `ChatHistoryProvider`
 
 ```csharp
-
-using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Xians.Lib.Agents.Messaging;
 
-internal sealed class XiansChatMessageStore : ChatMessageStore
+internal sealed class ChatHistoryProvider(UserMessageContext userContext) : AIContextProvider(null, null)
 {
-    private readonly UserMessageContext _context;
+    private readonly UserMessageContext _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
 
-    public XiansChatMessageStore(UserMessageContext context)
+    internal const int HistoryPageSize = 10;
+
+    public override IReadOnlyList<string> StateKeys => [];
+
+    protected override async ValueTask<AIContext> InvokingCoreAsync(
+        InvokingContext context,
+        CancellationToken cancellationToken = default)
     {
-        _context = context;
+        AIContext inputContext = context.AIContext;
+        var filteredInput = new InvokingContext(context.Agent, context.Session, new AIContext
+        {
+            Instructions = inputContext.Instructions,
+            Messages = inputContext.Messages is not null ? ProvideInputMessageFilter(inputContext.Messages) : null,
+            Tools = inputContext.Tools
+        });
+
+        AIContext additional = await ProvideAIContextAsync(filteredInput, cancellationToken).ConfigureAwait(false);
+
+        string? instructions = inputContext.Instructions;
+        string? additionalInstructions = additional.Instructions;
+        string? mergedInstructions = (instructions, additionalInstructions) switch
+        {
+            (null, _) => additionalInstructions,
+            (_, null) => instructions,
+            _ => instructions + "\n" + additionalInstructions
+        };
+
+        IEnumerable<ChatMessage>? historyStamped = additional.Messages?.Select(m =>
+            m.WithAgentRequestMessageSource(AgentRequestMessageSourceType.AIContextProvider, typeof(ChatHistoryProvider).FullName));
+
+        IEnumerable<ChatMessage>? inputMessages = inputContext.Messages;
+        IEnumerable<ChatMessage>? mergedMessages = (historyStamped, inputMessages) switch
+        {
+            (null, _) => inputMessages,
+            (_, null) => historyStamped,
+            _ => historyStamped!.Concat(inputMessages!)
+        };
+
+        IEnumerable<AITool>? tools = inputContext.Tools;
+        IEnumerable<AITool>? additionalTools = additional.Tools;
+        IEnumerable<AITool>? mergedTools = (tools, additionalTools) switch
+        {
+            (null, _) => additionalTools,
+            (_, null) => tools,
+            _ => tools!.Concat(additionalTools!)
+        };
+
+        return new AIContext
+        {
+            Instructions = mergedInstructions,
+            Messages = mergedMessages,
+            Tools = mergedTools
+        };
     }
 
-    public override async ValueTask<IEnumerable<ChatMessage>> InvokingAsync(
+    protected override async ValueTask<AIContext> ProvideAIContextAsync(
         InvokingContext context,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
-        // Get chat history from Xians
-        var xiansMessages = await _context.GetChatHistoryAsync(page: 1, pageSize: 10);
-        
-        // Convert to ChatMessage format
-        var chatMessages = xiansMessages
+        var xiansMessages = await _userContext.GetChatHistoryAsync(page: 1, pageSize: HistoryPageSize).ConfigureAwait(false);
+
+        var messages = xiansMessages
             .Where(msg => !string.IsNullOrEmpty(msg.Text))
+            .OrderBy(msg => msg.CreatedAt)
             .Select(msg => new ChatMessage(
                 msg.Direction.ToLowerInvariant() == "outgoing" ? ChatRole.Assistant : ChatRole.User,
                 msg.Text!))
-            .Reverse() // Xians returns newest first, we need oldest first
             .ToList();
-        
-        return chatMessages;
+
+        return new AIContext { Messages = messages };
     }
 
-    public override ValueTask InvokedAsync(
-        InvokedContext context,
-        CancellationToken cancellationToken)
-    {
-        // No-op: Xians automatically stores messages
-        return ValueTask.CompletedTask;
-    }
-
-    public override JsonElement Serialize(JsonSerializerOptions? jsonSerializerOptions = null)
-    {
-        // Serialize the thread ID for state persistence
-        return JsonSerializer.SerializeToElement(_context.Message.ThreadId);
-    }
+    protected override ValueTask StoreAIContextAsync(InvokedContext context, CancellationToken cancellationToken = default) =>
+        default;
 }
 ```
 
-### Understanding the Key Methods
+### Understanding the key pieces
 
-**GetMessagesAsync**: This retrieves the conversation history from Xians using `_context.GetChatHistoryAsync()`. The method:
+**`ProvideAIContextAsync`**: Loads the first page of thread history from Xians via `_userContext.GetChatHistoryAsync(page: 1, pageSize: HistoryPageSize)` (default page size `10`). It drops empty text, orders messages by **`CreatedAt`** (oldest first), and maps each row to MAF `ChatMessage` with **`ChatRole.Assistant`** for outgoing and **`ChatRole.User`** for incoming.
 
-- Fetches the most recent 10 messages (you can adjust `pageSize` as needed)
-- Filters out empty messages
-- Converts Xians message format to MAF's `ChatMessage` format
-- Reverses the order (Xians returns newest first, but MAF expects oldest first)
+**`InvokingCoreAsync`**: Merges that history with the current turn’s messages, instructions, and tools so the model sees the correct sequence. History messages are stamped with `WithAgentRequestMessageSource` for the AI context provider source type.
+
+**`StoreAIContextAsync`**: Left as a no-op; Xians persists messages—you do not manually save turns here.
 
 !!! note "Scoped Conversations"
     If the current conversation has a scope (topic), you'll only get messages from that scope. Messages without a scope use the default scope (`null`).
 
-**AddMessagesAsync**: This is a no-op because Xians automatically stores all messages for you - no manual saving required!
+### Step 2: Register the provider on your MAF agent
 
-**Serialize**: Persists the thread ID for state management across agent sessions.
-
-### Step 2: Update Your MAF Agent
-
-Now let's wire up the message store to your MAF agent. Notice we're now passing the entire `UserMessageContext` instead of just the message text:
+Wire the provider when building the chat client agent. Pass a **`ChatHistoryProvider`** instance built from the same **`UserMessageContext`** you use for the run:
 
 ```csharp
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
-using Xians.Lib.Agents.Core;
 using Xians.Lib.Agents.Messaging;
 
-public class MafSubAgent
+public sealed class MafSubAgent
 {
-    private readonly ChatClient _chatClient;
+    private readonly OpenAIClient _openAi;
+    private readonly string _modelName;
+
     public MafSubAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
     {
-        _chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
+        _openAi = new OpenAIClient(openAiApiKey);
+        _modelName = modelName;
     }
 
-    private async Task<string> GetSystemPromptAsync(UserMessageContext context)
+    public async Task<string> RunAsync(UserMessageContext xiansContext, CancellationToken cancellationToken = default)
     {
-        // You need to create a KnowledgeItem with the name "System Prompt" in the Xians platform.
-        var systemPrompt = await XiansContext.CurrentAgent.Knowledge.GetAsync("System Prompt");
-        return systemPrompt?.Content ?? "You are a helpful assistant.";
-    }
+        ArgumentNullException.ThrowIfNull(xiansContext);
 
-    public async Task<string> RunAsync(UserMessageContext context)
-    {
-        if (string.IsNullOrWhiteSpace(context.Message.Text))
-        {
-            return "I didn't receive any message. Please send a message.";
-        }
+        var text = xiansContext.Message.Text
+            ?? throw new InvalidOperationException("UserMessageContext.Message.Text is required.");
 
-        // Configure the AI agent with tools
-        var agent = _chatClient.CreateAIAgent(new ChatClientAgentOptions
+        var agent = _openAi.GetChatClient(_modelName).AsAIAgent(new ChatClientAgentOptions
         {
-            ChatOptions = new ChatOptions
-            {
-                Instructions = await GetSystemPromptAsync(context)
-            },
-            // Use Xians chat message store for conversation history
-            ChatMessageStoreFactory = ctx => new XiansChatMessageStore(context)
+            Name = "MafSubAgent",
+            ChatOptions = new ChatOptions { Instructions = "You are a friendly assistant. Keep your answers brief." },
+            AIContextProviders = [new ChatHistoryProvider(xiansContext)]
         });
 
-        // Run the agent and return the response
-        var response = await agent.RunAsync(context.Message.Text);
-        return response.Text;
+        return (await agent.RunAsync(text, cancellationToken: cancellationToken).ConfigureAwait(false)).Text;
     }
 }
 ```
 
-The key change is in `ChatMessageStoreFactory` - we're now providing our custom `XiansChatMessageStore` that knows how to retrieve conversation history from Xians.
+The important hook is **`AIContextProviders`**—each run gets a **`ChatHistoryProvider`** tied to that turn’s Xians context so history and the current user message stay aligned.
 
-### Step 3: Update Your Message Handler
+### Step 3: Update your message handler
 
-Finally, update your `Program.cs` to pass the full context object to the agent:
+Pass the full **`UserMessageContext`** into your agent (not only the text) so `GetChatHistoryAsync` resolves to the correct thread:
 
 ```csharp
 // Handle incoming user messages

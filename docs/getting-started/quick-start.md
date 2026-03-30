@@ -27,6 +27,7 @@ cd MyAgent
 ## Step 2: Build a Simple Agent with MAF
 
 You can use any framework that supports .NET Core to create your agent. In this guide, we'll use the **Microsoft Agent Framework (MAF)**.
+See [Official MIcrosoft Documentation](https://learn.microsoft.com/en-us/agent-framework/get-started/) for uptodate information.
 
 ### Install Required Packages
 
@@ -72,30 +73,25 @@ Add the following code to `MafSubAgent.cs`:
 
 ```csharp
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
 
 public class MafSubAgent
 {
-    private readonly ChatClient _chatClient;
+    private readonly AIAgent _agent;
 
     public MafSubAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
     {
-        _chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
+        _agent = new OpenAIClient(openAiApiKey)
+            .GetChatClient(modelName)
+            .AsAIAgent(
+                instructions: "You are a friendly assistant. Keep your answers brief.",
+                name: "MafSubAgent");
     }
 
     public async Task<string> RunAsync(string message)
     {
-        var agent = _chatClient.CreateAIAgent(new ChatClientAgentOptions
-        {
-            ChatOptions = new ChatOptions
-            {
-                Instructions = "You are a helpful assistant."
-            }
-        });
-
-        var response = await agent.RunAsync(message);
+        var response = await _agent.RunAsync(message);
         return response.Text;
     }
 }

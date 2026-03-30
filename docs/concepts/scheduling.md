@@ -229,7 +229,7 @@ public class TenantTaskWorkflow
 
 ## Common Patterns
 
-### Self-Scheduling Workflow (Recommended)
+### Self-Scheduling Workflow
 
 Workflows that create their own recurring schedules:
 
