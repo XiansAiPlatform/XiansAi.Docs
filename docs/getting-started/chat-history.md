@@ -47,12 +47,14 @@ internal sealed class ChatHistoryProvider(UserMessageContext userContext) : AICo
         CancellationToken cancellationToken = default)
     {
         AIContext inputContext = context.AIContext;
+#pragma warning disable MAAI001
         var filteredInput = new InvokingContext(context.Agent, context.Session, new AIContext
         {
             Instructions = inputContext.Instructions,
             Messages = inputContext.Messages is not null ? ProvideInputMessageFilter(inputContext.Messages) : null,
             Tools = inputContext.Tools
         });
+#pragma warning restore MAAI001
 
         AIContext additional = await ProvideAIContextAsync(filteredInput, cancellationToken).ConfigureAwait(false);
 
@@ -134,7 +136,6 @@ Wire the provider when building the chat client agent. Pass a **`ChatHistoryProv
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using OpenAI;
-using OpenAI.Chat;
 using Xians.Lib.Agents.Messaging;
 
 public sealed class MafSubAgent
@@ -155,7 +156,7 @@ public sealed class MafSubAgent
         var text = xiansContext.Message.Text
             ?? throw new InvalidOperationException("UserMessageContext.Message.Text is required.");
 
-        var agent = _openAi.GetChatClient(_modelName).AsAIAgent(new ChatClientAgentOptions
+        var agent = _openAi.GetChatClient(_modelName).AsIChatClient().AsAIAgent(new ChatClientAgentOptions
         {
             Name = "MafSubAgent",
             ChatOptions = new ChatOptions { Instructions = "You are a friendly assistant. Keep your answers brief." },
@@ -166,6 +167,8 @@ public sealed class MafSubAgent
     }
 }
 ```
+
+Call **`AsIChatClient()`** after **`GetChatClient(...)`** so the receiver is `Microsoft.Extensions.AI.IChatClient`, which MAF’s **`AsAIAgent`** extension expects.
 
 The important hook is **`AIContextProviders`**—each run gets a **`ChatHistoryProvider`** tied to that turn’s Xians context so history and the current user message stay aligned.
 

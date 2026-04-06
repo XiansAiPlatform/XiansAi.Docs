@@ -73,8 +73,8 @@ Add the following code to `MafSubAgent.cs`:
 
 ```csharp
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using OpenAI;
-using OpenAI.Chat;
 
 public class MafSubAgent
 {
@@ -84,9 +84,15 @@ public class MafSubAgent
     {
         _agent = new OpenAIClient(openAiApiKey)
             .GetChatClient(modelName)
-            .AsAIAgent(
-                instructions: "You are a friendly assistant. Keep your answers brief.",
-                name: "MafSubAgent");
+            .AsIChatClient()
+            .AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "MafSubAgent",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = "You are a friendly assistant. Keep your answers brief."
+                }
+            });
     }
 
     public async Task<string> RunAsync(string message)
@@ -96,6 +102,8 @@ public class MafSubAgent
     }
 }
 ```
+
+> **`AsIChatClient()`** bridges the OpenAI SDK `ChatClient` to `Microsoft.Extensions.AI.IChatClient`, which MAF’s `AsAIAgent` targets.
 
 ### Update Program.cs
 
@@ -202,12 +210,13 @@ var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
 // Register a new agent with Xians
 var xiansAgent = xiansPlatform.Agents.Register(new ()
 {
-    Name = "My Conversational Agent",
+    Name = "My Agent",
     IsTemplate = false  // See important notes below
 });
 
-// Define a built-in conversational workflow
-var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
+// Define a built-in conversational workflow. 
+// `DefineSupervisor()` is a shortcut method to `DefineBuiltIn(name: "Supervisor Workflow")`
+var conversationalWorkflow = xiansAgent.Workflows.DefineSupervisor();
 
 // Create your MAF agent instance
 var mafSubAgent = new MafSubAgent(openAiApiKey);
@@ -226,6 +235,10 @@ await xiansAgent.RunAllAsync();
 > **Alternative:** If you prefer not to use a `.env` file, you can replace the `Env.Load()` and environment variable calls with hardcoded values, though this is not recommended for production use.
 
 ### Important Configuration Notes
+
+**DefineSupervisor shortcut method**
+
+If your workflow is names 'Supervisor Workflow', the `agent studio` by default picks that workflow when the user wants to talk to the agent.
 
 **IsTemplate Setting:**
 
@@ -272,100 +285,6 @@ Now for the exciting part - talking to your agent!
 4. Start chatting with your agent!
 
 ![Agent Conversations](../assets/images/agent-conversations.png)
-
----
-
-## Step 6: Visualizing the Flow's Logic
-
-You may have noticed a disabled **Visualize** button in the Xians Manager portal when viewing your agent's workflow.
-
-### When is the Visualize button enabled?
-
-The **Visualize** button is **only available for custom workflows**. Built-in workflows do not support visualization because they are created dynamically at runtime.
-
-### Enabling visualization with a custom workflow
-
-To enable the Visualize button, you need to create a custom workflow. Follow these steps:
-
-**1. Update `Program.cs` with the following changes** – Replace the `// Define a built-in conversational workflow` and `// Handle incoming user messages` sections with:
-
-```csharp
-// Define a CUSTOM conversational workflow (enables visualization)
-var conversationalWorkflow = xiansAgent.Workflows.DefineCustom<MyAgent.ConversationalWorkflow>();
-
-// Register chat handler for the CUSTOM workflow
-var tenantId = xiansPlatform.Options?.CertificateTenantId;
-BuiltinWorkflow.RegisterChatHandler(
-    workflowType: "My New Agent:Conversational",
-    handler: async (context) =>
-    {
-        var response = await mafSubAgent.RunAsync(context.Message.Text);
-        await context.ReplyAsync(response);
-    },
-    agentName: xiansAgent.Name,
-    tenantId: xiansAgent.SystemScoped ? null : tenantId,
-    systemScoped: xiansAgent.SystemScoped);
-
-// Upload workflow definitions (includes source code for visualization)
-await xiansAgent.UploadWorkflowDefinitionsAsync();
-```
-
-> **Note:** The `workflowType` must match the `[Workflow("...")]` attribute on your custom workflow class (e.g. `"My New Agent:Conversational"`).
-
-**2. Create `ConversationalWorkflow.cs`** – Add a new file with your custom workflow class:
-
-```csharp
-using Temporalio.Workflows;
-using Xians.Lib.Temporal.Workflows;
-
-namespace MyAgent
-{
-    /// <summary>
-    /// Custom conversational workflow that extends BuiltinWorkflow.
-    /// This workflow can be visualized because it has a source file that can be embedded.
-    /// </summary>
-    [Workflow("My New Agent:Conversational")]
-    public class ConversationalWorkflow : BuiltinWorkflow
-    {
-        /// <summary>
-        /// Main workflow execution method.
-        /// This calls the base implementation which handles message processing.
-        /// </summary>
-        [WorkflowRun]
-        public override async Task RunAsync()
-        {
-            // Call base implementation to handle message processing
-            await base.RunAsync();
-        }
-    }
-}
-```
-
-**3. Update your `.csproj` file** – Embed the workflow source file as a resource:
-
-```xml
-<!-- Embed workflow source for visualization -->
-<ItemGroup>
-  <EmbeddedResource Include="ConversationalWorkflow.cs">
-    <LogicalName>%(Filename)%(Extension)</LogicalName>
-  </EmbeddedResource>
-</ItemGroup>
-```
-
-After these changes, rebuild your project and run the agent. The Visualize button will now be enabled for your custom workflow.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| **Visualize button disabled (built-in workflow)** | This is expected. Built-in workflows do not support visualization. Use a custom workflow (`DefineCustom<T>`) instead. |
-| **Visualize button disabled (custom workflow)** | Check: (1) workflow `.cs` is embedded (`EmbeddedResource` with `LogicalName` in `.csproj`), (2) rebuild the project after changing `.csproj`. |
-
-### How to view the flow diagram
-
-In the **Xians Manager** portal, select your agent and click the enabled **Visualize** button.
-
-![Workflow Visualization](../assets/images/workflow-visualize.png)
 
 ---
 

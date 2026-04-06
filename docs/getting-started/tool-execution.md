@@ -74,20 +74,21 @@ public class MafSubAgentTools
 Once you've created your tool class, you need to associate it with your agent. The following example demonstrates how to integrate the `MafSubAgentTools` class with an agent using Microsoft's AI Extensions framework:
 
 ```csharp
-
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using OpenAI;
-using OpenAI.Chat;
 using Xians.Lib.Agents.Core;
 using Xians.Lib.Agents.Messaging;
 
 public class MafSubAgent
 {
-    private readonly ChatClient _chatClient;
+    private readonly OpenAIClient _openAi;
+    private readonly string _modelName;
+
     public MafSubAgent(string openAiApiKey, string modelName = "gpt-4o-mini")
     {
-        _chatClient = new OpenAIClient(openAiApiKey).GetChatClient(modelName);
+        _openAi = new OpenAIClient(openAiApiKey);
+        _modelName = modelName;
     }
 
     private async Task<string> GetSystemPromptAsync(UserMessageContext context)
@@ -104,12 +105,12 @@ public class MafSubAgent
             return "I didn't receive any message. Please send a message.";
         }
 
-        // Create tools instance with the UserMessageContext
         var tools = new MafSubAgentTools(context);
 
-        // Configure the AI agent with tools
-        var agent = _chatClient.CreateAIAgent(new ChatClientAgentOptions
+        // OpenAI SDK ChatClient → Microsoft.Extensions.AI.IChatClient → MAF agent
+        var agent = _openAi.GetChatClient(_modelName).AsIChatClient().AsAIAgent(new ChatClientAgentOptions
         {
+            Name = "MafSubAgent",
             ChatOptions = new ChatOptions
             {
                 Instructions = await GetSystemPromptAsync(context),
@@ -119,13 +120,15 @@ public class MafSubAgent
                     AIFunctionFactory.Create(tools.GetOrderData)
                 ]
             },
-            // Use Xians chat message store for conversation history
-            ChatMessageStoreFactory = ctx => new XiansChatMessageStore(context)
+            AIContextProviders = [new ChatHistoryProvider(context)]
         });
 
-        // Run the agent and return the response
         var response = await agent.RunAsync(context.Message.Text);
         return response.Text;
     }
 }
 ```
+
+> **Why `AsIChatClient()`?** `GetChatClient()` returns the OpenAI SDK’s `ChatClient`. MAF’s `AsAIAgent` extension applies to `Microsoft.Extensions.AI.IChatClient`. The `AsIChatClient()` bridge converts between them.
+
+> **History:** Register conversation history with **`AIContextProviders`** (for example a `ChatHistoryProvider` as in [Chat history](chat-history.md)), not `ChatMessageStoreFactory`.
