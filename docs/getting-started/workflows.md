@@ -8,7 +8,7 @@ This guide shows a minimal setup: one workflow, one activity, and all configurat
 
 ## Prerequisites
 
-- .NET 9 SDK
+- .NET 10 SDK
 - Xians platform instance (server URL and agent certificate)
 - See [Quick Start](quick-start.md) for project creation and Xians connection
 

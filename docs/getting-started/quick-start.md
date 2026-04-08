@@ -8,7 +8,7 @@ Get up and running with your first Xians agent in minutes. This guide walks you 
 
 Before you begin, ensure you have the following installed:
 
-- **.NET 9 SDK** - [Download here](https://dotnet.microsoft.com/download)
+- **.NET 10 SDK** - [Download here](https://dotnet.microsoft.com/download)
 - **OpenAI API Key** - Get one from [OpenAI Platform](https://platform.openai.com)
 
 ---
