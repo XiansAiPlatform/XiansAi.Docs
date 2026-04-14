@@ -109,8 +109,8 @@ Env.Load();
 
 var serverUrl = Environment.GetEnvironmentVariable("XIANS_SERVER_URL")
     ?? throw new InvalidOperationException("XIANS_SERVER_URL required");
-var apiKey = Environment.GetEnvironmentVariable("XIANS_API_KEY")
-    ?? throw new InvalidOperationException("XIANS_API_KEY required");
+var apiKey = Environment.GetEnvironmentVariable("XIANS_AGENT_SECRET")
+    ?? throw new InvalidOperationException("XIANS_AGENT_SECRET required");
 
 // Initialize Xians Platform
 var xiansPlatform = await XiansPlatform.InitializeAsync(new()
@@ -146,7 +146,7 @@ Create a `.env` file:
 
 ```bash
 XIANS_SERVER_URL=https://your-xians-server.com
-XIANS_API_KEY=your-agent-certificate
+XIANS_AGENT_SECRET=your-agent-certificate
 ```
 
 ---

@@ -21,8 +21,8 @@ Env.Load();
 
 var serverUrl = Environment.GetEnvironmentVariable("XIANS_SERVER_URL") 
     ?? throw new InvalidOperationException("XIANS_SERVER_URL not found");
-var xiansApiKey = Environment.GetEnvironmentVariable("XIANS_API_KEY") 
-    ?? throw new InvalidOperationException("XIANS_API_KEY not found");
+var xiansApiKey = Environment.GetEnvironmentVariable("XIANS_AGENT_SECRET") 
+    ?? throw new InvalidOperationException("XIANS_AGENT_SECRET not found");
 
 // Initialize platform
 var xiansPlatform = await XiansPlatform.InitializeAsync(new()
