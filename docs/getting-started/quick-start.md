@@ -6,7 +6,7 @@ Get up and running with your first Xians agent in minutes. This guide walks you 
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Before you begin, ensure you have following installed:
 
 - **.NET 10 SDK** - [Download here](https://dotnet.microsoft.com/download)
 
