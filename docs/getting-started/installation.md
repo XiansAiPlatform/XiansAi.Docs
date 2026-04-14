@@ -6,29 +6,31 @@ Get started with Xians.ai by choosing the installation path that best fits your 
 
 Xians.ai offers two deployment options:
 
-1. **[SaaS Platform](#option-1-saas-platform)** - Quick start with hosted infrastructure (Recommended for 99x employees and customers)
-2. **[Community Edition](#option-2-community-edition-self-hosted)** - Self-hosted deployment for development and testing
+1. **[Community Edition](#option-community-edition-self-hosted)** - Self-hosted deployment for development and testing
+2. **[99x SaaS Platform](#option-99x-saas-platform)** - Quick start with hosted infrastructure (Recommended for 99x employees and customers)
+3. **[Gture SaaS Platform](#option-gture-saas-platform)** - Quick start with hosted infrastructure (Recommended for 99x employees and customers)
 
 ---
 
-## Option 1: SaaS Platform
+## Option: 99x SaaS Platform
 
-If you already have an account, the fastest way to get started is using our hosted SaaS platform at [agentri.ai](https://agentri.ai).
+Get started with 99x hosted SaaS platform at [agentri.ai](https://agentri.ai).
 
-### Prerequisites
+- [Dev Portal](https://app.agentri.ai)
+- [User Portal](https://studio.agentri.ai)
+- **Obtain your API key** from the tenant settings page
 
-- Active account at [agentri.ai](https://agentri.ai)
-- API key for authentication
+## Option: Gture SaaS Platform
 
-### Getting Started
+Get started with 99x hosted SaaS platform at [agentri.ai](https://agentri.ai).
 
-1. **Sign in** at [agentri.ai](https://agentri.ai)
-2. **Obtain your API key** from the tenant settings page
-3. **Start building** - You're ready to create your first agent! Follow [Quick Start](quick-start.md).
+- [Dev Portal](https://agentic-admin.gture.ai/)
+- [User Portal](https://agentic.gture.ai/dashboard)
+- **Obtain your API key** from the tenant settings page
 
 ---
 
-## Option 2: Community Edition (Self-Hosted)
+## Option: Community Edition (Self-Hosted)
 
 For local development, testing, or self-hosted deployments, use the Community Edition.
 
