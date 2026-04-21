@@ -27,6 +27,7 @@ nav:
     - Messaging - Webhooks: concepts/webhook.md
     - Knowledge: concepts/knowledge.md
     - Document DB: concepts/document-db.md
+    - Secret Vault: concepts/secret-vault.md
     - Scheduling: concepts/scheduling.md
     - Agent-to-Agent (A2A): concepts/A2A.md
     - Human-in-the-Loop: concepts/hitl-tasks.md
