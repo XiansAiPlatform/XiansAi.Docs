@@ -37,7 +37,9 @@ nav:
     - Unit Testing: concepts/unit-tests.md
   - Agent Studio:
     - Overview: studio/overview.md
+    - Installation: studio/installation.md
   - Server:
+    - Bootstrapping: server/bootstrapping.md
     - Encryption: server/encryption.md
     - Scaling: server/scaling.md
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript

@@ -6,6 +6,9 @@ Agent Studio is the **web console** for the XiansAi platform — the place where
 
 If the SDK is how agents *act*, the Studio is how people *manage*.
 
+!!! info "Setting up a new server?"
+    If this is a **fresh XiansAi Server installation**, stand up Agent Studio first by following the [Installation guide](installation.md). It covers configuring the `.env` file, running locally from source, and deploying the published DockerHub image. Once the Studio is running and you've signed in, the rest of this page explains how to operate it.
+
 ## Studio Roles
 
 Access to Agent Studio is governed by **three** roles. The first two are tenant-scoped and mutually exclusive — a user is one or the other inside a given tenant. The third is a platform-wide role assigned independently of the tenant roles.
