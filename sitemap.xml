@@ -161,11 +161,31 @@
          <lastmod>2026-06-24</lastmod>
     </url>
     <url>
+         <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/agent-descriptors/</loc>
+         <lastmod>2026-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/heartbeats/</loc>
+         <lastmod>2026-06-24</lastmod>
+    </url>
+    <url>
          <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/installation/</loc>
          <lastmod>2026-06-24</lastmod>
     </url>
     <url>
+         <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/oidc-providers/</loc>
+         <lastmod>2026-06-24</lastmod>
+    </url>
+    <url>
          <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/overview/</loc>
+         <lastmod>2026-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/tenant-theme/</loc>
+         <lastmod>2026-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://xiansaiplatform.github.io/XiansAi.Docs/studio/tool-reasoning-logs/</loc>
          <lastmod>2026-06-24</lastmod>
     </url>
 </urlset>
