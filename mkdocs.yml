@@ -38,6 +38,11 @@ nav:
   - Agent Studio:
     - Overview: studio/overview.md
     - Installation: studio/installation.md
+    - Making Agents Descriptive: studio/agent-descriptors.md
+    - Tool & Reasoning Logs: studio/tool-reasoning-logs.md
+    - Tenant Theme: studio/tenant-theme.md
+    - Tenant OIDC Providers: studio/oidc-providers.md
+    - Heartbeats: studio/heartbeats.md
   - Server:
     - Bootstrapping: server/bootstrapping.md
     - Encryption: server/encryption.md
