@@ -258,6 +258,7 @@ All message properties are accessed via `context.Message`:
 | `Hint` | `string?` | Optional hint for context |
 | `ThreadId` | `string?` | Thread ID for conversation tracking |
 | `Data` | `object?` | Associated data payload |
+| `Files` | `IReadOnlyList<UploadedFile>` | Files decoded from the data payload (for `File` messages) |
 | `Authorization` | `string?` | Authorization token if provided |
 
 ### Accessing Agent Resources

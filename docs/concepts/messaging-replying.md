@@ -81,14 +81,16 @@ conversationalWorkflow.OnUserDataMessage(async (context) =>
 
 ### Listening to File Uploads
 
-For file uploads (base64-encoded files sent with `type: "File"`), use `OnFileUpload`:
+For file uploads (base64-encoded files sent with `type: "File"`), use `OnFileUpload`. The SDK decodes the payload into typed `UploadedFile` objects via `context.Message.Files`:
 
 ```csharp
 conversationalWorkflow.OnFileUpload(async (context) =>
 {
-    var base64Content = context.Message.Data?.ToString();
-    var fileBytes = Convert.FromBase64String(base64Content ?? "");
-    // Process the uploaded file...
+    foreach (var file in context.Message.Files)
+    {
+        var fileBytes = file.GetBytes();
+        // Process the uploaded file using file.FileName, file.ContentType...
+    }
     await context.ReplyAsync("File received!");
 });
 ```
