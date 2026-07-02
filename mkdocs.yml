@@ -44,8 +44,10 @@ nav:
     - Tenant OIDC Providers: studio/oidc-providers.md
     - Heartbeats: studio/heartbeats.md
   - Server:
+    - Installation: server/installation.md
     - Bootstrapping: server/bootstrapping.md
     - Encryption: server/encryption.md
+    - Outbound Webhooks: server/outbound-webhooks.md
     - Scaling: server/scaling.md
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
     - HTTP User API: https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/user-api/index.md
