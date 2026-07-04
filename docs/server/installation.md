@@ -27,22 +27,45 @@ docker pull 99xio/xiansai-server:latest
 
 ## Prerequisites
 
-The Server is stateless itself, but it depends on a few external services. Provision these before starting the container.
+The Server is stateless itself, but it depends on two external services. Provision these before starting the container.
 
-| Dependency | Required | Purpose |
-| --- | --- | --- |
-| **MongoDB** (replica set) | Yes | Primary data store. A replica set is required because the server uses transactions. |
-| **Temporal** | Yes | Workflow orchestration engine that runs agent workflows. |
-| **Identity provider** | Optional | One of Auth0, Azure AD/Entra ID, Azure B2C, Keycloak, or GitHub. Only needed for the legacy WebAPI user (browser) login. Admin APIs use the bootstrapped API key and work without a provider. |
-| **Email provider** | Optional | Azure Communication Services for outbound email; defaults to console output. |
-| **Redis** | Optional | Distributed cache. Defaults to in-memory. |
-| **Docker Engine** | Yes | 20.10+ (and optionally Docker Compose 2.0+). |
+| Dependency | Purpose |
+| --- | --- |
+| **MongoDB** (replica set) | Primary data store. A replica set is required because the server uses transactions. |
+| **Temporal** | Workflow orchestration engine that runs agent workflows. |
+| **Docker Engine** | 20.10+ (and optionally Docker Compose 2.0+). |
+
+Redis (distributed cache) and Azure Communication Services (outbound email) can be added later — see [optional settings](#optional-settings).
 
 ## Configuration: environment variables
 
 All settings are supplied as environment variables using the standard .NET convention where `:` in a configuration path becomes `__` (double underscore). For example, the setting `MongoDB:ConnectionString` is provided as `MongoDB__ConnectionString`.
 
 The recommended approach is to keep these in an `.env` file and pass it to the container with `--env-file`.
+
+### Minimal `.env` to get started
+
+Only the variables below are mandatory — everything else has sensible defaults. Copy this template, fill in the values (the sections that follow explain how to obtain each one), and you can start the server.
+
+```bash
+# MongoDB (must be a replica set)
+MongoDB__ConnectionString=mongodb://user:password@mongodb:27017/xians?replicaSet=rs0&authSource=xians
+MongoDB__DatabaseName=xians
+
+# Temporal
+Temporal__FlowServerUrl=temporal:7233
+Temporal__FlowServerNamespace=default
+
+# Encryption keys — generate each with: openssl rand -base64 32
+EncryptionKeys__BaseSecret=<random-base64>
+EncryptionKeys__UniqueSecrets__ConversationMessageKey=<random-base64>
+EncryptionKeys__UniqueSecrets__TenantOidcSecretKey=<random-base64>
+EncryptionKeys__UniqueSecrets__SecretVaultKey=<random-base64>
+
+# Root CA certificate — see "Certificates" below for generation steps
+Certificates__AppServerPfxBase64=<base64-encoded-pfx>
+Certificates__AppServerCertPassword=<pfx-password>
+```
 
 ### General
 
@@ -58,41 +81,41 @@ The recommended approach is to keep these in an `.env` file and pass it to the c
 ```bash
 MongoDB__ConnectionString=mongodb://user:password@mongodb:27017/xians?replicaSet=rs0&authSource=xians
 MongoDB__DatabaseName=xians
+```
+
+Connection pool tuning is optional (defaults shown):
+
+```bash
 MongoDB__MaxConnectionPoolSize=100
-MongoDB__MinConnectionPoolSize=10
+MongoDB__MinConnectionPoolSize=5
 ```
 
 !!! warning "Replica set required"
     The connection string must point at a MongoDB **replica set** (`replicaSet=...`). The server relies on multi-document transactions, which standalone MongoDB does not support.
 
+**Where to get the connection string:**
+
+- **MongoDB Atlas** (managed): create a cluster, then copy the connection string from *Connect → Drivers*. Atlas clusters are always replica sets, so no extra configuration is needed.
+- **Self-hosted**: start `mongod` with `--replSet rs0` and initialize it once with `rs.initiate()` from `mongosh`. Then use `mongodb://<user>:<password>@<host>:27017/xians?replicaSet=rs0&authSource=<auth-db>`.
+
 ### Temporal workflow engine — required
 
 ```bash
 Temporal__FlowServerUrl=temporal:7233
-Temporal__FlowServerUrlExternal=temporal:7233
 Temporal__FlowServerNamespace=default
 ```
 
-### Authentication — optional
-
-An OIDC identity provider is only required for the legacy WebAPI user (browser) login. If you omit `AuthProvider__Provider` (or set it to `None`), the WebAPI login surface is not wired and the platform runs in Admin-API-key-only mode: the [bootstrapped API key](bootstrapping.md) authenticates all Admin APIs, agents authenticate with certificates, and no identity provider is needed.
-
-To enable browser login, choose exactly one provider and set `AuthProvider__Provider` accordingly. Only the selected provider's variables are needed.
+Optionally, if agents connect from outside your Docker network via a different hostname:
 
 ```bash
-# Example: Keycloak
-AuthProvider__Provider=Keycloak
-Keycloak__AuthServerUrl=https://your-keycloak-server/
-Keycloak__Realm=your-realm
-Keycloak__ValidIssuer=https://your-keycloak-server/realms/your-realm
+Temporal__FlowServerUrlExternal=temporal.your-domain.com:7233
 ```
 
-Supported providers are `Auth0`, `AzureB2C` (also used for Azure AD/Entra ID), `Keycloak`, and `GitHub`. For the full set of variables per provider — including token-validation caching and HTTPS enforcement — see the [Authentication Configuration guide](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/AUTH_CONFIGURATION.md).
+**Where to get these values:**
 
-```bash
-# Require HTTPS for token metadata in production
-Auth__RequireHttpsMetadata=true
-```
+- `FlowServerUrl` is the `host:port` of the Temporal **frontend service** as reachable from inside the server container. A self-hosted Temporal (e.g. via [temporal docker-compose](https://github.com/temporalio/docker-compose)) listens on port `7233` by default.
+- `FlowServerNamespace` is the Temporal namespace to run workflows in. Self-hosted setups ship with `default`; for Temporal Cloud use your namespace (e.g. `my-namespace.a1b2c`) and the endpoint shown in the Temporal Cloud console.
+- `FlowServerUrlExternal` is the endpoint handed to agents; it defaults to `FlowServerUrl` when omitted.
 
 ### Encryption keys — required
 
@@ -113,16 +136,43 @@ EncryptionKeys__UniqueSecrets__SecretVaultKey=<random-base64>
 
 ### Certificates — required
 
-The server signs and validates agent certificates using a PFX bundle supplied as base64.
+The server acts as its own certificate authority: it uses a root CA certificate to sign the client certificates that agents authenticate with. Supply that root CA as a password-protected, base64-encoded PFX (PKCS#12) bundle containing **both the certificate and its private key**.
 
 ```bash
 Certificates__AppServerPfxBase64=<base64-encoded-pfx>
 Certificates__AppServerCertPassword=<pfx-password>
 ```
 
-### CORS
+**Generating the root certificate** with `openssl`:
 
-Set the origins that browsers (e.g. Legacy Xians UI, UserAPI OIDC custom apps) are served from. Array entries use index notation.
+```bash
+# 1. Generate a private key for the CA
+openssl genrsa -out ca.key 4096
+
+# 2. Create a self-signed root CA certificate (valid 10 years).
+#    The CA basic constraint is required — the server looks for it when loading the bundle.
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 \
+  -subj "/O=YourOrganization/CN=XiansAi Root CA" \
+  -addext "basicConstraints=critical,CA:true" \
+  -addext "keyUsage=critical,digitalSignature,keyCertSign,cRLSign" \
+  -out ca.crt
+
+# 3. Bundle the certificate and key into a password-protected PFX
+openssl pkcs12 -export -out ca.pfx -inkey ca.key -in ca.crt \
+  -passout pass:<pfx-password>
+
+# 4. Base64-encode the PFX as a single line (portable across macOS/Linux)
+openssl base64 -A -in ca.pfx -out ca.pfx.base64
+```
+
+Set `Certificates__AppServerPfxBase64` to the contents of `ca.pfx.base64` and `Certificates__AppServerCertPassword` to the password you chose in step 3. Alternatively, the server repository ships a ready-made script that does all of the above: [`infra/root-cert-gen.sh`](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/infra/root-cert-gen.sh) (run it as `./root-cert-gen.sh -p <pfx-password>`).
+
+!!! danger "Protect the CA key"
+    Anyone holding this PFX and password can mint valid agent certificates for your platform. Store both in your secret manager, never commit them, and use a different certificate per environment. Rotating the certificate invalidates all previously issued agent certificates.
+
+### CORS — optional
+
+Only needed when browser-based clients (e.g. custom apps calling the UserAPI) call the server directly. Set the origins they are served from; array entries use index notation. Defaults to no allowed origins.
 
 ```bash
 Cors__AllowedOrigins__0=https://custom-ui.your-domain.com
@@ -131,12 +181,16 @@ Cors__AllowedOrigins__1=https://app.your-domain.com
 
 ### Optional settings
 
+None of these are needed to get started — the defaults work out of the box.
+
 ```bash
-# Caching: "memory" (default) or "redis"
+# Caching: "memory" (default) or "redis".
+# Use Redis when running multiple server replicas so they share cache state.
 Cache__Provider=memory
 Cache__Redis__ConnectionString=
 
-# Email: "console" (default) or "azure"
+# Email: "console" (default, prints to logs) or "azure" (Azure Communication Services).
+# Used for tenant user-invitation emails.
 Email__Provider=console
 Email__Azure__ConnectionString=
 Email__Azure__SenderEmail=
@@ -156,12 +210,14 @@ DataProtection__KeysDirectory=/app/keys
 
 ### 1. Create your environment file
 
-Create an `.env` file containing the variables above with your real values.
+Create an `.env` file with your real values — start from the [minimal template](#minimal-env-to-get-started) above and add optional settings as needed.
 
 ```bash
 # Generate the random secrets you'll need
 openssl rand -base64 32   # run once per encryption key
 ```
+
+For the certificate PFX, follow the steps in [Certificates — required](#certificates-required).
 
 ### 2. Run the container
 
