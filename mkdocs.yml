@@ -38,6 +38,7 @@ nav:
   - Agent Studio:
     - Overview: studio/overview.md
     - Installation: studio/installation.md
+    - Workflow Conventions: studio/workflow-conventions.md
     - Making Agents Descriptive: studio/agent-descriptors.md
     - Tool & Reasoning Logs: studio/tool-reasoning-logs.md
     - Tenant Theme: studio/tenant-theme.md
