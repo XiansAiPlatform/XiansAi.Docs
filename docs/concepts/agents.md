@@ -1,72 +1,34 @@
 # Agents & Workflows
 
-## Overview
+## Why Agents?
 
-Agents in Xians are database entities that provide identity and management capabilities for your AI applications. They serve as containers for workflows, knowledge, documents, and other resources, with built-in multi-tenancy and isolation.
-
-## Core Concepts
-
-### Agents
-
-An **Agent** is a registered entity that:
-
-- Provides an identity for management and isolation purposes
-- Can be **system-scoped** (templates deployable across tenants) or **tenant-scoped** (deployed to a specific tenant)
-- Owns and manages collections of workflows, knowledge, and documents
-- Automatically handles tenant isolation and resource scoping
+When you build an AI application, you quickly accumulate more than just code: prompts, stored data, schedules, conversations, and credentials. An **Agent** is the unit that owns all of these. It gives your application an identity on the platform, so the server can isolate its resources per tenant, route messages to it, and manage it from the Studio UI.
 
 ```mermaid
 graph TB
-    A[XiansAgent] --> B[Workflows]
-    A --> C[Knowledge]
-    A --> D[Documents]
-    B --> E[Built-In Workflow 1]
-    B --> F[Built-In Workflow 2]
-    B --> G[Custom Workflow 1]
-    B --> H[Custom Workflow 2]
+    A[Agent<br/>identity + ownership] --> B[Workflows<br/>the running logic]
+    A --> C[Knowledge<br/>prompts & instructions]
+    A --> D[Documents<br/>structured data]
+    B --> E[Built-in workflows<br/>message-driven]
+    B --> F[Custom workflows<br/>your Temporal code]
 ```
 
-### Workflows
+## Why Two Kinds of Workflows?
 
-**Workflows** are Temporal-based execution units attached to agents. There are two types:
+Workflows are the executable part of an agent, built on [Temporal](https://temporal.io) for durability. Most agents need two very different styles of execution, so Xians provides both:
 
-#### Built-In Workflows
+| | Built-in Workflow | Custom Workflow |
+|---|---|---|
+| **Purpose** | React to messages, chats, webhooks | Long-running business processes |
+| **You write** | Just message handlers | A full Temporal workflow class |
+| **Lifecycle** | Managed for you | You control (signals, queries, timers) |
+| **Typical use** | Chatbot, request/reply, file intake | Order processing, scheduled jobs, approvals |
 
-Pre-built workflows with plumbing for common patterns:
+**Rule of thumb:** start with a built-in workflow for anything conversational. Reach for a custom workflow when you need control over long-running state, timers, or multi-step orchestration.
 
-- Listen to user messages (chat and data)
-- Handle webhook invocations
-- No workflow class definition required
+## Registering an Agent
 
-#### Custom Workflows
-
-Plain Temporal workflows you define:
-
-- Full control over workflow logic
-- Access to all Temporal features (signals, queries, updates, child workflows)
-- Automatic tenant isolation
-- Scheduled execution support
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant BW as Built-In Workflow
-    participant CW as Custom Workflow
-    participant A as Activities
-    
-    U->>BW: Send Message
-    BW->>BW: Execute Handler
-    BW->>U: Reply
-    
-    U->>CW: Webhook/Signal
-    CW->>A: Execute Activities
-    A-->>CW: Results
-    CW->>U: Response
-```
-
-## Agent Registration
-
-### Creating an Agent
+Register the agent once at startup. The name is its identity on the server.
 
 ```csharp
 var xiansPlatform = await XiansPlatform.InitializeAsync(new XiansOptions
@@ -80,92 +42,54 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
     Name = "MyAgent",
     Version = "1.0.0",
     Description = "My intelligent agent",
-    IsTemplate = true  // or false for tenant-specific
+    IsTemplate = true  // system-scoped template, deployable to any tenant
 });
 ```
 
 ### System-Scoped vs Tenant-Scoped
 
-| Type | Scope | Use Case | Deployment |
-|------|-------|----------|------------|
-| **System-Scoped** | Multi-tenant template | Reusable agents across tenants | Registered once, deployed to multiple tenants |
-| **Tenant-Scoped** | Single tenant | Tenant-specific customizations | Deployed to developer's tenant only |
+`IsTemplate` decides who can use your agent:
 
-## Agent API Reference
+| Type | `IsTemplate` | Meaning | When to use |
+|------|-------------|---------|-------------|
+| **System-scoped** | `true` | A template registered once, deployable to many tenants | Product agents shipped to customers |
+| **Tenant-scoped** | `false` | Lives in your own tenant only | Internal or tenant-specific agents |
 
-### Properties
+See [Multitenancy](multitenancy.md) for how isolation works at runtime.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `Name` | `string` | Unique identifier for the agent |
-| `Version` | `string?` | Optional version identifier |
-| `Description` | `string?` | Human-readable description |
-| `IsTemplate` | `bool` | Whether agent is multi-tenant template |
-| `Workflows` | `WorkflowCollection` | Collection of workflows |
-| `Knowledge` | `KnowledgeCollection` | Knowledge base management |
-| `Documents` | `DocumentCollection` | Document storage and retrieval |
+## Defining a Built-in Workflow
 
-### Methods
-
-| Method | Description |
-|--------|-------------|
-| `GetBuiltInWorkflow(string? name)` | Get a built-in workflow by name (null for unnamed) |
-| `GetCustomWorkflow<T>()` | Get a custom workflow by type |
-| `GetAllWorkflows()` | Get all workflows for this agent |
-| `UploadWorkflowDefinitionsAsync()` | Upload workflow definitions to server |
-| `RunAllAsync(CancellationToken)` | Run all registered workflows |
-
-## Defining Workflows
-
-### Built-In
-
-Built-in workflows are ideal for message-driven patterns:
+Built-in workflows need no class — just attach handlers for the message types you care about.
 
 ```csharp
-// Define an unnamed built-in workflow
-var workflow = agent.Workflows.DefineBuiltIn();
-
-// Define the conventional chat workflow ("Supervisor Workflow")
-// Equivalent to: agent.Workflows.DefineBuiltIn(name: "Supervisor Workflow")
+// The conventional chat workflow (named "Supervisor Workflow")
 var chatWorkflow = agent.Workflows.DefineSupervisor();
 
-// Register message handler
 chatWorkflow.OnUserChatMessage(async (context) =>
 {
-    var userMessage = context.Message.Text;
-    var response = await ProcessMessage(userMessage);
+    var response = await ProcessMessage(context.Message.Text);
     await context.ReplyAsync(response);
 });
 
-// Register data message handler
 chatWorkflow.OnUserDataMessage(async (context) =>
 {
-    var data = context.Message.Data;
-    await ProcessData(data);
+    await ProcessData(context.Message.Data);
 });
 ```
 
-### Custom
+Each handler receives a `UserMessageContext` — see [Messaging – Reply](messaging-replying.md) for everything you can do with it.
 
-Custom workflows give you full Temporal capabilities:
+## Defining a Custom Workflow
+
+A custom workflow is a standard Temporal workflow class registered with your agent. You get the full Temporal toolbox: activities, signals, queries, timers, and child workflows.
 
 ```csharp
-// Define custom workflow
 var customWorkflow = agent.Workflows.DefineCustom<MyCustomWorkflow>();
 
-// Add activities
-customWorkflow.AddActivity<MyActivity>();
-customWorkflow.AddActivity(new MyActivityInstance());
-
-// Add multiple activities
-customWorkflow.AddActivities(
-    new Activity1(),
-    new Activity2(),
-    new Activity3()
-);
+// Register the activities the workflow calls
+customWorkflow.AddActivity<MyActivity>();       // new instance per worker
+customWorkflow.AddActivity(new SharedActivity()); // shared instance
 ```
-
-#### Example Custom Workflow Class
 
 ```csharp
 using Temporalio.Workflows;
@@ -176,258 +100,91 @@ public class MyCustomWorkflow
     [WorkflowRun]
     public async Task<string> RunAsync(WorkflowInput input)
     {
-        // Execute activities
         var result = await Workflow.ExecuteActivityAsync(
             (MyActivity act) => act.ProcessAsync(input),
-            new() { StartToCloseTimeout = TimeSpan.FromMinutes(5) }
-        );
-        
-        // Wait for signals
-        await Workflow.WaitConditionAsync(() => signalReceived);
-        
+            new() { StartToCloseTimeout = TimeSpan.FromMinutes(5) });
+
         return result;
     }
-    
+
     [WorkflowSignal]
-    public async Task HandleSignalAsync(SignalData data)
-    {
-        // Handle signal
-    }
-    
+    public async Task HandleSignalAsync(SignalData data) { /* ... */ }
+
     [WorkflowQuery]
     public string GetStatus() => currentStatus;
 }
 ```
 
-## Workflow API Reference
-
-### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `WorkflowType` | `string` | Unique workflow type identifier (prefixed with agent name) |
-| `Name` | `string?` | Optional workflow name |
-| `Workers` | `int` | Number of worker instances, Default is 100 |
-| `Schedules` | `ScheduleCollection?` | Scheduled execution management |
-
-### Methods
-
-| Method | Description |
-|--------|-------------|
-| `AddActivity(object)` | Register activity instance (shared across workers) |
-| `AddActivity<T>()` | Register activity type (new instance per worker) |
-| `AddActivities(params object[])` | Register multiple activity instances |
-| `OnUserChatMessage(Func<UserMessageContext, Task>)` | Register chat message handler (built-in only) |
-| `OnUserDataMessage(Func<UserMessageContext, Task>)` | Register data message handler (built-in only) |
-| `OnFileUpload(Func<UserMessageContext, Task>)` | Register file upload handler (built-in only) |
-| `RunAsync(CancellationToken)` | Start workflow workers |
-
-## Message Context
-
-When handling messages in built-in workflows, you receive a `UserMessageContext`:
-
-### UserMessageContext Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `Message` | `CurrentMessage` | The current message with text, data, and context information |
-| `Metadata` | `Dictionary<string, string>?` | Optional metadata for the message |
-| `SkipResponse` | `bool` | Set to true to prevent messages from being sent to the user |
-
-### UserMessageContext Methods
-
-| Method | Description |
-|--------|-------------|
-| `ReplyAsync(string text)` | Send a simple text reply |
-| `ReplyAsync(string text, object? data)` | Send a reply with text and data |
-| `SendDataAsync(object data, string? content)` | Send a data message with optional text |
-| `GetChatHistoryAsync(int page, int pageSize)` | Retrieve paginated chat history |
-| `GetLastHintAsync()` | Retrieve the last hint for this conversation |
-| `SendHandoffAsync(string targetWorkflowId, ...)` | Hand off conversation to another workflow |
-
-### CurrentMessage Properties
-
-All message properties are accessed via `context.Message`:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `Text` | `string` | The text content of the message |
-| `ParticipantId` | `string` | The participant (user) ID |
-| `RequestId` | `string` | Unique request identifier |
-| `TenantId` | `string` | The tenant ID for multi-tenancy |
-| `Scope` | `string?` | Optional scope for the message |
-| `Hint` | `string?` | Optional hint for context |
-| `ThreadId` | `string?` | Thread ID for conversation tracking |
-| `Data` | `object?` | Associated data payload |
-| `Files` | `IReadOnlyList<UploadedFile>` | Files decoded from the data payload (for `File` messages) |
-| `Authorization` | `string?` | Authorization token if provided |
-
-### Accessing Agent Resources
-
-Agent resources (Knowledge, Documents, Workflows) are accessed via `XiansContext`:
+## Running the Agent
 
 ```csharp
-// In workflow or activity context
-var agent = XiansContext.CurrentAgent;
-var workflow = XiansContext.CurrentWorkflow;
-var tenantId = XiansContext.TenantId;  // For system-scoped agents
+await agent.RunAllAsync(cancellationToken);
 ```
 
-### Example Usage
+This starts workers for every defined workflow and keeps them polling for work until cancelled.
+
+## Common Patterns
+
+### Self-Scheduling
+
+A workflow can ensure its own recurring schedule exists — useful for "run every N hours" jobs that bootstrap themselves on first run:
 
 ```csharp
-chatWorkflow.OnUserChatMessage(async (context) =>
+try
 {
-    // Access message data
-    var message = context.Message.Text;
-    var participantId = context.Message.ParticipantId;
-    var requestId = context.Message.RequestId;
-    var tenantId = context.Message.TenantId;
-    var threadId = context.Message.ThreadId;
-    var data = context.Message.Data;
-    
-    // Reply to user
-    await context.ReplyAsync("Hello!");
-    
-    // Reply with text and data
-    await context.ReplyAsync("Response text", new { key = "value" });
-    
-    // Send data message
-    await context.SendDataAsync(new { key = "value" }, "Optional text");
-    
-    // Access agent's knowledge via XiansContext
-    var agent = XiansContext.CurrentAgent;
-    var knowledgeItem = await agent.Knowledge.GetAsync("knowledge-name");
-    var allKnowledge = await agent.Knowledge.ListAsync();
-    
-    // Update knowledge
-    await agent.Knowledge.UpdateAsync("knowledge-name", "content", type: "instruction");
-    
-    // Access documents
-    var doc = await agent.Documents.GetAsync("doc-id");
-    
-    // Get chat history
-    var history = await context.GetChatHistoryAsync(page: 1, pageSize: 10);
-});
-```
-
-## Workflow Scheduling (Self-Scheduling Pattern)
-
-Workflows can schedule themselves to run at specific times or intervals. This is done **inside the workflow** using `XiansContext.CurrentWorkflow.Schedules`:
-
-### Self-Scheduling Example
-
-```csharp
-using Temporalio.Workflows;
-using Xians.Lib.Agents.Core;
-using Xians.Lib.Agents.Scheduling.Models;
-
-[Workflow("MyAgent:RecurringTask")]
-public class RecurringTaskWorkflow
+    await XiansContext.CurrentWorkflow.Schedules!
+        .Create($"recurring-{taskId}")
+        .WithIntervalSchedule(TimeSpan.FromHours(intervalHours))
+        .WithInput(new object[] { taskId, intervalHours })
+        .StartAsync();
+}
+catch (ScheduleAlreadyExistsException)
 {
-    [WorkflowRun]
-    public async Task RunAsync(string taskId, int intervalHours)
-    {
-        // At the start of the workflow, ensure a recurring schedule exists
-        await EnsureScheduleExists(taskId, intervalHours);
-        
-        // Perform the actual work
-        await DoWorkAsync(taskId);
-    }
-    
-    private async Task EnsureScheduleExists(string taskId, int intervalHours)
-    {
-        try
-        {
-            // Self-schedule using XiansContext.CurrentWorkflow
-            // Automatically uses activities when in workflow context!
-            var schedule = await XiansContext.CurrentWorkflow.Schedules!
-                .Create($"recurring-{taskId}")
-                .WithIntervalSchedule(TimeSpan.FromHours(intervalHours))
-                .WithInput(new object[] { taskId, intervalHours })
-                .StartAsync();
-            
-            Workflow.Logger.LogInformation(
-                "Schedule created - will run every {Hours} hours",
-                intervalHours);
-        }
-        catch (ScheduleAlreadyExistsException ex)
-        {
-            Workflow.Logger.LogInformation(
-                "Schedule already exists: {ScheduleId}",
-                ex.ScheduleId);
-        }
-    }
-    
-    private async Task DoWorkAsync(string taskId)
-    {
-        // Your workflow logic here
-        Workflow.Logger.LogInformation("Processing task: {TaskId}", taskId);
-    }
+    // Already scheduled — nothing to do
 }
 ```
 
-## Child Workflows
+See [Scheduling](scheduling.md) for the full schedule API.
 
-Workflows can start and execute other workflows as child workflows using `XiansContext.Workflows`:
+### Child Workflows
 
-### Starting Child Workflows (Fire and Forget)
-
-Use `StartAsync` to start a child workflow without waiting for its completion:
+Split large processes into smaller workflows. Fire-and-forget with `StartAsync`, or wait for a result with `ExecuteAsync`:
 
 ```csharp
-[Workflow("MyAgent:ParentWorkflow")]
-public class ParentWorkflow
-{
-    [WorkflowRun]
-    public async Task RunAsync(string taskId)
-    {
-        // Start child workflow by type - fire and forget
-        await XiansContext.Workflows.StartAsync<ChildWorkflow>(
-            idPostfix: taskId,
-            args: new object[] { "param1", "param2" }
-        );
-        
-        // Continue without waiting for child to complete
-        Workflow.Logger.LogInformation("Child workflow started");
-    }
-}
+// Fire and forget
+await XiansContext.Workflows.StartAsync<ChildWorkflow>(
+    idPostfix: taskId,
+    args: new object[] { "param1" });
+
+// Wait for the result
+var result = await XiansContext.Workflows.ExecuteAsync<ChildWorkflow, string>(
+    idPostfix: "process",
+    args: new object[] { data });
 ```
 
-### Executing Child Workflows (Wait for Result)
+The child's workflow ID becomes `{workflowType}-{idPostfix}` (a GUID is used if `idPostfix` is null). Starting a duplicate ID throws `WorkflowAlreadyStartedException`.
 
-Use `ExecuteAsync` to execute a child workflow and wait for its result:
+## API Reference
 
-```csharp
-[Workflow("MyAgent:ParentWorkflow")]
-public class ParentWorkflow
-{
-    [WorkflowRun]
-    public async Task<string> RunAsync(string data)
-    {
-        // Execute child workflow and wait for result
-        var result = await XiansContext.Workflows.ExecuteAsync<ChildWorkflow, string>(
-            idPostfix: "process",
-            args: new object[] { data }
-        );
-        
-        return result;
-    }
-}
-```
+### Agent
 
-### XiansContext.Workflows API Reference
-
-| Method | Description |
+| Member | Description |
 |--------|-------------|
-| `StartAsync<TWorkflow>(string? idPostfix, params object[] args)` | Start child workflow by type without waiting |
-| `StartAsync(string workflowType, string? idPostfix, params object[] args)` | Start child workflow by type string without waiting |
-| `ExecuteAsync<TWorkflow, TResult>(string? idPostfix, params object[] args)` | Execute child workflow and wait for result |
-| `ExecuteAsync<TResult>(string workflowType, string? idPostfix, params object[] args)` | Execute child workflow by type string and wait for result |
+| `Name`, `Version`, `Description` | Identity metadata |
+| `IsTemplate` | Whether the agent is a multi-tenant template |
+| `Workflows`, `Knowledge`, `Documents` | Owned resource collections |
+| `GetBuiltInWorkflow(string? name)` | Get a built-in workflow by name |
+| `GetCustomWorkflow<T>()` | Get a custom workflow by type |
+| `UploadWorkflowDefinitionsAsync()` | Push workflow definitions to the server |
+| `RunAllAsync(CancellationToken)` | Run all registered workflows |
 
-**Notes:**
+### Workflow
 
-- `idPostfix` is used to create unique workflow IDs (format: `{workflowType}-{idPostfix}`)
-- If `idPostfix` is null, a GUID is generated automatically
-- Throws `WorkflowAlreadyStartedException` if a workflow with the same ID is already running
-- Works both inside workflows (as child workflows) and outside workflows (as new workflows)
+| Member | Description |
+|--------|-------------|
+| `WorkflowType` | Unique type identifier (prefixed with agent name) |
+| `Workers` | Number of worker instances (default 100) |
+| `Schedules` | Schedule management for this workflow |
+| `AddActivity<T>()` / `AddActivity(object)` | Register activities |
+| `OnUserChatMessage(...)` / `OnUserDataMessage(...)` / `OnFileUpload(...)` | Message handlers (built-in only) |
+| `RunAsync(CancellationToken)` | Start this workflow's workers |

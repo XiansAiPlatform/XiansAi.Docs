@@ -1,26 +1,23 @@
 # Knowledge
 
-## Give Your Agents Domain Expertise
+## Why Knowledge?
 
-LLMs are smart, but they don't know **your** business. Your products, your policies, your documentation. Knowledge bases solve this through **Retrieval-Augmented Generation (RAG)**—letting agents search your content and ground their answers in your truth.
+LLMs are smart, but they don't know **your** business — your products, policies, or tone. And if you hard-code prompts into your source, every wording tweak requires a redeploy. **Knowledge** solves both problems: it's a per-agent key-value store for prompts, instructions, and configuration that can be read at runtime and edited from the Studio UI without touching code.
 
-## What is Agent Knowledge?
+Typical contents:
 
-Every agent has its own **private knowledge base**—a key-value store for information your agent needs to retrieve. Think of it as your agent's memory:
+| Knowledge | Example |
+|-----------|---------|
+| System instructions | The agent's persona and rules |
+| Business content | Product catalogs, company policies |
+| Configuration | API settings, feature toggles (as JSON) |
+| Workflow instructions | Step-by-step guidance for complex processes |
 
-- **System instructions** that customize agent behavior
-- **Product catalogs** for a sales agent
-- **Company policies** for a support agent  
-- **User preferences** for a personalization agent
-- **Workflow instructions** for complex processes
+Knowledge is **automatically scoped to each agent** — Agent A can never read Agent B's knowledge, even if they use the same names.
 
-Knowledge is **automatically scoped** to each agent. Agent A can't access Agent B's knowledge—perfect for multi-tenant applications.
+## Shipping Knowledge with Your Code
 
-## Uploading Knowledge at Agent Initiation
-
-You can upload knowledge from local source code when the agent is initiating. This lets you ship prompts, docs, or config bundled with your agent assembly.
-
-1. **Embed files** in your project:
+Keep prompts in version control by embedding them in your assembly and uploading them when the agent starts:
 
 ```xml
 <ItemGroup>
@@ -29,118 +26,83 @@ You can upload knowledge from local source code when the agent is initiating. Th
 </ItemGroup>
 ```
 
-2. **Upload during registration** using `UploadEmbeddedResourceAsync`:
-
 ```csharp
-workflow.OnUserChatMessage(async (context) => { /* ... */ });
-
-// Upload knowledge when agent initializes (e.g. in Development only)
 await agent.Knowledge.UploadEmbeddedResourceAsync(
     resourcePath: "Supervisor/supervisor-agent-prompt.md",
     knowledgeName: "Supervisor Agent Prompt",
-    knowledgeType: "markdown"
-);
+    knowledgeType: "markdown");
 ```
 
-Use this pattern to keep agent prompts and documentation in version control alongside your code.
+Supported types: `"text"`, `"markdown"`, and `"json"`.
 
 ## Retrieving Knowledge
 
-### Get Specific Knowledge
-
 ```csharp
-var agent = XiansContext.GetAgent(agentName); // or var agent = XiansContext.CurrentAgent;
+var agent = XiansContext.CurrentAgent;   // or XiansContext.GetAgent(name)
 
-// Get specific knowledge by name
 var knowledge = await agent.Knowledge.GetAsync("welcome-message");
+Console.WriteLine(knowledge?.Content);
 
-if (knowledge != null)
-{
-    Console.WriteLine($"Content: {knowledge.Content}");
-    Console.WriteLine($"Type: {knowledge.Type}");
-}
-```
-
-**Supported knowledge types:**
-
-- `"text"` - Plain text content
-- `"markdown"` - Formatted documentation with Markdown syntax
-- `"json"` - Structured data
-
-### List All Knowledge
-
-```csharp
-// See everything your agent knows
 var allKnowledge = await agent.Knowledge.ListAsync();
-
-foreach (var item in allKnowledge)
-{
-    Console.WriteLine($"Name: {item.Name}");
-    Console.WriteLine($"Type: {item.Type}");
-    Console.WriteLine($"Content: {item.Content}");
-    Console.WriteLine($"System Scoped: {item.SystemScoped}");
-    Console.WriteLine();
-}
 ```
 
-## Knowledge in Workflows
+Retrieval works the same inside workflows — the SDK automatically routes the call through a Temporal activity, so you don't need to think about workflow determinism.
 
-Knowledge retrieval works seamlessly **inside workflows**—the SDK automatically handles context switching:
+## Progressive Fallback: Defaults with Overrides
+
+Why does one `GetAsync("greeting")` call sometimes return different content? Because knowledge can be **overridden at three levels**, and the server returns the most specific match:
+
+```mermaid
+graph TD
+    Q["GetAsync(#quot;greeting#quot;)"] --> I{Instance-scoped?<br/>tenant/agent/activation}
+    I -->|found| R[Return it]
+    I -->|not found| T{Tenant-scoped?<br/>tenant/agent}
+    T -->|found| R
+    T -->|not found| S[System-scoped<br/>system/agent template default]
+    S --> R
+```
+
+This is the mechanism behind multi-tenant customization:
+
+- **System-scoped** knowledge (uploaded by a template agent) provides the baseline for everyone.
+- Each **tenant** can override it with their own branding and rules.
+- Individual **activations** can override further for per-instance personalization.
+
+You only store the overrides — never duplicated defaults. See [Multitenancy](multitenancy.md) for how scopes are created.
+
+## Common Patterns
+
+### System instructions for an LLM
 
 ```csharp
-[Workflow("CustomerSupport:HandleTicket")]
-public class TicketWorkflow
+conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
-    [WorkflowRun]
-    public async Task<string> RunAsync(string customerId)
+    var instructions = await XiansContext.CurrentAgent.Knowledge.GetAsync("system-instructions");
+
+    var messages = new List<ChatMessage>
     {
-        // Get agent from workflow context
-        var agent = XiansContext.GetAgent("SupportAgent");
-        
-        // Retrieve knowledge - automatically uses progressive fallback
-        // Checks: instance-specific → tenant-specific → system default
-        var instructions = await agent.Knowledge.GetAsync("system-instructions");
-        
-        // Use the most specific version available
-        return $"Processing ticket with instructions: {instructions?.Content}";
-    }
-}
+        new SystemMessage(instructions?.Content ?? "Default instructions"),
+        new UserMessage(context.Message.Text)
+    };
+
+    var response = await llm.GetCompletionAsync(messages);
+    await context.ReplyAsync(response);
+});
 ```
 
-The SDK uses **context-aware execution** to route workflow calls through Temporal activities automatically, and the server applies the progressive fallback to find the most specific knowledge for this agent run.
-
-## Progressive Knowledge Retrieval
-
-The Xians platform uses a **progressive fallback mechanism** when retrieving knowledge, allowing you to override defaults at multiple levels:
-
-### Fallback Hierarchy
-
-When you call `GetAsync("knowledge-name")`, the server checks for knowledge in this order:
-
-1. **Instance-Scoped** (`tenant/agent/activation`) - Most specific to this agent run
-2. **Tenant-Scoped** (`tenant/agent`) - Specific to this tenant's agent
-3. **System-Scoped** (`system/agent`) - Template/default knowledge shared across all tenants
-
-The server returns the **first match found**, making knowledge progressively more specific.
-
-### How It Works
+### Runtime configuration
 
 ```csharp
-var knowledge = await agent.Knowledge.GetAsync("greeting");
+var config = await agent.Knowledge.GetAsync("api-config");
+if (config?.Type == "json")
+{
+    var settings = JsonSerializer.Deserialize<ApiSettings>(config.Content);
+}
 ```
-
-### Benefits
-
-✅ **Defaults for all** - System-scoped knowledge provides baseline behavior  
-✅ **Tenant customization** - Each tenant can override with their branding/rules  
-✅ **Instance personalization** - Individual agent runs can be further customized  
-✅ **Efficient storage** - Only store overrides, not duplicate defaults
 
 ## Caching
 
-Knowledge reads are **cached** for better performance. The cache is invalidated automatically when you update or delete knowledge.
-
-Cache duration is configurable via `XiansOptions.Cache.Knowledge.TtlMinutes`:
+Knowledge reads are cached and the cache is invalidated automatically on update/delete. Configure the TTL if needed:
 
 ```csharp
 var platform = await XiansPlatform.InitializeAsync(new XiansOptions
@@ -148,73 +110,12 @@ var platform = await XiansPlatform.InitializeAsync(new XiansOptions
     ApiKey = yourApiKey,
     Cache = new CacheOptions
     {
-        Knowledge = new CacheAspectOptions
-        {
-            Enabled = true,
-            TtlMinutes = 10   // Default: 10 minutes
-        }
+        Knowledge = new CacheAspectOptions { Enabled = true, TtlMinutes = 10 } // default 10
     }
 });
 ```
 
-## Agent Isolation
+## See Also
 
-Each agent's knowledge is **completely isolated**:
-
-```csharp
-// Sales agent retrieves its knowledge
-var salesPricing = await salesAgent.Knowledge.GetAsync("pricing");
-
-// Support agent cannot see Sales agent's knowledge
-var leaked = await supportAgent.Knowledge.GetAsync("pricing");
-// Returns null - agents are isolated by tenant and name
-```
-
-Even if two agents use the **same knowledge name**, they maintain separate copies. Perfect for multi-tenant SaaS applications.
-
-## Common Usage Patterns
-
-### Retrieving System Instructions
-
-```csharp
-// In your message handler, retrieve system instructions
-conversationalWorkflow.OnUserChatMessage(async (context) =>
-{
-    var agent = XiansContext.GetAgent("CustomerSupportAgent");
-    var systemInstructions = await agent.Knowledge.GetAsync("system-instructions");
-    
-    // Build your LLM messages with the retrieved instructions
-    var messages = new List<ChatMessage>
-    {
-        new SystemMessage(systemInstructions?.Content ?? "Default instructions"),
-        new UserMessage(context.Message.Text)
-    };
-    
-    var response = await llm.GetCompletionAsync(messages);
-    await context.ReplyAsync(response);
-});
-```
-
-### Loading Configuration
-
-```csharp
-// Retrieve configuration at runtime
-var config = await agent.Knowledge.GetAsync("api-config");
-if (config != null && config.Type == "json")
-{
-    var settings = JsonSerializer.Deserialize<ApiSettings>(config.Content);
-    // Use settings...
-}
-```
-
-### Accessing Product Catalogs
-
-```csharp
-// Retrieve product information
-var catalog = await agent.Knowledge.GetAsync("product-catalog");
-if (catalog != null)
-{
-    // Use catalog content in your agent logic
-    Console.WriteLine($"Product catalog: {catalog.Content}");
-}
-```
+- [Multitenancy](multitenancy.md) — how system/tenant knowledge scopes are created
+- [Document DB](document-db.md) — for structured *data* rather than prompts and instructions

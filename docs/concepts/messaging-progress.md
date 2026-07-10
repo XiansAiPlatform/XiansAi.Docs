@@ -1,48 +1,27 @@
 # Message Progress
 
-Between the moment a user sends a message and when the agent responds, you can stream **intermediate progress** to the user. This keeps the UI informed while the agent thinks, searches knowledge, or calls tools.
+## Why Progress Messages?
 
-## Overview
+An agent that thinks, searches knowledge, and calls tools can take many seconds to produce a final reply. A silent UI during that time feels broken. **Progress messages** let you stream intermediate updates — reasoning steps and tool calls — so the user sees the agent working, the same way modern AI chat UIs show "thinking..." indicators.
 
-Use the message context's progress methods inside `OnUserChatMessage` (or similar handlers). Each call sends an intermediate message to the user before the final reply. The frontend can render these as loading steps, thinking indicators, or tool execution logs.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as Agent
 
-## Reasoning Messages
-
-Use `SendReasoningAsync` to stream the agent's thinking or reasoning steps:
-
-```csharp
-conversationalWorkflow.OnUserChatMessage(async (context) =>
-{
-    await context.SendReasoningAsync("Analyzing the user's question to identify the core requirements...");
-    // ... more processing ...
-    await context.SendReasoningAsync("Breaking down the problem into logical steps.");
-    // ...
-    await context.ReplyAsync("Here's my analysis...");
-});
+    U->>A: "Analyze this for me"
+    A-->>U: Reasoning: "Analyzing the question..."
+    A-->>U: Tool: search_knowledge_base(...)
+    A-->>U: Reasoning: "Synthesizing findings..."
+    A->>U: Final reply (ReplyAsync)
 ```
 
-- **Purpose**: Show internal reasoning or planning steps.
-- **Method**: `SendReasoningAsync(object data, string? content = null)` — pass a string or object as `data`; use `content` for optional text.
-- **Display**: Frontends typically show these as "thinking" or "reasoning" indicators.
+Both methods are on the `UserMessageContext` inside message handlers:
 
-## Tool Execution Messages
-
-Use `SendToolExecAsync` to stream tool call steps:
-
-```csharp
-conversationalWorkflow.OnUserChatMessage(async (context) =>
-{
-    await context.SendToolExecAsync("search_knowledge_base(query=\"best practices\")");
-    // ... tool runs ...
-    await context.SendToolExecAsync("format_response(template=\"user_friendly\")");
-    // ...
-    await context.ReplyAsync("Here's the result...");
-});
-```
-
-- **Purpose**: Show which tools are being invoked (e.g., searches, lookups, formatting).
-- **Method**: `SendToolExecAsync(object data, string? content = null)` — pass tool name/args as `data`; use `content` for optional text.
-- **Display**: Frontends typically show these as "tool execution" or "calling..." steps.
+| Method | Shows | Rendered as |
+|--------|-------|-------------|
+| `SendReasoningAsync(data, content?)` | Internal thinking / planning steps | "Thinking" indicators |
+| `SendToolExecAsync(data, content?)` | Tool invocations and their arguments | "Calling..." / tool execution logs |
 
 ## Example
 
@@ -50,15 +29,16 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
     await context.SendReasoningAsync("Analyzing the user's question...");
-    await context.SendToolExecAsync("search_knowledge_base(query=\"...\")");
+    await context.SendToolExecAsync("search_knowledge_base(query=\"best practices\")");
     await context.SendReasoningAsync("Synthesizing findings...");
-    await context.SendToolExecAsync("format_response(...)");
+
     await context.ReplyAsync("Here's my answer.");
 });
 ```
 
-Progress messages are intermediate: they appear while the agent works and before the final `ReplyAsync`. Use them to keep the user informed during longer processing.
+Progress messages are intermediate — they appear before the final `ReplyAsync` and don't replace it. Pass a string or object as `data`; use the optional `content` parameter for accompanying text.
 
 ## Related
 
-- [Replying to User Messages](./messaging-replying.md) — `ReplyAsync`, `SendDataAsync`, and other response methods
+- [Replying to User Messages](messaging-replying.md) — `ReplyAsync`, `SendDataAsync`, and the rest of the response API
+- [Tool & Reasoning Logs in Studio](../studio/tool-reasoning-logs.md) — how these render in the Agent Studio UI

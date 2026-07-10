@@ -1,45 +1,45 @@
 # Human-in-the-Loop Tasks
 
-Human-in-the-Loop (HITL) tasks enable workflows to pause and wait for human decisions. Unlike rigid automation, tasks create a collaborative space where humans and agents work together, each contributing their unique strengths.
+## Why HITL Tasks?
 
-## Overview
+Some decisions shouldn't be automated: approving a $50,000 order, publishing content, issuing a refund. But pausing an automated process for a human is hard to build yourself — you need durable waiting (possibly for days), a UI for the reviewer, timeouts, and a way to resume the workflow with the decision. **HITL tasks** package all of that: a workflow creates a task, a human performs an action on it, and the workflow resumes with the result.
 
-When a workflow needs human input—whether to approve an order, review content, or make a business decision—it creates a task with **custom actions** that fit your domain:
+```mermaid
+sequenceDiagram
+    participant W as Workflow
+    participant T as Task
+    participant H as Human
 
-```csharp
-Actions = ["approve", "reject", "hold"]           // Order processing
-Actions = ["publish", "revise", "reject"]         // Content review  
-Actions = ["ship", "refund", "escalate"]          // Customer service
+    W->>T: StartTaskAsync (title, draft, actions)
+    Note over W: Waits durably — hours, days, weeks
+    H->>T: Reviews and performs action ("approve" + comment)
+    T-->>W: TaskWorkflowResult
+    W->>W: Continue based on the action
 ```
 
-The human performs one of these actions with an optional comment, and the workflow continues based on their choice. It's that simple.
+The actions are **yours to define** — whatever fits the domain:
 
-## Enabling HITL Tasks
+```csharp
+Actions = ["approve", "reject", "hold"]        // Order processing
+Actions = ["publish", "revise", "reject"]      // Content review
+Actions = ["ship", "refund", "escalate"]       // Customer service
+```
 
-Tasks are **opt-in**. Enable them only for agents that need human collaboration by setting `EnableTasks = true` when registering the agent:
+If you don't specify actions, tasks default to `["approve", "reject"]`.
+
+## Enabling Tasks
+
+Tasks are opt-in per agent. Enabling them registers a dedicated `{AgentName}:Task Workflow` when the agent runs, which gives each agent its own isolated, tenant-scoped task queue:
 
 ```csharp
 var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 {
     Name = "OrderProcessor",
-    IsTemplate = false,
-    EnableTasks = true  // Creates OrderProcessor:Task Workflow at RunAllAsync
+    EnableTasks = true
 });
-
-agent.Workflows.DefineCustom<OrderWorkflow>();
-
-await agent.RunAllAsync();
 ```
 
-**Key Points:**
-
-- Each agent gets its own task workflow: `{AgentName}:Task Workflow`
-- Set `EnableTasks = true` only for agents that need human input
-- When `EnableTasks` is `false` or omitted, the Task Workflow is not registered
-
-## Creating Tasks in Workflows
-
-Create tasks with domain-specific actions:
+## Creating a Task and Waiting for the Decision
 
 ```csharp
 var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
@@ -48,168 +48,126 @@ var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
         TaskId = $"order-{orderId}",
         Title = "Review High-Value Order",
         Description = $"Order for ${amount} requires approval",
-        ParticipantId = reviewerUserId, // optional, this is usually inherited from the parent workflow
-        DraftWork = orderDetails,
-        Actions = ["approve", "reject", "request-info"],  // Custom actions
-        Timeout = TimeSpan.FromHours(24)  // Optional: auto-timeout after 24 hours
-    }
-);
+        DraftWork = orderDetails,                          // give the reviewer context
+        Actions = ["approve", "reject", "request-info"],
+        Timeout = TimeSpan.FromHours(24)                   // optional
+    });
 
-// Later, wait for the result
 var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
 
-// Check if task timed out
 if (result.TimedOut)
 {
     await HandleTimeout(result.TaskId);
     return;
 }
 
-// Handle based on the action performed
 switch (result.PerformedAction)
 {
-    case "approve":
-        await ProcessOrder(result.FinalWork);
-        break;
-    case "reject":
-        await CancelOrder(result.Comment);
-        break;
-    case "request-info":
-        await RequestMoreInfo(result.Comment);
-        break;
+    case "approve":      await ProcessOrder(result.FinalWork); break;
+    case "reject":       await CancelOrder(result.Comment); break;
+    case "request-info": await RequestMoreInfo(result.Comment); break;
 }
 ```
 
-!!! tip "Durable Waiting with Temporal"
-    `GetResultAsync()` uses Temporal's durable execution—your workflow can wait days, weeks, or months without tying up resources. It survives restarts and guarantees the workflow resumes exactly where it left off when the human responds.
+!!! tip "Waiting is free"
+    `GetResultAsync()` uses Temporal's durable execution. The workflow can wait for months without consuming resources, survives restarts, and resumes exactly where it left off when the human responds.
 
-**Available Methods:**
+### Creation methods
 
-| Method | Purpose |
-|--------|---------|
-| `CreateAndWaitAsync()` | Create task and block until completion |
-| `StartTaskAsync()` | Create task, return handle immediately |
-| `GetResultAsync()` | Wait for task completion using handle |
-| `CreateAsync()` | Fire-and-forget (no result needed) |
+| Method | Behavior |
+|--------|----------|
+| `StartTaskAsync()` | Create task, return a handle immediately (wait later) |
+| `GetResultAsync(handle)` | Wait durably for completion |
+| `CreateAndWaitAsync()` | Create and block until completion in one call |
+| `CreateAsync()` | Fire-and-forget — no result needed |
 
-## Task Timeouts
+### The result
 
-Tasks can specify an optional timeout to automatically complete after a given duration:
+| Property | Description |
+|----------|-------------|
+| `PerformedAction` | The action the human chose (`null` if timed out) |
+| `Comment` | Optional rationale from the human (`null` if timed out) |
+| `InitialWork` / `FinalWork` | Draft when created vs. when completed — compare to see edits |
+| `TimedOut` / `Completed` | Exactly one is `true`: timeout vs. human action |
+| `CompletedAt` | When the task finished |
 
-```csharp
-var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
-    new TaskWorkflowRequest
-    {
-        Title = "Review Content",
-        Description = "Please review before publishing",
-        Actions = ["publish", "reject", "revise"],
-        Timeout = TimeSpan.FromHours(48)  // Auto-complete after 48 hours
-    }
-);
+## Timeouts
 
-var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
-
-// Check if task timed out
-if (result.TimedOut)
-{
-    // Handle timeout case - PerformedAction and Comment will be null
-    _logger.LogWarning("Task {TaskId} timed out without human action", result.TaskId);
-    await HandleTimeoutLogic();
-}
-else if (result.Completed)
-{
-    // Normal completion - human performed an action
-    await ProcessAction(result.PerformedAction, result.Comment);
-}
-```
-
-**Timeout Behavior:**
-
-- When a timeout occurs, the task completes with `TimedOut = true`
-- `PerformedAction` and `Comment` will be `null` for timed-out tasks
-- `Completed` will be `false` (only `true` when a human performed an action)
-- The workflow can distinguish between timeouts and explicit human actions
-- If no timeout is specified, the task waits indefinitely
-
-**Use Cases:**
-
-- **SLA Enforcement**: Auto-escalate support tickets after 24 hours
-- **Default Actions**: Auto-approve low-risk changes after review period
-- **Workflow Progression**: Prevent workflows from waiting forever
-- **Business Logic**: Implement time-based decision rules
+Why timeouts? Without them a forgotten task blocks a workflow forever. A timeout turns "no answer" into a decision your workflow can act on — escalate, auto-approve, or cancel:
 
 ```csharp
-// Example: Auto-approve after 72 hours if not reviewed
 var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
 
 if (result.TimedOut)
 {
-    // Auto-approve on timeout
+    // Business rule: auto-approve after the review period
     await ApproveOrder("Auto-approved after 72-hour review period");
 }
 else if (result.PerformedAction == "reject")
 {
     await RejectOrder(result.Comment);
 }
-else
-{
-    await ApproveOrder(result.Comment);
-}
 ```
 
-## Linking Tasks to Conversations
+No timeout specified means the task waits indefinitely. Always check `TimedOut` before reading `PerformedAction`.
 
-Connect tasks to conversations using **message hints**:
+## Connecting Tasks to Conversations: The Hint Pattern
+
+Reviewers shouldn't need a separate admin console — they can handle tasks **through chat** with your conversational agent. The link between a task and a conversation is a **message hint**:
+
+```mermaid
+graph LR
+    W[Workflow] -->|1. creates task| T[Task]
+    W -->|2. sends message with<br/>task ID as hint| C[Conversation]
+    A[Conversational agent] -->|3. reads hint,<br/>loads HitlTask| T
+    H[Human] -->|4. decides in chat| A
+    A -->|5. performs action| T
+    T -->|6. workflow resumes| W
+```
 
 ```csharp
-// Send message with task workflow ID as hint
+// Workflow side: notify the user, linking the task via hint
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
     "Supervisor Workflow",
     userId,
     "I found a high-value order. Please review it.",
     scope: orderId,
-    hint: taskHandle.Id  // Links task to this conversation
-);
+    hint: taskHandle.Id);
 ```
 
-The hint makes the task available to conversational agents, enabling natural task management through chat.
-
-## Interacting with Tasks via Agents
-
-Conversational agents retrieve and manage tasks using `HitlTask`:
-
 ```csharp
-// In an agent tool
+// Agent side: reconstruct the task from the hint and act on it
 var taskWorkflowId = await context.GetLastHintAsync();
 var task = await HitlTask.FromWorkflowIdAsync(taskWorkflowId);
 
-// Check available actions
-var info = await task.GetInfoAsync();
-Console.WriteLine($"Available: {string.Join(", ", info.AvailableActions)}");
-
-// Perform an action with a comment
+var info = await task.GetInfoAsync();          // title, status, available actions, draft
 await task.PerformActionAsync("approve", "Verified by support team");
 
-// Or use convenience methods
+// Convenience shortcuts
 await task.ApproveAsync("Looks good!");
 await task.RejectAsync("Missing required documentation");
 ```
 
-**HitlTask Methods:**
+`HitlTask` also supports `UpdateDraftAsync(draft)` / `GetDraftAsync()` for collaboratively editing the work item, and works outside workflows too (webhooks, admin tools).
 
-| Method | Description |
-|--------|-------------|
-| `GetInfoAsync()` | Get task details, available actions, status |
-| `PerformActionAsync(action, comment)` | Perform any available action |
-| `ApproveAsync(comment)` | Shortcut for "approve" action |
-| `RejectAsync(comment)` | Shortcut for "reject" action |
-| `UpdateDraftAsync(draft)` | Update work in progress |
-| `GetDraftAsync()` | Get current draft |
-| `GetAvailableActionsAsync()` | Get actions for this task |
+### Exposing tasks as AI tools
 
-## Complete Example: Order Processing
+Wrap `HitlTask` calls in function tools so the LLM can guide humans through decisions conversationally:
 
-Here's how it all comes together:
+```csharp
+[Description("Perform an action on the current task")]
+public async Task<string> PerformAction(
+    [Description("The action to perform (e.g., approve, reject)")] string action,
+    [Description("Optional comment for the action")] string? comment = null)
+{
+    var taskId = await _context.GetLastHintAsync();
+    var task = await HitlTask.FromWorkflowIdAsync(taskId);
+    await task.PerformActionAsync(action, comment);
+    return $"Task action '{action}' performed successfully.";
+}
+```
+
+## Complete Example
 
 ```csharp
 [Workflow("OrderProcessor:Order Workflow")]
@@ -218,36 +176,29 @@ public class OrderWorkflow
     [WorkflowRun]
     public async Task<OrderResult> RunAsync(string customerId, decimal amount)
     {
-        // Auto-approve small orders
+        // Auto-approve small orders — only involve humans when it matters
         if (amount <= 100)
-        {
             return new OrderResult { Status = "Auto-Approved", Amount = amount };
-        }
 
-        // High-value orders need human review
         var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
             new TaskWorkflowRequest
             {
                 Title = "Review Order",
                 Description = $"Customer {customerId} - ${amount}",
                 Actions = ["approve", "reject", "hold", "escalate"],
-                Timeout = TimeSpan.FromHours(48)  // Auto-timeout after 48 hours
-            }
-        );
+                Timeout = TimeSpan.FromHours(48)
+            });
 
-        var result = await taskHandle.GetResultAsync(taskHandle);
+        var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
 
-        // Handle timeout case
         if (result.TimedOut)
-        {
             return new OrderResult { Status = "Escalated-Timeout", Amount = amount };
-        }
 
         return result.PerformedAction switch
         {
-            "approve" => ProcessApprovedOrder(result.Comment),
-            "reject" => CancelOrder(result.Comment),
-            "hold" => PutOnHold(result.Comment),
+            "approve"  => ProcessApprovedOrder(result.Comment),
+            "reject"   => CancelOrder(result.Comment),
+            "hold"     => PutOnHold(result.Comment),
             "escalate" => EscalateToManager(result.Comment),
             _ => throw new InvalidOperationException($"Unknown action: {result.PerformedAction}")
         };
@@ -255,165 +206,26 @@ public class OrderWorkflow
 }
 ```
 
-**TaskWorkflowResult Properties:**
+## Task Lifecycle: Surviving the Parent
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `TaskId` | `string` | The unique identifier for the task |
-| `InitialWork` | `string?` | The original draft when the task was created |
-| `FinalWork` | `string?` | The final draft when the task completed (may have been updated) |
-| `PerformedAction` | `string?` | The action that was performed (e.g., "approve", "reject"). `null` if timed out |
-| `Comment` | `string?` | Optional comment provided with the action. `null` if timed out |
-| `CompletedAt` | `DateTime` | When the task was completed (either by action or timeout) |
-| `TimedOut` | `bool` | `true` if the task timed out, `false` if completed by human action |
-| `Completed` | `bool` | `true` if a human performed an action, `false` if timed out |
-
-You can compare `InitialWork` and `FinalWork` to see if the draft was modified during the task lifecycle. Use `TimedOut` to distinguish between timeout and explicit human completion.
-
-## Agent Tools for Task Management
-
-Expose tasks through AI function tools:
-
-```csharp
-[Description("Get information about the current task including available actions")]
-public async Task<string> GetTaskInfo()
-{
-    var taskId = await _context.GetLastHintAsync();
-    var task = await HitlTask.FromWorkflowIdAsync(taskId);
-    var info = await task.GetInfoAsync();
-    
-    var actions = string.Join(", ", info.AvailableActions ?? []);
-    var status = info.IsCompleted 
-        ? $"Completed ({info.PerformedAction})" 
-        : "Pending";
-    
-    return $"Task: {info.Title}\n" +
-           $"Status: {status}\n" +
-           $"Available Actions: {actions}\n" +
-           $"Draft: {info.CurrentDraft ?? "None"}";
-}
-
-[Description("Perform an action on the current task")]
-public async Task<string> PerformAction(
-    [Description("The action to perform (e.g., approve, reject)")] string action,
-    [Description("Optional comment for the action")] string? comment = null)
-{
-    var taskId = await _context.GetLastHintAsync();
-    var task = await HitlTask.FromWorkflowIdAsync(taskId);
-    
-    await task.PerformActionAsync(action, comment);
-    
-    return $"Task action '{action}' performed successfully.";
-}
-```
-
-The AI agent can now naturally guide humans through task decisions in conversation.
-
-## The Hint Pattern
-
-The **hint pattern** connects long-running workflows with conversational agents:
-
-1. **Workflow** creates a task → sends message with task ID as hint
-2. **Hint** scopes the task to the conversation context
-3. **Agent** retrieves hint → reconstructs `HitlTask` from workflow ID
-4. **Human** decides through natural conversation
-5. **Agent** performs action via tools
-6. **Workflow** resumes instantly
-
-This creates seamless human-agent collaboration without exposing workflow complexity to users.
-
-## Direct Task Operations
-
-Manage tasks outside workflows (e.g., webhooks, admin tools):
-
-```csharp
-var task = await HitlTask.FromWorkflowIdAsync(workflowId);
-
-var info = await task.GetInfoAsync();
-await task.UpdateDraftAsync(updatedContent);
-await task.PerformActionAsync("approve", "Verified externally");
-```
-
-## Default Actions
-
-If you don't specify actions, tasks default to `["approve", "reject"]`. Timeout is optional and tasks wait indefinitely if not specified:
-
-```csharp
-new TaskWorkflowRequest
-{
-    Title = "Simple Approval",
-    // Actions defaults to ["approve", "reject"]
-    // Timeout is null by default (waits indefinitely)
-}
-```
-
-## Task Lifecycle Control
-
-Tasks can be configured to survive beyond their parent workflow using the `SurviveParentClose` attribute:
+By default, a task is abandoned if its parent workflow terminates. Set `SurviveParentClose = true` when the decision must be recorded regardless — independent approvals, audit trails, decoupled processes:
 
 ```csharp
 new TaskWorkflowRequest
 {
     Title = "Long-Running Approval",
-    Description = "This task will continue even if parent workflow terminates",
     Actions = ["approve", "reject"],
-    SurviveParentClose = true  // Task survives parent termination (defaults to false)
+    SurviveParentClose = true
 }
 ```
 
-**Behavior:**
-
-- **Default (`false`)**: When the parent workflow terminates, the task is automatically abandoned
-- **Enabled (`true`)**: The task continues to exist and wait for human action even after the parent workflow closes
-
-**Use Cases:**
-
-- **Independent Approvals**: Tasks that should complete regardless of the requesting workflow's state
-- **Audit Trails**: Ensure human decisions are recorded even if the initiating process fails
-- **Decoupled Processes**: When task completion doesn't need to update the parent workflow
-
-!!! warning "Important Consideration"
-    When `SurviveParentClose = true`, the parent workflow cannot retrieve the task result via `GetResultAsync()` since it may have already terminated. Design your workflow accordingly, such as having the task trigger a separate callback workflow upon completion.
+!!! warning
+    With `SurviveParentClose = true`, the parent may be gone before the task completes, so it can't call `GetResultAsync()`. Have the task trigger a callback workflow on completion instead.
 
 ## Best Practices
 
-**Design**
-
-- Use domain-specific actions that match your business process
-- Keep action names simple and clear (`ship`, `refund`, not `initiateShippingProcess`)
-- Provide meaningful titles and descriptions
-- Set appropriate timeouts based on SLAs and business requirements
-
-**Implementation**
-
-- Enable tasks only for agents that need human input
-- Always use hints to link tasks to conversations
-- Handle all possible actions in your workflow logic
-- Always check `result.TimedOut` before processing `PerformedAction`
-- Consider timeout behavior as part of your business logic, not just error handling
-
-**User Experience**
-
-- Pre-populate draft work to give context
-- Use comments to capture rationale for decisions
-- Configure agents to proactively notify users of pending tasks
-- Send reminders before tasks timeout (using scheduled workflows)
-
-## Architecture
-
-When `EnableTasks = true` is set on agent registration, Xians creates an agent-specific workflow at `RunAllAsync()`:
-
-```
-{AgentName}:Task Workflow
-```
-
-This ensures:
-
-- **Isolation** - Each agent has its own task queue
-- **Independent scaling** - Task workers scale per agent
-- **Multi-tenancy** - Tasks are automatically tenant-scoped
-- **No conflicts** - Multiple agents can use tasks simultaneously
-
----
-
-HITL tasks transform rigid automation into flexible collaboration, letting humans and agents each do what they do best.
+- **Domain-specific actions** — `ship`, `refund`, not `initiateShippingProcess`. Handle every action in your workflow logic.
+- **Give reviewers context** — pre-populate `DraftWork` and write meaningful titles/descriptions.
+- **Treat timeouts as business logic** — decide what "no answer" means (escalate? auto-approve?), and check `TimedOut` first.
+- **Always link via hints** so users can manage tasks in conversation.
+- **Remind before timeout** — a [scheduled workflow](scheduling.md) can nudge reviewers on pending tasks.

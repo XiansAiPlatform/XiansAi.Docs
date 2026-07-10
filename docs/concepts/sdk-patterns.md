@@ -1,58 +1,59 @@
 # SDK Access Patterns
 
-The Xians SDK is designed around **explicit ownership**—every operation is accessed through its logical owner. No confusion, no guessing. Just four simple access patterns that cover everything.
+## Why This Matters
+
+A common frustration with large SDKs is not knowing *where* to find an operation — is replying to a message on the agent? The workflow? Some global helper? Xians avoids this by following one rule: **every operation lives on its logical owner**.
+
+- A *reply* belongs to the **message** being handled.
+- *Knowledge* and *documents* belong to the **agent**.
+- *Schedules* belong to the **workflow**.
+- Anything that crosses these boundaries (messaging any user, starting workflows) lives on the global **`XiansContext`**.
+
+Once you internalize this rule, you can guess where any API lives without reading docs.
+
+## Choosing the Right Pattern
+
+```mermaid
+graph TD
+    Q{What are you doing?}
+    Q -->|Responding to the message<br/>you're handling| M["context.ReplyAsync(...)<br/><b>UserMessageContext</b>"]
+    Q -->|Reading/writing agent data<br/>knowledge, documents| A["XiansContext.CurrentAgent<br/><b>Agent</b>"]
+    Q -->|Managing this workflow<br/>schedules, identity| W["XiansContext.CurrentWorkflow<br/><b>Workflow</b>"]
+    Q -->|Reaching outside<br/>other users, workflows| X["XiansContext.Messaging / Workflows<br/><b>XiansContext</b>"]
+```
 
 ## Quick Reference
 
-| Access Pattern | What It's For | Available In | Common Examples |
-|----------------|---------------|--------------|-----------------|
-| **`UserMessageContext`** | Message-specific operations | Message handlers only | `context.ReplyAsync()`<br>`context.GetChatHistoryAsync()` |
-| **`CurrentAgent`** | Agent-level data | All workflows | `XiansContext.CurrentAgent.Knowledge.SearchAsync()`<br>`XiansContext.CurrentAgent.Documents.SaveAsync()` |
-| **`CurrentWorkflow`** | Workflow-level operations | All workflows | `XiansContext.CurrentWorkflow.Schedules.Create()`<br>`XiansContext.CurrentWorkflow.WorkflowId` |
-| **`XiansContext`** | Cross-cutting orchestration | All workflows | `XiansContext.Messaging.SendChatAsync()`<br>`XiansContext.A2A.SendChatAsync()`<br>`XiansContext.Workflows.StartAsync<T>()`<br>`XiansContext.GetAgent()` / `GetWorkflow()` |
+| Pattern | Owns | Available In | Examples |
+|---------|------|--------------|----------|
+| `UserMessageContext` | The message being handled | Message handlers only | `context.ReplyAsync()`, `context.GetChatHistoryAsync()` |
+| `XiansContext.CurrentAgent` | Agent-level data | All workflows | `Knowledge.SearchAsync()`, `Documents.SaveAsync()` |
+| `XiansContext.CurrentWorkflow` | Workflow-level operations | All workflows | `Schedules.Create()`, `WorkflowId` |
+| `XiansContext` (static) | Cross-cutting orchestration | All workflows | `Messaging.SendChatAsync()`, `Workflows.StartAsync<T>()` |
 
-## The Four Access Patterns
+## The Four Patterns in Code
 
-### 1. **UserMessageContext** → For Message-Specific Operations
+### 1. UserMessageContext — respond to *this* message
 
-When handling user messages in built-in workflows, use the `UserMessageContext` parameter for message-specific operations.
+Passed into every message handler. Use it for anything tied to the current conversation.
 
 ```csharp
-conversationalWorkflow.OnUserChatMessage(async (context) => 
+conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
-    // Message metadata
     var userId = context.Message.ParticipantId;
-    var threadId = context.Message.ThreadId;
-    
-    // Reply to THIS message
-    await context.ReplyAsync("Response");
-    
-    // Get THIS conversation's history
-    var history = await context.GetChatHistoryAsync();
-    
-    // A2A communication
-    var targetWorkflow = XiansContext.GetWorkflow("Agent:Workflow");
-    var response = await XiansContext.A2A.SendChatAsync(
-        targetWorkflow, 
-        new A2AMessage { Text = "message" }
-    );
+
+    await context.ReplyAsync("Response");                 // reply to THIS message
+    var history = await context.GetChatHistoryAsync();    // THIS conversation's history
 });
 ```
 
-**When:** Inside built-in workflow message handlers only  
-**Use for:** Replying, conversation history, message metadata, contextual A2A
+### 2. CurrentAgent — the agent's data
 
----
-
-### 2. **CurrentAgent** → For Agent-Level Data
-
-Access knowledge and documents—data that belongs to your agent across all workflows.
+Knowledge and documents belong to the agent as a whole, shared across all its workflows.
 
 ```csharp
-// Search agent's knowledge base
 var results = await XiansContext.CurrentAgent.Knowledge.SearchAsync("query");
 
-// Store agent-wide documents
 await XiansContext.CurrentAgent.Documents.SaveAsync(new Document
 {
     Type = "user-preferences",
@@ -61,74 +62,35 @@ await XiansContext.CurrentAgent.Documents.SaveAsync(new Document
 });
 ```
 
-**When:** Any workflow (built-in or custom)  
-**Use for:** Knowledge search, document storage, agent metadata
+### 3. CurrentWorkflow — this workflow's operations
 
----
-
-### 3. **CurrentWorkflow** → For Workflow-Level Operations
-
-Access schedules and workflow-specific information.
+Schedules and identity are per-workflow concerns.
 
 ```csharp
-// Create a schedule for THIS workflow
 await XiansContext.CurrentWorkflow.Schedules!
     .Create("daily-report")
     .Daily(hour: 9, minute: 0)
-    .WithInput("user-123")
     .StartAsync();
 
-// Get workflow metadata
 var workflowId = XiansContext.CurrentWorkflow.WorkflowId;
-var taskQueue = XiansContext.CurrentWorkflow.TaskQueue;
 ```
 
-**When:** Any workflow (built-in or custom)  
-**Use for:** Schedules, workflow identity, task queue info
+### 4. XiansContext — reaching beyond your boundary
 
----
-
-### 4. **XiansContext** → For Cross-Cutting Operations
-
-Access orchestration features—messaging, sub-workflows, and agent/workflow discovery.
+Anything that touches *other* users or workflows.
 
 ```csharp
+// Message any user (not just the one you're replying to)
+await XiansContext.Messaging.SendChatAsync(
+    participantId: "user-456",
+    text: "Your order shipped!");
+
 // Start a sub-workflow
 await XiansContext.Workflows.StartAsync<NotificationWorkflow>(
     idPostfix: "notify-123",
-    args: new object[] { "user-123", "message" }
-);
-
-// Send proactive message to any user
-await XiansContext.Messaging.SendChatAsync(
-    participantId: "user-456",
-    text: "Your order shipped!"
-);
-
-// A2A communication
-var analyzer = XiansContext.GetWorkflow("Analyzer:Process");
-var result = await XiansContext.A2A.SendChatAsync(
-    analyzer,
-    new A2AMessage { Text = "Analyze this content" }
-);
-
-// Discover agents and workflows
-var allAgents = XiansContext.GetAllAgents();
-var tenant = XiansContext.TenantId;
+    args: new object[] { "user-123", "message" });
 ```
 
-**When:** Any workflow (built-in or custom)  
-**Use for:** Proactive messaging, A2A, sub-workflows, agent/workflow registry
+## Rule of Thumb
 
----
-
-## Design Philosophy
-
-**Explicit ownership.** Every SDK feature is accessed through its logical owner:
-
-- **UserMessageContext** owns reply operations
-- **Agent** owns knowledge and documents
-- **Workflow** owns schedules
-- **XiansContext** orchestrates everything else
-
-
+> If the operation is about the **message**, use the handler's `context`. If it's about **your agent's data**, use `CurrentAgent`. If it's about **this workflow**, use `CurrentWorkflow`. Everything else is `XiansContext`.

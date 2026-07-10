@@ -1,26 +1,17 @@
-# Logging in Xians
+# Logging
 
-## Overview
+## Why a Special Logging Setup?
 
-Xians provides a context-aware logging system that automatically captures workflow metadata and routes logs to the console and/or the Xians server. Use the standard **ILogger** interface from `Microsoft.Extensions.Logging` for all logging.
+Two things make agent logging different from ordinary app logging. First, **workflow code runs in Temporal's deterministic environment**, so it needs Temporal's logger rather than a regular one. Second, logs are most useful when they're **attached to the right workflow, tenant, and user** — context you'd otherwise have to thread through every log call. Xians handles both: use the right logger for the context, and every uploaded log automatically carries the full workflow metadata.
 
----
+| Where your code runs | Logger to use | Why |
+|----------------------|---------------|-----|
+| **Workflows** | Temporal's `Workflow.Logger` | Replay-safe in the deterministic environment; Xians uploads these to the server |
+| **Activities** (and everywhere else) | `ILogger` from `XiansLogger.GetLogger<T>()` | Standard `Microsoft.Extensions.Logging` with context capture |
 
-## Logging in Workflows and Activities
-
-| Context | Logger | How to Obtain |
-|---------|--------|---------------|
-| **Workflows** | Temporal's `Workflow.Logger` | Built-in; Xians uploads these logs to the server |
-| **Activities** | `ILogger` via XiansLogger | `XiansLogger.GetLogger<T>()` or `XiansLogger.ForILogger(Type)` |
-
-### Workflow Logging: Workflow.Logger
-
-Workflows run in Temporal's deterministic environment. Use **Temporal's built-in `Workflow.Logger`**—Xians captures these logs and uploads them to the Xians server.
+## Logging in Workflows
 
 ```csharp
-using Temporalio.Exceptions;
-using Temporalio.Workflows;
-
 [Workflow(Constants.AGENT_NAME + ":News Search Workflow")]
 public class NewsSearchWf
 {
@@ -33,36 +24,28 @@ public class NewsSearchWf
                 (NewsSearchActivities a) => a.FetchGenericNewsSourcesAsync(),
                 new ActivityOptions { StartToCloseTimeout = TimeSpan.FromMinutes(5) });
 
-            foreach (var source in sources)
-            {
-                Workflow.Logger.LogDebug($"Source {source.Name} has companies with stale scans");
-            }
+            Workflow.Logger.LogDebug("Fetched {Count} sources", sources.Count);
             return "News search completed.";
         }
         catch (Exception ex)
         {
-            Workflow.Logger.LogError($"News search workflow failed: {ex.Message}", ex);
+            Workflow.Logger.LogError(ex, "News search workflow failed");
             throw new ApplicationFailureException($"News search workflow failed: {ex.Message}");
         }
     }
 }
 ```
 
-### Activity Logging: ILogger via XiansLogger
-
-In activities, obtain an **ILogger** using `XiansLogger.GetLogger<T>()` or `XiansLogger.ForILogger(Type)`:
+## Logging in Activities
 
 ```csharp
 using Microsoft.Extensions.Logging;
-using Temporalio.Activities;
 using Xians.Lib.Logging;
 
 public class NewsSearchActivities
 {
-    private readonly IDataContext _data;
     private static readonly ILogger _logger = XiansLogger.GetLogger<NewsSearchActivities>();
-
-    public NewsSearchActivities(IDataContext data) => _data = data;
+    // or: XiansLogger.ForILogger(typeof(NewsSearchActivities));
 
     [Activity]
     public async Task<IReadOnlyList<NewsSourceItem>> FetchGenericNewsSourcesAsync()
@@ -71,37 +54,18 @@ public class NewsSearchActivities
         _logger.LogDebug("Fetched {Count} generic news sources", sources.Count);
         return sources.Select(s => new NewsSourceItem(s.Id, s.Url, s.Name)).ToList();
     }
-
-    [Activity]
-    public async Task<int> ValidateAndSaveArticlesAsync(SearchItem item, Guid newsSourceId, Guid peerCompanyId)
-    {
-        if (string.IsNullOrWhiteSpace(item.Link))
-        {
-            _logger.LogWarning("Skipping item with no link: {Title}", item.Title);
-            return 0;
-        }
-        _logger.LogDebug("Saved article for {Link}", item.Link);
-        return 1;
-    }
 }
 ```
 
-**Using runtime type:**
+All standard `ILogger` methods work (`LogTrace` through `LogCritical`), including structured message templates.
 
-```csharp
-private static readonly ILogger _logger = XiansLogger.ForILogger(typeof(NewsSearchActivities));
-```
+## Context Comes Free
 
-All standard `ILogger` extension methods are available: `LogTrace`, `LogDebug`, `LogInformation`, `LogWarning`, `LogError`, `LogCritical`, plus structured logging with message templates.
-
-### Automatic Context Capture
-
-Both workflow and activity logs **automatically** include workflow metadata when uploaded to the server:
+Logs uploaded to the server automatically include the workflow metadata — no manual enrichment:
 
 ```json
 {
   "workflow_id": "tenant-abc:Market Analysts:News Search Workflow:user-123",
-  "workflow_run_id": "def456-789-abc",
   "workflow_type": "Market Analysts:News Search Workflow",
   "agent": "Market Analysts",
   "participant_id": "user-123",
@@ -111,173 +75,58 @@ Both workflow and activity logs **automatically** include workflow metadata when
 }
 ```
 
-**You don't need to add this context manually!**
+## Where Logs Go: Console vs Server
 
----
+Two independent thresholds decide each log's destinations:
 
-## Server Upload Configuration
-
-Logs from both workflows and activities can be sent to the Xians server. Server upload is **disabled by default**; you must set `ServerLogLevel` during platform initialization.
-
-### Console vs Server Log Levels
-
-Two independent thresholds control where logs go:
-
-| Configuration | Where Logs Go | Default |
-|---------------|---------------|---------|
-| **ConsoleLogLevel** | Terminal/console | `Debug` |
-| **ServerLogLevel** | Xians server | Disabled |
-
-With `ConsoleLogLevel = LogLevel.Debug` and `ServerLogLevel = LogLevel.Information`:
-
-- **Console** shows: Debug, Information, Warning, Error, Critical
-- **Server** receives: Information, Warning, Error, Critical
-
-```text
-Your Code                Console              Server
-   ├─ LogTrace        ────┼────────────────────┼──── (Below both)
-   ├─ LogDebug        ────┼──> Displayed       │     (Console only)
-   ├─ LogInformation  ────┼──> Displayed   ────┼──> Uploaded
-   ├─ LogWarning      ────┼──> Displayed   ────┼──> Uploaded
-   ├─ LogError        ────┼──> Displayed   ────┼──> Uploaded
-   └─ LogCritical     ────┼──> Displayed   ────┼──> Uploaded
-```
-
-### Enable Server Upload
-
-Set `ServerLogLevel` in code or via environment variables:
+| Setting | Destination | Default |
+|---------|-------------|---------|
+| `ConsoleLogLevel` | Terminal | `Debug` |
+| `ServerLogLevel` | Xians server | **Disabled** — you must opt in |
 
 ```csharp
-// Program.cs or startup
 var xiansPlatform = await XiansPlatform.InitializeAsync(new()
 {
     ServerUrl = config.XiansServerUrl,
     ApiKey = config.XiansAgentCertificate,
-    ServerLogLevel = LogLevel.Information,  // Enables upload; Information and above sent
-    ConsoleLogLevel = LogLevel.Debug
+    ConsoleLogLevel = LogLevel.Debug,
+    ServerLogLevel = LogLevel.Information   // enables server upload
 });
 ```
 
-Or via environment variables:
+Or via environment variables (`CONSOLE_LOG_LEVEL=DEBUG`, `SERVER_LOG_LEVEL=INFO`). Code configuration wins over environment variables.
 
-```bash
-CONSOLE_LOG_LEVEL=DEBUG
-SERVER_LOG_LEVEL=INFO
-```
+With the example above: the console shows Debug and up, while the server receives Information and up.
 
-**Priority:** Code configuration > Environment variables > Defaults
+## How Server Upload Works
 
-### Log Levels Reference
+Logs are queued in memory and uploaded in batches — this keeps logging cheap and resilient, at the cost of a small delay:
 
-| Level | Value | Example |
-|-------|-------|---------|
-| `Trace` | 0 | "Entering method X with param Y" |
-| `Debug` | 1 | "Fetched 4 generic news sources" |
-| `Information` | 2 | "News search completed" |
-| `Warning` | 3 | "Skipping item with no link" |
-| `Error` | 4 | "Workflow failed: connection timeout" |
-| `Critical` | 5 | "Database connection lost" |
+| Behavior | Detail |
+|----------|--------|
+| Batch size / interval | 100 logs / every 60 seconds (defaults) |
+| Visibility delay | Logs may take **up to 60 seconds** to appear in the dashboard |
+| Failures | Failed uploads are automatically requeued |
+| Shutdown | Pending logs are flushed on exit |
+| Retention | Server logs are deleted after **15 days** by default (MongoDB TTL) — don't rely on them for long-term audit trails |
 
----
-
-## How Logs Are Uploaded to Server
-
-### Batch Upload Mechanism
-
-Logs are **not** uploaded immediately. Instead, they are queued and uploaded in periodic batches:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **Batch Size** | 100 logs | Maximum logs per upload batch |
-| **Upload Interval** | 60 seconds | Time between batch uploads |
-| **Queue Type** | In-memory | Concurrent queue (thread-safe) |
-| **Retry** | Automatic | Failed uploads are requeued |
-| **Shutdown** | Flush all | Pending logs uploaded on exit |
-
-### What This Means for You
-
-**⏱️ Delay:** Logs may take **up to 60 seconds** to appear on the server dashboard.
-
-**🔄 Reliability:**
-
-- Failed uploads are automatically retried
-- Logs are flushed on application shutdown
-- Network issues won't cause immediate log loss
-
-**📊 Performance:**
-
-- Minimal impact on application performance
-- Batching reduces server API calls
-- Asynchronous upload doesn't block your code
-
-### Configuration (Advanced)
-
-You can customize batch settings programmatically:
+Tune batching when needed — smaller/faster for near-real-time visibility, larger/slower for high-volume systems:
 
 ```csharp
-using Xians.Lib.Logging;
-
-// Customize batch upload settings (optional)
 LoggingServices.ConfigureBatchSettings(
-    batchSize: 50,              // Smaller batches
-    processingIntervalMs: 30000 // Upload every 30 seconds
-);
+    batchSize: 50,
+    processingIntervalMs: 30000);
 ```
 
-**When to customize:**
+## Troubleshooting: "My logs aren't on the server"
 
-- **Smaller batches + frequent uploads** → Critical systems needing near real-time logs
-- **Larger batches + less frequent** → High-volume systems to reduce API calls
-
----
-
-## Log Retention on Server
-
-### Default Retention Period
-
-Server logs are automatically deleted after **15 days** by default due to MongoDB TTL (Time To Live) indexing.
-
-**Important Considerations:**
-
-1. **Logs are temporary** - Don't rely on server logs for long-term audit trails
-2. **Adjust if needed** - Contact your server administrator to modify retention
-3. **Storage costs** - Longer retention = more storage required
-4. **Compliance** - Ensure retention meets your regulatory requirements
-
-### How to Change Retention
-
-**Consult with your server administrator** before making changes.
-
----
-
-## Troubleshooting
-
-### "My logs aren't appearing on the server"
-
-**Most common cause:** Server logging is disabled by default.
-
-**Solution:** Set `ServerLogLevel` to enable server upload:
+The most common cause is that server upload is **disabled by default** — set `ServerLogLevel` as shown above. To verify it's working:
 
 ```csharp
-var xiansPlatform = await XiansPlatform.InitializeAsync(new ()
-{
-    ServerUrl = serverUrl,
-    ApiKey = xiansApiKey,
-    ServerLogLevel = LogLevel.Warning  // ✅ This enables server logging
-});
-```
-
-### Verification
-
-**Confirm server logging is enabled:**
-
-```csharp
-// Log a test message at server threshold level
 _logger.LogWarning("Test message - server logging verification");
 
-// Check logging service status
 var (queuedCount, retryingCount) = LoggingServices.GetLoggingStats();
 Console.WriteLine($"Queued logs: {queuedCount}, Retrying: {retryingCount}");
 ```
 
-If `queuedCount > 0`, server logging is working and logs are queued for upload.
+A `queuedCount > 0` means logs are being captured and queued for upload. Remember the up-to-60-second batch delay before they appear.

@@ -1,47 +1,54 @@
 # Cross-Agent Workflows and Activations
 
-This page covers the advanced patterns involved when a workflow starts, executes, or signals a child workflow that belongs to a **different agent**, and how **activations** propagate across those boundaries.
+## Why This Page Exists
 
-For the core `XiansContext.Workflows` API (fire-and-forget, wait-for-result, and same-agent signaling), see [Workflows](workflows.md).
+In multi-agent systems, one agent's workflow often needs to run another agent's workflow — an invoicing agent delegating to a fraud-detection agent, for example. Routing "just works" (the target agent is derived from the workflow type `"AgentName:WorkflowName"`, so the call reaches the right worker automatically), but **activations don't cross agent boundaries**: the caller's activation belongs to the caller's agent and means nothing to the target agent. This page explains how activation context propagates, how to target a specific activation, and how the SDK protects you from starting workflows nobody is listening for.
 
-## Cross-Agent Sub-Workflows and Activations
+For the core `XiansContext.Workflows` API (start, execute, signal within one agent), see [Workflows](workflows.md).
 
-Child workflows can belong to a **different agent** than the caller. The target agent is always derived from the workflow type (`"AgentName:WorkflowName"`), so task queue routing works across agents automatically—no extra parameters are needed to reach another agent's worker.
+## How Activation Context Propagates
 
-Activations, however, are **agent-specific**. The caller's activation name (`idPostfix`) therefore propagates to child workflows as follows:
+When starting a child workflow, its activation postfix (`idPostfix`) is resolved by these rules:
 
-1. **Explicit `activationName`** — always wins, for both same-agent and cross-agent children. The child's workflow ID, memo, and search attributes all carry this activation.
-2. **Same-agent child (no `activationName`)** — the caller's `idPostfix` is inherited, preserving the activation context.
-3. **Cross-agent child (no `activationName`)** — the caller's `idPostfix` is **not** inherited. The caller's activation does not exist for the target agent, so the child gets no activation context.
+| Scenario | Child's activation context |
+|----------|---------------------------|
+| Explicit `activationName` passed | That activation — always wins (same-agent or cross-agent); carried in workflow ID, memo, and search attributes |
+| Same-agent child, no `activationName` | Inherits the caller's `idPostfix` |
+| Cross-agent child, no `activationName` | **None** — the caller's activation doesn't exist for the target agent |
 
 ```csharp
 // Cross-agent child under a specific activation of the target agent
 var result = await XiansContext.Workflows.ExecuteAsync<FraudDetectionWorkflow, string>(
     new object[] { invoiceId },
     uniqueKey: invoiceId,
-    activationName: "fraud-detection-eu"
-);
+    activationName: "fraud-detection-eu");
 
 // Cross-agent child with no activation context (default)
 var result2 = await XiansContext.Workflows.ExecuteAsync<FraudDetectionWorkflow, string>(
     new object[] { invoiceId },
-    uniqueKey: invoiceId
-);
+    uniqueKey: invoiceId);
 ```
 
-**Important:** When starting cross-agent children without an `activationName`, always provide a `uniqueKey` (e.g. the entity ID being processed). Since no activation postfix is added to the workflow ID, concurrent parents would otherwise produce the same child workflow ID.
+!!! warning "Always pass a `uniqueKey` for cross-agent children without an activation"
+    With no activation postfix in the workflow ID, two concurrent parents would generate the **same child workflow ID** and collide. Use the entity being processed (invoice ID, order ID, ...) as the `uniqueKey`.
 
-The system-scoped flag used for task queue routing is resolved from the **target agent** when it is registered in the same process, and inherited from the parent workflow otherwise.
+The system-scoped flag used for task queue routing is resolved from the target agent when it's registered in the same process, and inherited from the parent workflow otherwise.
 
 ## Activation Validation
 
-When an explicit `activationName` is passed to `StartAsync`, `ExecuteAsync`, or `SignalWithStartAsync`, the SDK validates against the server that the activation exists and is active for the target agent in the acting tenant **before** starting the workflow. This prevents orphaned Temporal workflows sitting on a task queue no worker listens on (e.g. when the agent is not activated in that tenant). `SignalAsync` performs no such validation—it never starts a workflow, so a missing activation simply means the target workflow is not running and the signal fails with Temporal's own not-found error.
+### Why validate?
 
-- A failed validation throws a typed exception: `ActivationNotFoundException` (activation does not exist) or `ActivationDeactivatedException` (exists but deactivated). Both derive from `InvalidOperationException` and expose `AgentName`, `ActivationName` (and `TenantId` for not-found).
-- The same typed exceptions are thrown in **all contexts**. Inside a workflow the check runs through a system activity (workflows cannot make HTTP calls) that reports the activation status as a value; the SDK converts a negative status into the typed exception, so a plain catch works everywhere. Because the activity completes successfully even for a negative result, Temporal does not log failed-activity warning traces for an expected "not found" outcome.
-- If the exception is **not caught** inside a workflow, the workflow fails (Xians workers register both types as workflow failure exception types) instead of suspending on workflow task retries.
-- For **system-scoped agents**, the activation is validated in the tenant running the action (resolved from the workflow context), not the tenant of the agent's certificate.
-- When no HTTP service is available (local mode), the check is skipped.
+If you start a workflow under an activation that doesn't exist (or is deactivated) in the acting tenant, Temporal happily accepts it — and the workflow sits **orphaned on a task queue no worker polls**. To prevent this, when you pass an explicit `activationName` to `StartAsync`, `ExecuteAsync`, or `SignalWithStartAsync`, the SDK checks with the server that the activation exists and is active *before* starting anything.
+
+(`SignalAsync` skips validation — it never starts a workflow, so a missing activation just means the target isn't running and the signal fails with Temporal's normal not-found error.)
+
+### What you get
+
+- **Typed exceptions**: `ActivationNotFoundException` (doesn't exist) or `ActivationDeactivatedException` (exists but deactivated). Both derive from `InvalidOperationException` and expose `AgentName` and `ActivationName` (plus `TenantId` for not-found).
+- **Works everywhere**: inside a workflow the check runs through a system activity (workflows can't make HTTP calls) that returns the status as a value; the SDK converts a negative status into the typed exception. A plain `catch` works in all contexts, and Temporal logs no failed-activity warnings for an expected "not found".
+- **Fail fast if uncaught**: Xians workers register both exception types as workflow failure types, so an uncaught validation error fails the workflow instead of suspending it on retries.
+- **Tenant-aware**: for system-scoped agents, the activation is validated in the tenant running the action, not the tenant of the agent's certificate.
+- **Local mode**: when no HTTP service is available, the check is skipped.
 
 ```csharp
 using Xians.Lib.Agents.Workflows;
@@ -56,88 +63,65 @@ try
 }
 catch (ActivationNotFoundException ex)
 {
-    // Target activation does not exist in this tenant
-    // ex.AgentName, ex.ActivationName, ex.TenantId
+    // Activation doesn't exist in this tenant — ex.AgentName, ex.ActivationName, ex.TenantId
 }
 catch (ActivationDeactivatedException ex)
 {
-    // Target activation exists but is deactivated
+    // Activation exists but is deactivated
 }
 ```
 
 ## Signaling a Workflow Under a Specific Activation
 
-Workflows started with an explicit `activationName` (typically cross-agent) carry that activation in their workflow ID, so the default `SignalAsync` overloads cannot reach them. Use the overloads that take an activation name:
+Workflows started with an explicit `activationName` carry that activation in their workflow ID, so the default `SignalAsync` overloads (which build the ID from the caller's context) can't reach them. Use the overloads that take an activation name:
 
 ```csharp
-// Signal a cross-agent workflow running under a specific activation (by workflow class)
+// By workflow class
 await XiansContext.Workflows.SignalAsync<FraudDetectionWorkflow>(
     "review-completed",
     new object[] { reviewResult },
-    activationName: "fraud-detection-eu"
-);
+    activationName: "fraud-detection-eu");
 
-// Same, by workflow type string (useful when the workflow class isn't available)
+// By type string (when the class isn't available)
 await XiansContext.Workflows.SignalAsync(
     "Fraud Detection Agent:Fraud Detection Workflow",
     "review-completed",
     new object[] { reviewResult },
-    activationName: "fraud-detection-eu"
-);
+    activationName: "fraud-detection-eu");
 ```
 
-**Note:** The signal name must match a handler with `[WorkflowSignal]` on the target workflow. The call returns when the server accepts the signal; it does not wait for the workflow to process it.
+The signal name must match a `[WorkflowSignal]` handler on the target. The call returns when the server accepts the signal, not when it's processed.
 
-`SignalWithStartAsync` also accepts an optional `activationName`. Because signal-with-start can create a new workflow, an explicit activation is validated up front exactly like `StartAsync`/`ExecuteAsync` (see [Activation Validation](#activation-validation)):
+`SignalWithStartAsync` also accepts `activationName` — and because it can *create* a workflow, the activation is validated up front exactly like `StartAsync`/`ExecuteAsync`:
 
 ```csharp
-// Signal-with-start targeting a specific activation of the target agent (client-only, by workflow class)
 await XiansContext.Workflows.SignalWithStartAsync<FraudDetectionWorkflow>(
     workflowArgs: new object[] { invoiceId },
     signalName: "review-requested",
     uniqueKey: invoiceId,
     activationName: "fraud-detection-eu",
-    signalArgs: new object[] { reviewRequest }
-);
-
-// Same, by workflow type string
-await XiansContext.Workflows.SignalWithStartAsync(
-    "Fraud Detection Agent:Fraud Detection Workflow",
-    workflowArgs: new object[] { invoiceId },
-    signalName: "review-requested",
-    uniqueKey: invoiceId,
-    activationName: "fraud-detection-eu",
-    signalArgs: new object[] { reviewRequest }
-);
+    signalArgs: new object[] { reviewRequest });
 ```
 
-For same-agent signaling, where the workflow ID is built from context only, see [Signaling Workflows](workflows.md#signaling-workflows).
+For same-agent signaling, see [Signaling Workflows](workflows.md#signaling-workflows).
 
 ## Cross-Agent Workflow ID Generation
 
-Workflow IDs follow the format `{tenantId}:{agentName}:{workflowName}[:{idPostfix}][:{uniqueKey}]`. For cross-agent children, the `idPostfix` (activation context) is resolved per the propagation rules above—the caller's `idPostfix` is **not** inherited, and only an explicit `activationName` adds an activation postfix. See [Workflow ID Generation](workflows.md#workflow-id-generation) for the full format and same-agent examples.
+IDs follow `{tenantId}:{agentName}:{workflowName}[:{idPostfix}][:{uniqueKey}]` (see [How Workflow IDs Are Generated](workflows.md#how-workflow-ids-are-generated)). For cross-agent children, only an explicit `activationName` adds an activation postfix:
 
 ```csharp
-// Cross-agent child (caller is a different agent) - parent's idPostfix NOT inherited
+// Cross-agent child — parent's idPostfix NOT inherited
 // Result: tenant1:OtherAgent:Scan:order-456
 await XiansContext.Workflows.StartAsync<ScanWorkflow>(
-    Array.Empty<object>(),
-    uniqueKey: "order-456"
-);
+    Array.Empty<object>(), uniqueKey: "order-456");
 
-// Cross-agent child with explicit activation of the target agent
+// With explicit activation of the target agent
 // Result: tenant1:OtherAgent:Scan:scan-activation-eu:order-456
 await XiansContext.Workflows.StartAsync<ScanWorkflow>(
-    Array.Empty<object>(),
-    uniqueKey: "order-456",
-    activationName: "scan-activation-eu"
-);
+    Array.Empty<object>(), uniqueKey: "order-456", activationName: "scan-activation-eu");
 ```
-
-## Error Handling
-
-In addition to the standard workflow errors (see [Error Handling](workflows.md#error-handling)), starting a workflow with an explicit `activationName` can throw activation validation failures. Handle `ActivationNotFoundException` and `ActivationDeactivatedException` as shown in [Activation Validation](#activation-validation) above.
 
 ## Related
 
-- [Workflows](workflows.md) — core `XiansContext.Workflows` API, starting/executing/signaling same-agent workflows, and communicating with workflows.
+- [Workflows](workflows.md) — the core `XiansContext.Workflows` API and same-agent patterns
+- [Multitenancy](multitenancy.md) — what activations are and how they're created

@@ -1,33 +1,19 @@
-# Scheduling Concepts
+# Scheduling
 
-## What Are Schedules?
+## Why Schedules?
 
-Schedules are **cron jobs for AI agents**. They let your workflows execute on time-based triggers - daily reports at 9 AM, hourly health checks, weekly analytics, or any recurring task your agents need to handle.
+AI agents should be proactive, not just reactive. Daily reports, hourly health checks, background research — these need time-based triggers. You could run external cron jobs, but then timing logic lives outside your agent, doesn't survive failures gracefully, and knows nothing about tenants.
 
-Unlike traditional cron jobs, Xians schedules are:
+Xians schedules are **cron jobs built into your workflows**, powered by [Temporal Schedules](https://docs.temporal.io/workflows#schedule):
 
-- **Durable** - Survive restarts and failures
-- **Multi-tenant aware** - Automatic isolation per tenant
-- **Workflow-native** - Fully deterministic when used inside workflows
-- **Production-ready** - Built-in retries, timeouts, and overlap policies
+- **Durable** — survive restarts and failures
+- **Multi-tenant aware** — automatic isolation per tenant, zero configuration
+- **Workflow-native** — safe to create from inside workflows (the SDK keeps it deterministic)
+- **Production-ready** — built-in overlap policies, retries, and timeouts
 
-Powered by [Temporal Schedules](https://docs.temporal.io/workflows#schedule), wrapped in a fluent API that feels natural to use.
+The key insight: **a workflow that schedules itself is autonomous**. It controls its own timing and operates continuously without external coordination.
 
-## Why Scheduling?
-
-AI agents need to be proactive, not just reactive. Schedules let your agents:
-
-- Run daily data syncs without manual triggers
-- Generate morning briefings automatically
-- Perform background research on a schedule
-- Monitor systems at regular intervals
-- Orchestrate recurring business processes
-
-**The key insight**: Workflows that schedule themselves are autonomous. They control their own timing, create follow-up work, and operate continuously without external coordination.
-
-## Quick Start
-
-Here's a workflow that schedules itself to run every day at 9 AM:
+## Quick Start: A Self-Scheduling Workflow
 
 ```csharp
 [Workflow("Daily Report Workflow")]
@@ -38,233 +24,112 @@ public class DailyReportWorkflow
     {
         // Do the work
         await GenerateReport(reportType);
-        
-        // Schedule next run (idempotent - safe to call repeatedly)
-        var schedule = await XiansContext.CurrentAgent.Schedules
+
+        // Ensure the recurring schedule exists (idempotent — safe every run)
+        await XiansContext.CurrentAgent.Schedules
             .Create<DailyReportWorkflow>("daily-report")
             .Daily(hour: 9, timezone: "America/New_York")
             .WithInput(reportType)
             .SkipIfRunning()
-            .CreateIfNotExistsAsync(); // Returns existing or creates new
+            .CreateIfNotExistsAsync();
     }
 }
 ```
 
-That's it. The workflow runs, does its work, and schedules itself. Your agent is now autonomous.
+The workflow runs, does its work, and guarantees its own next run. That's the whole pattern.
 
-## Scheduling Options
+## Defining When to Run
 
-### Time-Based Schedules
-
-```csharp
-// Daily at specific time (timezone-aware)
-.Daily(hour: 9, timezone: "America/New_York")
-
-// Hourly at specific minute
-.Hourly(minute: 30)
-
-// Weekdays only
-.Weekdays(hour: 8, minute: 30, timezone: "America/Chicago")
-
-// Weekly on specific day
-.Weekly(DayOfWeek.Monday, hour: 10, timezone: "Europe/London")
-
-// Monthly
-.Monthly(dayOfMonth: 1, hour: 8, timezone: "Asia/Tokyo")
-```
-
-### Interval-Based Schedules
+| Style | Methods | Example |
+|-------|---------|---------|
+| Time-based | `.Daily()`, `.Hourly()`, `.Weekdays()`, `.Weekly()`, `.Monthly()` | `.Daily(hour: 9, timezone: "America/New_York")` |
+| Interval | `.EverySeconds()`, `.EveryMinutes()`, `.EveryHours()`, `.EveryDays()` | `.EveryMinutes(15)` |
+| Cron | `.WithCronSchedule(expr, timezone?)` | `.WithCronSchedule("0 9 * * 1-5", timezone: "America/New_York")` |
+| One-time | `.WithCalendarSchedule(dateTime, timezone?)` | `.WithCalendarSchedule(new DateTime(2026, 12, 25, 9, 0, 0))` |
 
 ```csharp
-// Fixed intervals (no timezone - duration-based)
-.EverySeconds(30)
-.EveryMinutes(15)
-.EveryHours(2)
-.EveryDays(3)  // Note: Multi-day intervals (>1) ignore hour/minute parameters
-
-// Multi-day intervals with specific time (only works for 1 day)
-.EveryDays(1, hour: 9, minute: 30, timezone: "America/New_York") // Same as .Daily()
+.Daily(hour: 9, timezone: "America/New_York")       // every day, timezone-aware
+.Weekdays(hour: 8, minute: 30)                       // Mon–Fri
+.Weekly(DayOfWeek.Monday, hour: 10)
+.Monthly(dayOfMonth: 1, hour: 8)
+.EveryHours(2)                                       // duration-based, no timezone
+.WithCronSchedule("0 */2 * * *")                     // full cron power
 ```
 
-### Cron Expressions
+!!! note "Multi-day intervals"
+    `.EveryDays(n)` with `n > 1` ignores hour/minute parameters. `.EveryDays(1, hour: 9)` is equivalent to `.Daily(hour: 9)`.
+
+## Overlap Policies: What If the Previous Run Is Still Going?
+
+Schedules can fire faster than workflows finish. Decide up front what happens:
+
+| Policy | Behavior | When to use |
+|--------|----------|-------------|
+| `.SkipIfRunning()` | Skip the new run | **Default choice** — prevents pile-up |
+| `.BufferOne()` | Queue one run for after the current | Work must not be skipped, but shouldn't overlap |
+| `.AllowOverlap()` | Run concurrently | Runs are independent |
+| `.CancelOther()` | Cancel the running one, start fresh | New data supersedes old run |
+| `.TerminateOther()` | Force-kill the running one | Last resort |
+
+## Creation Methods: Idempotent by Default
+
+Why three methods? Because self-scheduling workflows call the creation code on *every* run, so it must be safe to repeat:
 
 ```csharp
-// Every 2 hours
-.WithCronSchedule("0 */2 * * *")
-
-// Weekdays at 9 AM ET
-.WithCronSchedule("0 9 * * 1-5", timezone: "America/New_York")
-
-// First of month at midnight
-.WithCronSchedule("0 0 1 * *", timezone: "America/New_York")
+.CreateIfNotExistsAsync()  // Returns existing or creates — idempotent (recommended)
+.CreateAsync()             // Throws ScheduleAlreadyExistsException if it exists — strict
+.RecreateAsync()           // Deletes existing, creates new — for config changes
 ```
 
-### One-Time Execution
-
-```csharp
-// Specific future date/time
-var futureDate = new DateTime(2026, 12, 25, 9, 0, 0);
-.WithCalendarSchedule(futureDate, timezone: "America/New_York")
-```
-
-## Overlap Policies
-
-What happens when a schedule triggers but the previous execution is still running?
-
-```csharp
-.SkipIfRunning()      // Skip new run (recommended for most cases)
-.AllowOverlap()       // Allow concurrent executions
-.BufferOne()          // Queue one execution for after current
-.CancelOther()        // Cancel running, start new
-.TerminateOther()     // Force stop running (use with caution)
-```
-
-**Recommendation**: Use `.SkipIfRunning()` by default. It prevents execution pile-up when workflows take longer than the schedule interval.
-
-## Creation Methods
-
-Choose the right method for your use case:
-
-```csharp
-// 1. CreateIfNotExistsAsync() - Idempotent (recommended)
-// Returns existing schedule or creates new one. Safe to call repeatedly.
-var schedule = await XiansContext.CurrentAgent.Schedules
-    .Create<MyWorkflow>("my-schedule")
-    .Daily(hour: 9)
-    .CreateIfNotExistsAsync();
-
-// 2. CreateAsync() - Strict
-// Fails if schedule exists. Use when you need to guarantee a new schedule.
-var schedule = await XiansContext.CurrentAgent.Schedules
-    .Create<MyWorkflow>("unique-schedule")
-    .EveryHours(2)
-    .CreateAsync(); // Throws ScheduleAlreadyExistsException if exists
-
-// 3. RecreateAsync() - Replace
-// Deletes existing and creates new. Use when updating schedule configuration.
-var schedule = await XiansContext.CurrentAgent.Schedules
-    .Create<MyWorkflow>("my-schedule")
-    .EveryMinutes(30) // Changed from every hour!
-    .RecreateAsync(); // Deletes old, creates new
-```
-
-**Rule of thumb**: Use `CreateIfNotExistsAsync()` unless you have a specific reason not to.
+Use `CreateIfNotExistsAsync()` unless you specifically need strict failure (`CreateAsync`) or are changing the schedule's configuration (`RecreateAsync`).
 
 ## Managing Schedules
 
-Full lifecycle control from within workflows:
-
 ```csharp
-var agent = XiansContext.CurrentAgent;
+var schedules = XiansContext.CurrentAgent.Schedules;
 
-// Get existing schedule
-var schedule = await agent.Schedules.GetAsync("my-schedule");
+var schedule = await schedules.GetAsync("my-schedule");
+bool exists  = await schedules.ExistsAsync("my-schedule");
 
-// Check if schedule exists
-bool exists = await agent.Schedules.ExistsAsync("my-schedule");
-
-// Pause/resume schedules
 await schedule.PauseAsync("System maintenance");
 await schedule.UnpauseAsync("Maintenance complete");
-
-// Or pause/unpause by ID directly
-await agent.Schedules.PauseAsync("my-schedule", note: "System maintenance");
-await agent.Schedules.UnpauseAsync("my-schedule", note: "Maintenance complete");
-
-// Trigger immediate run (doesn't affect schedule)
-await schedule.TriggerAsync();
-await agent.Schedules.TriggerAsync("my-schedule"); // Or by ID
-
-// Get schedule information
-var description = await schedule.DescribeAsync(); // Contains next run times, recent actions, etc.
-
-// Delete schedule
+await schedule.TriggerAsync();          // run now, without affecting the schedule
+var info = await schedule.DescribeAsync(); // next run times, recent actions
 await schedule.DeleteAsync();
-await agent.Schedules.DeleteAsync("my-schedule"); // Or by ID
 
-// Update schedule configuration
-await schedule.UpdateAsync(update => new ScheduleUpdate(
-    update.Description.Schedule,
-    TypedSearchAttributes: newSearchAttributes));
-
-// Backfill schedule (run actions for past time periods)
+// Backfill: run actions for a past period
 await schedule.BackfillAsync(new[]
 {
-    new ScheduleBackfill(
-        startAt: DateTime.UtcNow.AddDays(-7), 
-        endAt: DateTime.UtcNow.AddDays(-1))
+    new ScheduleBackfill(startAt: DateTime.UtcNow.AddDays(-7), endAt: DateTime.UtcNow.AddDays(-1))
 });
-
-// Get underlying Temporal handle for advanced scenarios
-var temporalHandle = schedule.GetHandle();
 ```
+
+All of these also exist as by-ID overloads on the collection (e.g. `schedules.PauseAsync("my-schedule")`). For advanced Temporal features, `schedule.GetHandle()` returns the native Temporal handle.
 
 ## Multi-Tenant Isolation
 
-Schedules automatically respect tenant boundaries - **zero configuration required**:
+Schedule IDs are automatically namespaced as `{tenantId}:{agentName}:{idPostfix}:{scheduleId}`, so:
+
+- Tenants can't see or trigger each other's schedules.
+- The same agent code deployed to many tenants creates independent schedules per tenant.
+- No manual filtering or prefixing required.
+
+If you need extra uniqueness within an agent (e.g. per-user schedules), use a custom `idPostfix` with the non-generic overload:
 
 ```csharp
-[Workflow("Multi-Tenant Task")]
-public class TenantTaskWorkflow
-{
-    [WorkflowRun]
-    public async Task RunAsync()
-    {
-        // Schedule automatically scoped to current tenant
-        await XiansContext.CurrentAgent.Schedules
-            .Create<TenantTaskWorkflow>("daily-task")  // Internal ID: "{tenantId}:{agentName}:{idPostfix}:daily-task"
-            .Daily(hour: 9)
-            .CreateIfNotExistsAsync();
-    }
-}
+var workflowType = XiansContext.GetWorkflowTypeFor(typeof(SyncWorkflow));
+await XiansContext.CurrentAgent.Schedules
+    .Create("daily-sync", workflowType, idPostfix: "user123")
+    .Daily(hour: 9)
+    .CreateIfNotExistsAsync();
+
+// Retrieve with the same idPostfix
+var retrieved = await XiansContext.CurrentAgent.Schedules.GetAsync("daily-sync", idPostfix: "user123");
 ```
-
-**What you get:**
-
-- Schedules prefixed with tenant ID and agent context internally
-- Search attributes automatically inherited from parent workflow
-- Cross-tenant access blocked automatically
-- No manual tenant filtering needed
-- Schedule IDs follow pattern: `{tenantId}:{agentName}:{idPostfix}:{scheduleId}`
 
 ## Common Patterns
 
-### Self-Scheduling Workflow
-
-Workflows that create their own recurring schedules:
-
-```csharp
-[Workflow("Content Crawler")]
-public class ContentCrawlerWorkflow
-{
-    [WorkflowRun]
-    public async Task RunAsync(string url, int intervalHours)
-    {
-        // Do the work
-        var content = await CrawlContent(url);
-        await ProcessContent(content);
-        
-        // Schedule next run (idempotent)
-        await XiansContext.CurrentAgent.Schedules
-            .Create<ContentCrawlerWorkflow>($"crawler-{url}")
-            .EveryHours(intervalHours)
-            .WithInput(url, intervalHours)
-            .SkipIfRunning()
-            .CreateIfNotExistsAsync();
-    }
-}
-```
-
-**Why this works well:**
-
-- Workflow controls its own timing
-- Automatic determinism (SDK uses activities internally)
-- Tenant context always available
-- Clean separation of concerns
-
-### Bulk Schedule Creation
-
-Set up schedules for multiple entities:
+### Per-entity schedules
 
 ```csharp
 [Workflow("Research Setup")]
@@ -286,178 +151,35 @@ public class ResearchSetupWorkflow
 }
 ```
 
-## Advanced Configuration
-
-### Starting Schedules Paused
-
-Sometimes you want to create a schedule but not start it immediately:
+### Create paused, start later
 
 ```csharp
 var schedule = await XiansContext.CurrentAgent.Schedules
     .Create<MaintenanceWorkflow>("maintenance-task")
-    .Daily(hour: 2, timezone: "America/New_York")
-    .WithInput("system-cleanup")
+    .Daily(hour: 2)
     .StartPaused(true, "Created for future use")
     .CreateIfNotExistsAsync();
 
-// Later, unpause when ready
+// When ready:
 await schedule.UnpauseAsync("Ready to start maintenance");
-```
-
-### Custom idPostfix
-
-The `idPostfix` parameter provides additional uniqueness to schedule IDs within the same tenant/agent context:
-
-```csharp
-// Use custom idPostfix - requires non-generic overload
-var workflowType = XiansContext.GetWorkflowTypeFor(typeof(SyncWorkflow));
-var schedule = await XiansContext.CurrentAgent.Schedules
-    .Create("daily-sync", workflowType, idPostfix: "user123")  // Results in: {tenantId}:{agent}:user123:daily-sync
-    .Daily(hour: 9)
-    .CreateIfNotExistsAsync();
-
-// Retrieve with same idPostfix
-var retrieved = await XiansContext.CurrentAgent.Schedules.GetAsync("daily-sync", idPostfix: "user123");
-```
-
-**Note**: If not specified, `idPostfix` defaults to the current workflow context's idPostfix. The generic `Create<TWorkflow>()` method uses the default idPostfix; use the non-generic overload for custom idPostfix values.
-
-### Calendar-Based Scheduling
-
-For one-time or specific date scheduling:
-
-```csharp
-// Schedule for a specific future date/time
-var futureDate = new DateTime(2026, 12, 25, 9, 0, 0);
-var schedule = await XiansContext.CurrentAgent.Schedules
-    .Create<HolidayReportWorkflow>("holiday-report")
-    .WithCalendarSchedule(futureDate, timezone: "America/New_York")
-    .WithInput("holiday-summary")
-    .CreateIfNotExistsAsync();
-```
-
-### Low-Level Temporal Integration
-
-For advanced scenarios, you can access the underlying Temporal schedule handle:
-
-```csharp
-var schedule = await XiansContext.CurrentAgent.Schedules.GetAsync("my-schedule");
-var temporalHandle = schedule.GetHandle();
-
-// Use native Temporal APIs
-var temporalDescription = await temporalHandle.DescribeAsync();
 ```
 
 ## Error Handling
 
-The SDK provides specific exceptions for different error scenarios:
-
-```csharp
-try
-{
-    var schedule = await XiansContext.CurrentAgent.Schedules
-        .Create<MyWorkflow>("my-schedule")
-        .Daily(hour: 9)
-        .CreateAsync(); // Strict creation
-}
-catch (ScheduleAlreadyExistsException ex)
-{
-    // Handle case where schedule already exists
-    var existing = await XiansContext.CurrentAgent.Schedules.GetAsync("my-schedule");
-    // ... use existing schedule
-}
-catch (ScheduleNotFoundException ex)
-{
-    // Handle case where schedule wasn't found during GetAsync()
-    Console.WriteLine($"Schedule '{ex.ScheduleId}' not found");
-}
-catch (InvalidScheduleSpecException ex)
-{
-    // Handle invalid schedule configuration
-    Console.WriteLine($"Invalid schedule configuration: {ex.Message}");
-}
-```
+| Exception | Thrown when |
+|-----------|-------------|
+| `ScheduleAlreadyExistsException` | `CreateAsync()` on an existing schedule |
+| `ScheduleNotFoundException` | `GetAsync()` for a missing schedule |
+| `InvalidScheduleSpecException` | Invalid schedule configuration |
 
 ## Best Practices
 
-**Do:**
-
-- Use `CreateIfNotExistsAsync()` for most cases (idempotent)
-- Use `.SkipIfRunning()` to prevent execution pile-up
-- Add retry policies for production schedules
-- Specify timezones for time-based schedules
-- Use descriptive IDs: `daily-sync-{company}` not `schedule1`
-- Handle schedule-specific exceptions appropriately
-
-**Don't:**
-
-- Use `CreateAsync()` unless you need strict failure on duplicates
-- Forget to handle timezone differences
-- Create schedules without overlap policies
-- Use generic schedule IDs
-- Ignore specific exception types - they provide valuable context
-
-## Quick Reference
-
-### Schedule Patterns
-```csharp
-// Time-based patterns
-.Daily(hour: 9, timezone: "America/New_York")
-.Hourly(minute: 30)
-.Weekdays(hour: 8, minute: 30, timezone: "America/Chicago")
-.Weekly(DayOfWeek.Monday, hour: 10, timezone: "Europe/London")
-.Monthly(dayOfMonth: 1, hour: 9, timezone: "America/New_York")
-
-// Interval-based patterns
-.EverySeconds(30)
-.EveryMinutes(15)
-.EveryHours(2)
-.EveryDays(3)
-
-// Advanced patterns
-.WithCronSchedule("0 */2 * * *", timezone: "UTC")  // Every 2 hours
-.WithCalendarSchedule(futureDateTime, timezone: "America/New_York")
-```
-
-### Creation Methods
-```csharp
-.CreateIfNotExistsAsync()  // Idempotent (recommended)
-.CreateAsync()             // Strict (fails if exists)
-.RecreateAsync()          // Replace existing
-```
-
-### Overlap Policies
-```csharp
-.SkipIfRunning()    // Skip if previous still running (recommended)
-.AllowOverlap()     // Allow concurrent executions
-.BufferOne()        // Queue one execution
-.CancelOther()      // Cancel running, start new
-.TerminateOther()   // Force stop running (use with caution)
-```
-
-### Management Operations
-```csharp
-// Direct schedule operations
-await schedule.PauseAsync("reason");
-await schedule.UnpauseAsync("reason");
-await schedule.TriggerAsync();
-await schedule.DeleteAsync();
-await schedule.DescribeAsync();
-
-// Operations by ID
-await schedules.GetAsync("schedule-id");
-await schedules.ExistsAsync("schedule-id");
-await schedules.PauseAsync("schedule-id");
-await schedules.UnpauseAsync("schedule-id");
-await schedules.TriggerAsync("schedule-id");
-await schedules.DeleteAsync("schedule-id");
-```
+- **`CreateIfNotExistsAsync()` + `.SkipIfRunning()`** is the right default for nearly everything.
+- **Always specify timezones** for time-based schedules — interval schedules don't need them.
+- **Use descriptive IDs** — `daily-sync-{company}`, not `schedule1`.
+- **Catch the specific exceptions** — they tell you exactly what went wrong.
 
 ## What's Next?
 
-- **[Agents](agents.md)** - Agent architecture and patterns
-- **[Workflows](workflows.md)** - Workflow patterns and lifecycle
-
----
-
-**Bottom line**: Schedules turn reactive workflows into autonomous agents. They're the difference between "run this when I tell you" and "run this every day at 9 AM until I tell you to stop."
+- [Workflows](workflows.md) — the workflows your schedules trigger
+- [Agents](agents.md) — the self-scheduling pattern in context
