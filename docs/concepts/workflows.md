@@ -18,14 +18,20 @@ The Xians SDK provides `XiansContext.Workflows` to start and execute child workf
 
 | Method | Description |
 |--------|-------------|
-| `StartAsync<TWorkflow>(object[] args, string? uniqueKey = null)` | Start child workflow by type without waiting |
-| `StartAsync(string workflowType, object[] args, string? uniqueKey = null)` | Start child workflow by type string without waiting |
-| `ExecuteAsync<TWorkflow, TResult>(object[] args, string? uniqueKey = null)` | Execute child workflow and wait for result |
-| `ExecuteAsync<TResult>(string workflowType, object[] args, string? uniqueKey = null)` | Execute child workflow by type string and wait for result |
+| `StartAsync<TWorkflow>(object[] args, string? uniqueKey = null, TimeSpan? executionTimeout = null, string? activationName = null)` | Start child workflow by type without waiting |
+| `StartAsync(string workflowType, object[] args, string? uniqueKey = null, TimeSpan? executionTimeout = null, string? activationName = null)` | Start child workflow by type string without waiting |
+| `ExecuteAsync<TWorkflow, TResult>(object[] args, string? uniqueKey = null, TimeSpan? executionTimeout = null, string? activationName = null)` | Execute child workflow and wait for result |
+| `ExecuteAsync<TResult>(string workflowType, object[] args, string? uniqueKey = null, TimeSpan? executionTimeout = null, string? activationName = null)` | Execute child workflow by type string and wait for result |
 | `SignalAsync<TWorkflow>(string signalName, params object[] signalArgs)` | Send signal to workflow by type |
 | `SignalAsync(string workflowType, string signalName, params object[] signalArgs)` | Send signal to workflow by type string |
+| `SignalAsync<TWorkflow>(string signalName, object[] signalArgs, string activationName)` | Send signal to a workflow running under a specific activation |
+| `SignalAsync(string workflowType, string signalName, object[] signalArgs, string activationName)` | Send signal by type string to a workflow running under a specific activation |
+| `SignalWithStartAsync<TWorkflow>(object[] workflowArgs, string signalName, string? uniqueKey = null, TimeSpan? executionTimeout = null, string? activationName = null, params object[] signalArgs)` | Signal a workflow, starting it first if it does not exist (client-only) |
+| `SignalWithStartAsync(string workflowType, object[] workflowArgs, string signalName, string? uniqueKey = null, TimeSpan? executionTimeout = null, string? activationName = null, params object[] signalArgs)` | Signal-with-start by type string (client-only) |
 
-**Note:** Parent's `idPostfix` is always automatically extracted from workflow/activity context when available. For `StartAsync` and `ExecuteAsync`, the `uniqueKey` parameter provides additional uniqueness. For `SignalAsync`, the workflow ID is built from context only—unique keys cannot be passed externally.
+**Note:** For `StartAsync`, `ExecuteAsync`, and `SignalWithStartAsync`, the `uniqueKey` parameter provides additional workflow ID uniqueness, and `activationName` targets a specific activation of the child's agent with up-front validation (see [Cross-Agent Workflows and Activations](cross-agent-workflows.md)). For `SignalAsync`, the workflow ID is built from context only—unique keys cannot be passed externally; use the `activationName` overloads to signal a workflow that was started under an explicit activation.
+
+> **Working across agents?** When a child workflow belongs to a different agent, or you need to target a specific activation, see the dedicated [Cross-Agent Workflows and Activations](cross-agent-workflows.md) page.
 
 ### Starting Workflows (Fire and Forget)
 
@@ -44,7 +50,7 @@ public class ParentWorkflow
     public async Task RunAsync(string taskId)
     {
         // Start child workflow by type - fire and forget
-        // Parent's idPostfix is automatically included in workflow ID
+        // Same-agent child: parent's idPostfix is automatically included in workflow ID
         await XiansContext.Workflows.StartAsync<BackgroundTaskWorkflow>(
             new object[] { "param1", "param2" }
         );
@@ -53,7 +59,8 @@ public class ParentWorkflow
         Workflow.Logger.LogInformation("Background task started");
         
         // You can start multiple workflows in parallel
-        await Task.WhenAll(
+        // Use Workflow.WhenAllAsync (not Task.WhenAll) inside workflows for determinism
+        await Workflow.WhenAllAsync(
             XiansContext.Workflows.StartAsync<Task1Workflow>(Array.Empty<object>()),
             XiansContext.Workflows.StartAsync<Task2Workflow>(Array.Empty<object>()),
             XiansContext.Workflows.StartAsync<Task3Workflow>(Array.Empty<object>())
@@ -69,13 +76,15 @@ public class ParentWorkflow
 public async Task RunAsync(string workflowType, string taskId)
 {
     // Start workflow by type string (useful for dynamic workflow selection)
-    // Parent's idPostfix is automatically included in workflow ID
+    // The agent in the type string may differ from the calling agent
     await XiansContext.Workflows.StartAsync(
         "MyAgent:DynamicWorkflow",
         new object[] { "param1", "param2" }
     );
 }
 ```
+
+**Note:** `"WorkflowName"` in the `"AgentName:WorkflowName"` string must match the name declared in the target class's `[Workflow("AgentName:WorkflowName")]` attribute - it is not necessarily the same as the C# class name. Use this string-based form whenever the target workflow's class type isn't available to reference as a generic type parameter (e.g. it lives in another assembly, or the workflow is selected dynamically at runtime); every `StartAsync`, `ExecuteAsync`, `SignalAsync`, and `SignalWithStartAsync` overload has a matching string-based counterpart.
 
 ### Executing Workflows (Wait for Result)
 
@@ -91,7 +100,7 @@ public class ParentWorkflow
     public async Task<ProcessingResult> RunAsync(string data)
     {
         // Execute child workflow and wait for result
-        // Parent's idPostfix is automatically included in workflow ID
+        // Same-agent child: parent's idPostfix is automatically included in workflow ID
         var result = await XiansContext.Workflows.ExecuteAsync<ProcessingWorkflow, string>(
             new object[] { data }
         );
@@ -111,7 +120,6 @@ public class ParentWorkflow
 public async Task<string> RunAsync(string workflowType, string input)
 {
     // Execute workflow by type string and wait for result
-    // Parent's idPostfix is automatically included in workflow ID
     var result = await XiansContext.Workflows.ExecuteAsync<string>(
         "MyAgent:DataProcessor",
         new object[] { input }
@@ -123,7 +131,7 @@ public async Task<string> RunAsync(string workflowType, string input)
 
 ### Signaling Workflows
 
-Use `SignalAsync` to send a signal to a running workflow. The workflow must already be running; signals cannot be sent to closed workflows. Workflow ID is built from context only (parent's `idPostfix` when in workflow/activity); unique keys cannot be passed externally.
+Use `SignalAsync` to send a signal to a running workflow. The workflow must already be running; signals cannot be sent to closed workflows. Workflow ID is built from context only; unique keys cannot be passed externally. The caller's `idPostfix` is used in the target workflow ID only when the target workflow belongs to the same agent, mirroring how child workflow IDs are generated. To signal a cross-agent workflow or one running under a specific activation, see [Cross-Agent Workflows and Activations](cross-agent-workflows.md#signaling-a-workflow-under-a-specific-activation).
 
 #### Signal By Workflow Type
 
@@ -161,25 +169,27 @@ public async Task RunAsync(string workflowType, string signalName)
 
 **Note:** The signal name must match a handler with `[WorkflowSignal]` on the target workflow. The call returns when the server accepts the signal; it does not wait for the workflow to process it.
 
+To signal a cross-agent workflow or one running under a specific activation, see [Signaling a Workflow Under a Specific Activation](cross-agent-workflows.md#signaling-a-workflow-under-a-specific-activation).
+
 ### Workflow ID Generation
 
 Workflow IDs are automatically constructed with the following format:
 
-**Format**: `{tenantId}:{agentName}:{workflowName}[:{parent_idPostfix}][:{uniqueKey}]`
+**Format**: `{tenantId}:{agentName}:{workflowName}[:{idPostfix}][:{uniqueKey}]`
 
-- **parent_idPostfix**: Automatically extracted from parent workflow/activity context (always included when available)
+- **idPostfix**: The child's activation context. For same-agent children, the caller's `idPostfix` is inherited (or an explicit `activationName` when provided). For cross-agent behavior, see [Cross-Agent Workflow ID Generation](cross-agent-workflows.md#cross-agent-workflow-id-generation).
 - **uniqueKey**: Optional parameter for additional uniqueness (e.g., order ID, task ID, session ID)
 
 **Examples**:
 
 ```csharp
-// Inside workflow with parent idPostfix "session-abc123"
+// Same-agent child, inside workflow with parent idPostfix "session-abc123"
 // Result: tenant1:MyAgent:Task:session-abc123
 await XiansContext.Workflows.StartAsync<TaskWorkflow>(
     Array.Empty<object>()
 );
 
-// Inside workflow with parent idPostfix "session-abc123" + uniqueKey
+// Same-agent child with uniqueKey
 // Result: tenant1:MyAgent:Task:session-abc123:order-456
 await XiansContext.Workflows.StartAsync<TaskWorkflow>(
     Array.Empty<object>(),
@@ -204,7 +214,6 @@ public async Task RunAsync(string taskId)
 {
     try
     {
-        // Parent's idPostfix automatically included in workflow ID
         await XiansContext.Workflows.StartAsync<ProcessWorkflow>(
             Array.Empty<object>()
         );
@@ -219,6 +228,8 @@ public async Task RunAsync(string taskId)
     }
 }
 ```
+
+When starting a workflow with an explicit `activationName`, also handle activation validation failures—see [Activation Validation](cross-agent-workflows.md#activation-validation) for the exception types and an example.
 
 ### Context Behavior
 
@@ -244,7 +255,6 @@ public class OrderProcessorWorkflow
     public async Task<OrderResult> ProcessOrderAsync(Order order)
     {
         // Start payment processing in the background
-        // Parent's idPostfix is automatically included in workflow ID
         await XiansContext.Workflows.StartAsync<PaymentWorkflow>(
             new object[] { order.PaymentInfo }
         );
@@ -339,7 +349,7 @@ using Xians.Lib.Agents.Core;
 // Get the Temporal client
 var temporalClient = await XiansContext.Workflows.GetClientAsync();
 
-// Construct full workflow ID manually: {tenantId}:{agentName}:{workflowName}[:{parent_idPostfix}][:{uniqueKey}]
+// Construct full workflow ID manually: {tenantId}:{agentName}:{workflowName}[:{idPostfix}][:{uniqueKey}]
 // Example: tenant123:MyAgent:Task:session-abc:order-12345
 var workflowHandle = temporalClient.GetWorkflowHandle<MyWorkflow>(
     workflowId: "tenant123:MyAgent:Task:session-abc:order-12345"
@@ -402,3 +412,7 @@ You are free to use all other Temporal SDK features when designing your agents, 
 Refer to [Temporal Docs](https://docs.temporal.io/develop/dotnet/)
 
 The Xians SDK enhances Temporal with multi-tenancy, agent scoping, and built-in workflows, but doesn't restrict your use of Temporal's powerful features.
+
+## Related
+
+- [Cross-Agent Workflows and Activations](cross-agent-workflows.md) — starting, executing, and signaling child workflows that belong to a different agent, plus activation targeting and validation.

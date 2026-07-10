@@ -22,7 +22,7 @@ This keeps large payloads out of the Temporal signal (which caps a single payloa
 Register a file upload handler on your built-in workflow using `OnFileUpload()`. The SDK automatically decodes the message payload into typed `UploadedFile` objects, available via `context.Message.Files`—no manual JSON parsing required:
 
 ```csharp
-var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
+var conversationalWorkflow = xiansAgent.Workflows.DefineSupervisor();
 
 conversationalWorkflow.OnFileUpload(async (context) =>
 {
@@ -131,7 +131,7 @@ This is the recommended, specialized file endpoint. It accepts a strongly-typed 
 | Field | Type | Description |
 |-------|------|-------------|
 | `text` | string | Optional chat text/caption to accompany the files |
-| `workflowType` | string | Workflow type (default: `"Supervisor Workflow"`). Use `"Conversational"` for agents with conversational workflows. |
+| `workflowType` | string | Workflow name (default: `"Supervisor Workflow"` — the conventional chat workflow). Only set this if your agent uses a custom workflow name. |
 | `topic` | string | Scope/topic for organizing the message thread |
 | `requestId` | string | Custom request ID (auto-generated if omitted) |
 | `hint` | string | Hint for the agent |

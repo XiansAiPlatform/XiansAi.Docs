@@ -164,7 +164,7 @@ Connect tasks to conversations using **message hints**:
 ```csharp
 // Send message with task workflow ID as hint
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    "MyAgent:Conversational",
+    "Supervisor Workflow",
     userId,
     "I found a high-value order. Please review it.",
     scope: orderId,

@@ -172,7 +172,7 @@ var conversationalWorkflow = xiansAgent.Workflows.DefineCustom<MyAgent.Conversat
 // Register chat handler for the CUSTOM workflow
 var tenantId = xiansPlatform.Options?.CertificateTenantId;
 BuiltinWorkflow.RegisterChatHandler(
-    workflowType: "My New Agent:Conversational",
+    workflowType: "My New Agent:Supervisor Workflow",
     handler: async (context) =>
     {
         var response = await mafSubAgent.RunAsync(context.Message.Text);
@@ -186,7 +186,7 @@ BuiltinWorkflow.RegisterChatHandler(
 await xiansAgent.UploadWorkflowDefinitionsAsync();
 ```
 
-> **Note:** The `workflowType` must match the `[Workflow("...")]` attribute on your custom workflow class (e.g. `"My New Agent:Conversational"`).
+> **Note:** The `workflowType` must match the `[Workflow("...")]` attribute on your custom workflow class (e.g. `"My New Agent:Supervisor Workflow"`). Keeping the well-known `Supervisor Workflow` name means the Agent Studio's default chat still connects to your custom workflow — see [Workflow Naming Conventions](../studio/workflow-conventions.md).
 
 **2. Create `ConversationalWorkflow.cs`** – Add a new file with your custom workflow class:
 
@@ -200,7 +200,7 @@ namespace MyAgent
     /// Custom conversational workflow that extends BuiltinWorkflow.
     /// This workflow can be visualized because it has a source file that can be embedded.
     /// </summary>
-    [Workflow("My New Agent:Conversational")]
+    [Workflow("My New Agent:Supervisor Workflow")]
     public class ConversationalWorkflow : BuiltinWorkflow
     {
         /// <summary>

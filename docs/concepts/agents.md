@@ -125,8 +125,9 @@ Built-in workflows are ideal for message-driven patterns:
 // Define an unnamed built-in workflow
 var workflow = agent.Workflows.DefineBuiltIn();
 
-// Define a named built-in workflow
-var chatWorkflow = agent.Workflows.DefineBuiltIn(name: "ChatHandler");
+// Define the conventional chat workflow ("Supervisor Workflow")
+// Equivalent to: agent.Workflows.DefineBuiltIn(name: "Supervisor Workflow")
+var chatWorkflow = agent.Workflows.DefineSupervisor();
 
 // Register message handler
 chatWorkflow.OnUserChatMessage(async (context) =>

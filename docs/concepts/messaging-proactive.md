@@ -233,13 +233,13 @@ Use `SendChatAsWorkflowAsync` to send messages on behalf of a different BuiltIn 
 ```csharp
 // In a background "OrderMonitoring" workflow
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    builtinWorkflowName: "Conversational",  // The workflow to impersonate
+    builtinWorkflowName: "Supervisor Workflow",  // The workflow to impersonate
     text: "Great news! Your order has shipped and is on its way.",
     participantId: "user-123"
 );
 ```
 
-The user receives this message as if it came from their "Conversational" workflow, maintaining conversation continuity.
+The user receives this message as if it came from their "Supervisor Workflow" (the conventional chat workflow), maintaining conversation continuity.
 
 ### Sending Data Messages as Another Workflow
 
@@ -266,19 +266,19 @@ await XiansContext.Messaging.SendDataAsWorkflowAsync(
 The `builtinWorkflowName` parameter refers to the **workflow name** you defined when creating built-in workflows, not the full workflow type:
 
 ```csharp
-// When you define a workflow
-var chatWorkflow = agent.Workflows.DefineBuiltIn(name: "Conversational");
+// When you define workflows
+var chatWorkflow = agent.Workflows.DefineSupervisor(); // name: "Supervisor Workflow"
 var analyticsWorkflow = agent.Workflows.DefineBuiltIn(name: "Analytics");
 
 // Use the name when impersonating
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    builtinWorkflowName: "Conversational",  // ✅ Use the workflow name
+    builtinWorkflowName: "Supervisor Workflow",  // ✅ Use the workflow name
     text: "Message from background process",
     participantId: "user-123"
 );
 
 // NOT the full workflow type
-// ❌ Don't use "MyAgent:Conversational"
+// ❌ Don't use "MyAgent:Supervisor Workflow"
 ```
 
 ## Supervisor Workflow Shortcuts
@@ -478,7 +478,7 @@ await XiansContext.Messaging.SendChatAsync(
 // ✅ Good: Background workflow sends as main workflow
 // User sees message in their familiar conversation context
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    builtinWorkflowName: "Conversational",
+    builtinWorkflowName: "Supervisor Workflow",
     text: "Update from background monitoring",
     participantId: "user-123"
 );
@@ -653,14 +653,14 @@ await XiansContext.Messaging.SendChatAsync(
 ```csharp
 // ✅ Correct: Use the workflow name
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    builtinWorkflowName: "Conversational",  // Name from DefineBuiltIn
+    builtinWorkflowName: "Supervisor Workflow",  // Name from DefineSupervisor/DefineBuiltIn
     text: message,
     participantId: userId
 );
 
 // ❌ Wrong: Don't use full workflow type
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    builtinWorkflowName: "MyAgent:Conversational",  // Too specific
+    builtinWorkflowName: "MyAgent:Supervisor Workflow",  // Too specific
     text: message,
     participantId: userId
 );

@@ -29,9 +29,9 @@ nav:
     - Document DB: concepts/document-db.md
     - Secret Vault: concepts/secret-vault.md
     - Scheduling: concepts/scheduling.md
-    - Agent-to-Agent (A2A): concepts/A2A.md
     - Human-in-the-Loop: concepts/hitl-tasks.md
     - Workflows: concepts/workflows.md
+    - Cross-Agent Workflows: concepts/cross-agent-workflows.md
     - Metrics: concepts/metrics.md
     - Logging: concepts/logging.md
     - Unit Testing: concepts/unit-tests.md

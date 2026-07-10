@@ -43,7 +43,7 @@ await XiansContext.Messaging.SendChatAsync(
 
 ## Overview
 
-When you define a built-in workflow (like a Conversational workflow), you can register **message listeners** that are triggered when users send messages to your agent. These listeners receive a rich context object that contains the incoming message details and provides methods to respond.
+When you define a built-in workflow (like the conventional Supervisor Workflow), you can register **message listeners** that are triggered when users send messages to your agent. These listeners receive a rich context object that contains the incoming message details and provides methods to respond.
 
 ## Message Listeners
 
@@ -52,7 +52,7 @@ When you define a built-in workflow (like a Conversational workflow), you can re
 The most common type of message is a chat message. Register a listener using `OnUserChatMessage`:
 
 ```csharp
-var conversationalWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Conversational");
+var conversationalWorkflow = xiansAgent.Workflows.DefineSupervisor();
 
 conversationalWorkflow.OnUserChatMessage(async (context) =>
 {
@@ -63,6 +63,8 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
     await context.ReplyAsync($"You said: {userMessage}");
 });
 ```
+
+> `DefineSupervisor()` creates a built-in workflow with the well-known name **`Supervisor Workflow`** — the name the Agent Studio connects to by default for user chat. See [Workflow Naming Conventions](../studio/workflow-conventions.md).
 
 ### Listening to Data Messages
 

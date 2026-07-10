@@ -38,8 +38,8 @@ var xiansAgent = xiansPlatform.Agents.Register(new()
     IsTemplate = true
 });
 
-// Define built-in workflow
-var integratorWorkflow = xiansAgent.Workflows.DefineBuiltIn(name: "Integrator");
+// Define the conventional webhook workflow ("Integrator Workflow")
+var integratorWorkflow = xiansAgent.Workflows.DefineIntegrator();
 
 // Handle incoming webhooks (synchronous)
 integratorWorkflow.OnWebhook((context) =>
@@ -52,6 +52,8 @@ integratorWorkflow.OnWebhook((context) =>
 // Start the agent
 await xiansAgent.RunAllAsync();
 ```
+
+> `DefineIntegrator()` creates a built-in workflow with the well-known name **`Integrator Workflow`** — the name the Agent Studio's default webhook endpoint targets. See [Workflow Naming Conventions](../studio/workflow-conventions.md).
 
 #### Async Handler (when you need async operations)
 
@@ -81,7 +83,7 @@ POST {SERVER_URL}/api/user/webhooks/builtin
 |-----------|-------------|---------|
 | `apikey` | Your Xians API key | `sk-Xnai-abc123...` |
 | `agentName` | The target agent name | `WebhookTestAgent` |
-| `workflowName` | The target workflow name | `Integrator` |
+| `workflowName` | The target workflow name | `Integrator Workflow` |
 | `webhookName` | Any identifier for this webhook event | `Email Received` |
 | `participantId` | Any User/participant identifier | `user@example.com` |
 
@@ -111,7 +113,7 @@ Send your webhook payload as JSON in the request body:
 ##### Basic Webhook Call with cURL
 
 ```bash
-curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-zSsUNO5KaeyHefrWEyQvvyOBmX0&timeoutSeconds=30&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&participantId=customer@example.com" \
+curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-zSsUNO5KaeyHefrWEyQvvyOBmX0&timeoutSeconds=30&agentName=WebhookTestAgent&workflowName=Integrator%20Workflow&webhookName=OrderCompleted&participantId=customer@example.com" \
   -H "Content-Type: application/json" \
   -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
 ```
@@ -121,7 +123,7 @@ curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-zSs
 Use `activationName` to target specific workflow instances:
 
 ```bash
-curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc123&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&activationName=instance-1&participantId=customer@example.com" \
+curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc123&agentName=WebhookTestAgent&workflowName=Integrator%20Workflow&webhookName=OrderCompleted&activationName=instance-1&participantId=customer@example.com" \
   -H "Content-Type: application/json" \
   -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
 ```
@@ -129,7 +131,7 @@ curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc
 ##### With Scope and Authorization
 
 ```bash
-curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc123&agentName=WebhookTestAgent&workflowName=Integrator&webhookName=OrderCompleted&scope=tenant-123&authorization=Bearer-token&participantId=customer@example.com" \
+curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc123&agentName=WebhookTestAgent&workflowName=Integrator%20Workflow&webhookName=OrderCompleted&scope=tenant-123&authorization=Bearer-token&participantId=customer@example.com" \
   -H "Content-Type: application/json" \
   -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
 ```
@@ -141,7 +143,7 @@ curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc
 3. **Query Parameters**:
    - `apikey`: `sk-Xnai-abc123`
    - `agentName`: `WebhookTestAgent`
-   - `workflowName`: `Integrator`
+   - `workflowName`: `Integrator Workflow`
    - `webhookName`: `OrderCompleted`
    - `participantId`: `customer@example.com`
    - `activationName` (optional): `instance-1`
