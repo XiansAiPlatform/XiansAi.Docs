@@ -129,60 +129,6 @@ This hierarchy enables powerful conversation organization: a single tenant can h
 
 Users can interact with agents across different conversation threads, with full history and context automatically managed.
 
-## Agent-Agent Collaboration
-
-*Part of: Business Process Automation*
-
-The control plane orchestrates multiple agents working together to solve complex business problems through the Agent-to-Agent (A2A) protocol and workflow coordination.
-
-Complex agentic systems often require multiple specialized agents collaborating as a team - one agent conversing with users, another analyzing data, one searching and reading the web, another making decisions. Xians enables sophisticated multi-agent architectures through two key mechanisms:
-
-**Multi-Workflow Agents**: A single agent can contain multiple specialized workflows, each handling a specific responsibility (conversation, research, analysis, decision-making). These workflows operate as a coordinated team behind a unified agent interface.
-
-**Agent-to-Agent Protocol (A2A)**: Agents communicate with each other using Xians' A2A protocol SDK, which provides in-process communication for speed and resource optimization. Messages are routed, context is shared, and results are aggregated automatically.
-
-```mermaid
-graph TB
-    U[User] -->|Message| A1[Customer Support Agent]
-    
-    subgraph A1_Team[Customer Support Agent - Multi-Workflow]
-        A1W1[Conversation Workflow]
-        A1W2[Analysis Workflow]
-        A1W3[Action Workflow]
-    end
-    
-    A1 --> A1W1
-    A1W1 -->|A2A Protocol| A1W2
-    A1W2 -->|A2A Protocol| A1W3
-    
-    A1W3 -->|A2A Protocol| A2[Knowledge Agent]
-    A1W3 -->|A2A Protocol| A3[Data Agent]
-    
-    subgraph A2_Team[Knowledge Agent - Multi-Workflow]
-        A2W1[Search Workflow]
-        A2W2[RAG Workflow]
-    end
-    
-    A2 --> A2W1
-    A2W1 --> A2W2
-    A2W2 -->|Results| A1W3
-    A3 -->|Results| A1W3
-    
-    A1W3 --> A1W1
-    A1W1 -->|Response| U
-    
-    style A1 fill:#538cfc,stroke:#333,stroke-width:3px,color:#fff
-    style A2 fill:#41c18a,stroke:#333,stroke-width:3px,color:#fff
-    style A3 fill:#e74c3c,stroke:#333,stroke-width:3px,color:#fff
-    style A1W1 fill:#7fb3ff,stroke:#333,stroke-width:1px,color:#000
-    style A1W2 fill:#7fb3ff,stroke:#333,stroke-width:1px,color:#000
-    style A1W3 fill:#7fb3ff,stroke:#333,stroke-width:1px,color:#000
-    style A2W1 fill:#6dd5a5,stroke:#333,stroke-width:1px,color:#000
-    style A2W2 fill:#6dd5a5,stroke:#333,stroke-width:1px,color:#000
-```
-
-This architecture enables building sophisticated agent teams where each agent specializes in a domain (customer support, data analysis, web research) and each workflow within an agent handles a specific task type.
-
 ## Human-in-the-Loop
 
 *Part of: Business Process Automation*
@@ -370,7 +316,7 @@ Track agent work across **technical** (tokens, API calls), **business** (approva
 - **Automatic context**: Every metric includes tenant, user, workflow, and agent attribution automatically
 - **Flexible tracking**: Track any metric with any label - tokens, business outcomes, performance data
 - **Universal API**: Same metrics API works in workflows, activities, and message handlers
-- **Smart routing**: A2A-aware and workflow-aware with automatic determinism handling
+- **Smart routing**: Workflow-aware with automatic determinism handling
 - **Custom correlation**: Link metrics to your external systems with custom identifiers
 
 **Common patterns:**

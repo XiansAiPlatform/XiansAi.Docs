@@ -50,7 +50,6 @@ The ACP sits **between your agents and the external world** - mediating all inte
 
 - Route messages between users and agents through conversation APIs
 - Handle webhook events from external systems to trigger workflows
-- Coordinate multi-agent collaboration for A2A
 - Manage integrations with third-party platforms and services
 
 **Provide Agent Utilities:**

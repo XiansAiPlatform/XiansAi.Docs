@@ -16,7 +16,7 @@ graph TB
     end
     U[Users] <-->|Messaging| W
     E[External Systems] <-->|Webhooks| W
-    O[Other Agents] <-->|A2A| W
+    O[Other Agents] <-->|Cross-Agent Workflows| W
     T[Time] -->|Schedules| W
     H[Humans] <-->|HITL Tasks| W
 ```
@@ -58,7 +58,6 @@ graph TB
 | ---- | ----------------- |
 | [Workflows](workflows.md) | Starting and communicating with Temporal workflows |
 | [Cross-Agent Workflows](cross-agent-workflows.md) | Calling workflows that belong to other agents |
-| [Agent-to-Agent (A2A)](A2A.md) | Direct messaging between agents |
 
 ### Operations
 
@@ -78,15 +77,15 @@ sequenceDiagram
     participant W as Workflow
     participant K as Knowledge
     participant D as Document DB
-    participant A2A as Other Agent
+    participant O as Other Agent
     participant H as Human
     participant M as Messaging
 
     S->>W: Trigger daily content check
     W->>K: Fetch instructions
     W->>D: Get pending content items
-    W->>A2A: Delegate analysis
-    A2A-->>W: Return analysis
+    W->>O: Delegate analysis (Cross-Agent Workflow)
+    O-->>W: Return analysis
     W->>H: Create approval task (HITL)
     H-->>W: Approve with edits
     W->>M: Notify user of publication
@@ -96,6 +95,6 @@ sequenceDiagram
 1. **Schedule** triggers the workflow every morning — no human needed to start it.
 2. **Knowledge** provides instructions that can be updated without redeploying code.
 3. **Document DB** holds the content items being processed.
-4. **A2A** delegates analysis to a specialized agent.
+4. **Cross-Agent Workflows** delegates analysis to a specialized agent.
 5. **HITL** pauses for human approval before anything is published.
 6. **Messaging** notifies stakeholders of the outcome.

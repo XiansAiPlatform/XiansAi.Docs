@@ -32,7 +32,7 @@ Build a few first agents and learn core concepts:
 For example,
 
 - Agent with tools, MCPs
-- Agent with Custom Workflows (Scheduling, A2A Communication)
+- Agent with Custom Workflows (Scheduling, Cross-Agent Workflows)
 - Etc.
 
 ---

@@ -1,6 +1,6 @@
 # Making Agents Descriptive
 
-A bare `Name = "SupportBot"` tells nobody what the agent does, when to call it, who built it, or how to start a conversation with it. Operators staring at a list of 40 agents in the Studio — and *other agents* discovering this one over A2A — need more than that.
+A bare `Name = "SupportBot"` tells nobody what the agent does, when to call it, who built it, or how to start a conversation with it. Operators staring at a list of 40 agents in the Studio need more than that.
 
 Every field on `XiansAgentRegistration` becomes part of the agent's public face in Agent Studio. Fill them in at registration time:
 
@@ -36,12 +36,12 @@ var xiansAgent = xiansPlatform.Agents.Register(new()
 
 | Field | Type | What it powers in the Studio |
 | --- | --- | --- |
-| `Name` | `string?` | The agent's identity — shown everywhere (lists, chat headers, A2A directory). Keep it short and stable; it's also used for routing. |
-| `Summary` | `string?` | One-liner shown in the agent list and in the A2A picker. **This is what other agents' LLMs see first** when deciding whether to call you — make it accurate. |
+| `Name` | `string?` | The agent's identity — shown everywhere (lists, chat headers). Keep it short and stable; it's also used for routing. |
+| `Summary` | `string?` | One-liner shown in the agent list. **This is what operators see first** when deciding whether to use you — make it accurate. |
 | `Description` | `string?` | Long-form writeup on the agent detail page. Cover capabilities, inputs, outputs, and known limits. Multi-line is fine. |
 | `Version` | `string?` | Surfaced in the Studio header and in run logs. Use semver so operators can correlate behavior with deploys. |
 | `Author` | `string?` | Team or person responsible — shown on the detail page and used for routing alerts. |
-| `Category` | `string?` | Groups the agent in the Studio's category browser and filters in the A2A directory. |
+| `Category` | `string?` | Groups the agent in the Studio's category browser. |
 | `IsTemplate` | `bool` | Marks the agent as a **template** other tenants/users can clone. Templates show up in the Studio's template gallery. |
 | `EnableTasks` | `bool?` | Auto-configures HITL task workflow support. Leave `null` to inherit the platform default (`false`); set explicitly when you want the answer to be obvious from the registration call. |
 | `SamplePrompts` | `IReadOnlyList<string>?` | Renders as the **starter chips** in the chat surface. Good prompts dramatically improve first-message quality and discoverability. |
