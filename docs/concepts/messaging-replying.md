@@ -144,11 +144,14 @@ var recent = await context.GetChatHistoryAsync(page: 1, pageSize: 10);
 
 Avoid fetching very large pages in real-time handlers; a small `pageSize` (5–20) is almost always enough.
 
-## Hints and Metadata
+## Hints, Task IDs, and Metadata
 
 ```csharp
-// Last hint provided for this conversation (user intent/context)
-var lastHint = await context.GetLastHintAsync();
+// Hint from the incoming message (user intent / routing context)
+var hint = context.Message.Hint;
+
+// Last HITL task linked to this conversation (see Human-in-the-Loop)
+var lastTaskId = await context.GetLastTaskIdAsync();
 
 // Metadata set internally by the platform — never comes from the user
 if (context.Metadata?.TryGetValue("priority", out var priority) == true && priority == "high")

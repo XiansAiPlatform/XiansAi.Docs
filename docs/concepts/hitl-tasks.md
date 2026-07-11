@@ -45,7 +45,7 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
 var taskHandle = await XiansContext.CurrentAgent.Tasks.StartTaskAsync(
     new TaskWorkflowRequest
     {
-        TaskId = $"order-{orderId}",
+        TaskName = $"order-{orderId}",                     // optional; defaults to a GUID
         Title = "Review High-Value Order",
         Description = $"Order for ${amount} requires approval",
         DraftWork = orderDetails,                          // give the reviewer context
@@ -57,7 +57,7 @@ var result = await XiansContext.CurrentAgent.Tasks.GetResultAsync(taskHandle);
 
 if (result.TimedOut)
 {
-    await HandleTimeout(result.TaskId);
+    await HandleTimeout();
     return;
 }
 
@@ -111,34 +111,33 @@ else if (result.PerformedAction == "reject")
 
 No timeout specified means the task waits indefinitely. Always check `TimedOut` before reading `PerformedAction`.
 
-## Connecting Tasks to Conversations: The Hint Pattern
+## Connecting Tasks to Conversations
 
-Reviewers shouldn't need a separate admin console — they can handle tasks **through chat** with your conversational agent. The link between a task and a conversation is a **message hint**:
+Reviewers shouldn't need a separate admin console — they can handle tasks **through chat** with your conversational agent. Link the task with the `taskId` parameter when sending a message, then reconstruct it with `GetLastTaskIdAsync()`:
 
 ```mermaid
 graph LR
     W[Workflow] -->|1. creates task| T[Task]
-    W -->|2. sends message with<br/>task ID as hint| C[Conversation]
-    A[Conversational agent] -->|3. reads hint,<br/>loads HitlTask| T
+    W -->|2. sends message with<br/>taskId = handle.Id| C[Conversation]
+    A[Conversational agent] -->|3. GetLastTaskIdAsync,<br/>loads HitlTask| T
     H[Human] -->|4. decides in chat| A
     A -->|5. performs action| T
     T -->|6. workflow resumes| W
 ```
 
 ```csharp
-// Workflow side: notify the user, linking the task via hint
+// Workflow side: notify the user, linking the task via taskId
 await XiansContext.Messaging.SendChatAsWorkflowAsync(
-    "Supervisor Workflow",
-    userId,
-    "I found a high-value order. Please review it.",
+    builtinWorkflowName: "Supervisor Workflow",
+    text: "I found a high-value order. Please review it.",
     scope: orderId,
-    hint: taskHandle.Id);
+    taskId: taskHandle.Id);
 ```
 
 ```csharp
-// Agent side: reconstruct the task from the hint and act on it
-var taskWorkflowId = await context.GetLastHintAsync();
-var task = await HitlTask.FromWorkflowIdAsync(taskWorkflowId);
+// Agent side: reconstruct the task and act on it
+var taskWorkflowId = await context.GetLastTaskIdAsync();
+var task = await HitlTask.FromWorkflowIdAsync(taskWorkflowId!);
 
 var info = await task.GetInfoAsync();          // title, status, available actions, draft
 await task.PerformActionAsync("approve", "Verified by support team");
@@ -148,7 +147,7 @@ await task.ApproveAsync("Looks good!");
 await task.RejectAsync("Missing required documentation");
 ```
 
-`HitlTask` also supports `UpdateDraftAsync(draft)` / `GetDraftAsync()` for collaboratively editing the work item, and works outside workflows too (webhooks, admin tools).
+`HitlTask` also supports `UpdateDraftAsync(draft)`, `GetInitialWorkAsync()` / `GetFinalWorkAsync()`, and works outside workflows too (webhooks, admin tools).
 
 ### Exposing tasks as AI tools
 
@@ -160,8 +159,8 @@ public async Task<string> PerformAction(
     [Description("The action to perform (e.g., approve, reject)")] string action,
     [Description("Optional comment for the action")] string? comment = null)
 {
-    var taskId = await _context.GetLastHintAsync();
-    var task = await HitlTask.FromWorkflowIdAsync(taskId);
+    var taskId = await _context.GetLastTaskIdAsync();
+    var task = await HitlTask.FromWorkflowIdAsync(taskId!);
     await task.PerformActionAsync(action, comment);
     return $"Task action '{action}' performed successfully.";
 }
@@ -208,7 +207,7 @@ public class OrderWorkflow
 
 ## Task Lifecycle: Surviving the Parent
 
-By default, a task is abandoned if its parent workflow terminates. Set `SurviveParentClose = true` when the decision must be recorded regardless — independent approvals, audit trails, decoupled processes:
+By default (`SurviveParentClose = false`), a task is **terminated** if its parent workflow closes. Set `SurviveParentClose = true` when the decision must be recorded regardless — independent approvals, audit trails, decoupled processes:
 
 ```csharp
 new TaskWorkflowRequest
@@ -227,5 +226,5 @@ new TaskWorkflowRequest
 - **Domain-specific actions** — `ship`, `refund`, not `initiateShippingProcess`. Handle every action in your workflow logic.
 - **Give reviewers context** — pre-populate `DraftWork` and write meaningful titles/descriptions.
 - **Treat timeouts as business logic** — decide what "no answer" means (escalate? auto-approve?), and check `TimedOut` first.
-- **Always link via hints** so users can manage tasks in conversation.
+- **Always link via `taskId`** so users can manage tasks in conversation with `GetLastTaskIdAsync()`.
 - **Remind before timeout** — a [scheduled workflow](scheduling.md) can nudge reviewers on pending tasks.

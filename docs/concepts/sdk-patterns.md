@@ -5,8 +5,7 @@
 A common frustration with large SDKs is not knowing *where* to find an operation — is replying to a message on the agent? The workflow? Some global helper? Xians avoids this by following one rule: **every operation lives on its logical owner**.
 
 - A *reply* belongs to the **message** being handled.
-- *Knowledge* and *documents* belong to the **agent**.
-- *Schedules* belong to the **workflow**.
+- *Knowledge*, *documents*, *schedules*, *tasks*, *secrets*, and *metrics* belong to the **agent**.
 - Anything that crosses these boundaries (messaging any user, starting workflows) lives on the global **`XiansContext`**.
 
 Once you internalize this rule, you can guess where any API lives without reading docs.
@@ -17,8 +16,7 @@ Once you internalize this rule, you can guess where any API lives without readin
 graph TD
     Q{What are you doing?}
     Q -->|Responding to the message<br/>you're handling| M["context.ReplyAsync(...)<br/><b>UserMessageContext</b>"]
-    Q -->|Reading/writing agent data<br/>knowledge, documents| A["XiansContext.CurrentAgent<br/><b>Agent</b>"]
-    Q -->|Managing this workflow<br/>schedules, identity| W["XiansContext.CurrentWorkflow<br/><b>Workflow</b>"]
+    Q -->|Reading/writing agent data<br/>knowledge, documents, schedules| A["XiansContext.CurrentAgent<br/><b>Agent</b>"]
     Q -->|Reaching outside<br/>other users, workflows| X["XiansContext.Messaging / Workflows<br/><b>XiansContext</b>"]
 ```
 
@@ -27,11 +25,10 @@ graph TD
 | Pattern | Owns | Available In | Examples |
 |---------|------|--------------|----------|
 | `UserMessageContext` | The message being handled | Message handlers only | `context.ReplyAsync()`, `context.GetChatHistoryAsync()` |
-| `XiansContext.CurrentAgent` | Agent-level data | All workflows | `Knowledge.SearchAsync()`, `Documents.SaveAsync()` |
-| `XiansContext.CurrentWorkflow` | Workflow-level operations | All workflows | `Schedules.Create()`, `WorkflowId` |
+| `XiansContext.CurrentAgent` | Agent-level data & schedules | All workflows | `Knowledge.GetAsync()`, `Documents.SaveAsync()`, `Schedules.Create<T>()` |
 | `XiansContext` (static) | Cross-cutting orchestration | All workflows | `Messaging.SendChatAsync()`, `Workflows.StartAsync<T>()` |
 
-## The Four Patterns in Code
+## The Patterns in Code
 
 ### 1. UserMessageContext — respond to *this* message
 
@@ -49,10 +46,10 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 
 ### 2. CurrentAgent — the agent's data
 
-Knowledge and documents belong to the agent as a whole, shared across all its workflows.
+Knowledge, documents, schedules, tasks, secrets, and metrics belong to the agent as a whole, shared across all its workflows.
 
 ```csharp
-var results = await XiansContext.CurrentAgent.Knowledge.SearchAsync("query");
+var knowledge = await XiansContext.CurrentAgent.Knowledge.GetAsync("system-instructions");
 
 await XiansContext.CurrentAgent.Documents.SaveAsync(new Document
 {
@@ -60,37 +57,29 @@ await XiansContext.CurrentAgent.Documents.SaveAsync(new Document
     Key = "user-123",
     Content = JsonSerializer.SerializeToElement(data)
 });
-```
 
-### 3. CurrentWorkflow — this workflow's operations
-
-Schedules and identity are per-workflow concerns.
-
-```csharp
-await XiansContext.CurrentWorkflow.Schedules!
-    .Create("daily-report")
+await XiansContext.CurrentAgent.Schedules
+    .Create<DailyReportWorkflow>("daily-report")
     .Daily(hour: 9, minute: 0)
-    .StartAsync();
-
-var workflowId = XiansContext.CurrentWorkflow.WorkflowId;
+    .CreateIfNotExistsAsync();
 ```
 
-### 4. XiansContext — reaching beyond your boundary
+### 3. XiansContext — reaching beyond your boundary
 
 Anything that touches *other* users or workflows.
 
 ```csharp
 // Message any user (not just the one you're replying to)
 await XiansContext.Messaging.SendChatAsync(
-    participantId: "user-456",
-    text: "Your order shipped!");
+    text: "Your order shipped!",
+    participantId: "user-456");
 
 // Start a sub-workflow
 await XiansContext.Workflows.StartAsync<NotificationWorkflow>(
-    idPostfix: "notify-123",
-    args: new object[] { "user-123", "message" });
+    new object[] { "user-123", "message" },
+    uniqueKey: "notify-123");
 ```
 
 ## Rule of Thumb
 
-> If the operation is about the **message**, use the handler's `context`. If it's about **your agent's data**, use `CurrentAgent`. If it's about **this workflow**, use `CurrentWorkflow`. Everything else is `XiansContext`.
+> If the operation is about the **message**, use the handler's `context`. If it's about **your agent's data** (including schedules), use `CurrentAgent`. Everything else is `XiansContext`.

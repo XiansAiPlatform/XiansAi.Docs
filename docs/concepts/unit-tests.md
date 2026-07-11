@@ -93,13 +93,14 @@ public record GreetingConfig(string Greeting, string Punctuation);
 
 ## Step 3: The Test Fixture
 
-The fixture initializes Xians in Local Mode once and is shared across test classes:
+The fixture initializes Xians in Local Mode once and is shared across test classes. Prefer `XiansTestFixture` (or call `TestCleanup.ResetAllStaticState()`) so static registries don't leak between tests:
 
 ```csharp
 using Temporalio.Testing;
 using Xians.Lib.Agents.Core;
+using Xians.Lib.Common.Testing;
 
-public class EnvFixture : IDisposable, Xunit.IAsyncLifetime
+public class EnvFixture : XiansTestFixture, Xunit.IAsyncLifetime
 {
     public async Task InitializeAsync()
     {
@@ -118,7 +119,7 @@ public class EnvFixture : IDisposable, Xunit.IAsyncLifetime
         return (env, $"task-queue-{Guid.NewGuid()}");
     }
 
-    public void Dispose() => GC.SuppressFinalize(this);
+    public Task DisposeAsync() => Task.CompletedTask;
 }
 ```
 
@@ -151,6 +152,7 @@ public class GreetingWorkflowTests : IClassFixture<EnvFixture>, IDisposable
             }
                 .AddWorkflow<GreetingWorkflow>()
                 .AddAllActivities(new GreetingActivities()));
+        // LoggerFactory above is Xians.Lib.Common.Infrastructure.LoggerFactory
     }
 
     [Fact]
@@ -188,7 +190,7 @@ Your test project references the agent project, so the agent DLL — and its emb
 ## Checklist
 
 - [ ] `<EmbeddedResource>` entries for knowledge files in the **agent** `.csproj`
-- [ ] `XiansPlatform.InitializeForTestsAsync()` in the fixture
+- [ ] `XiansPlatform.InitializeForTestsAsync()` in the fixture (prefer `XiansTestFixture` for static cleanup)
 - [ ] Agent registered and `UploadWorkflowDefinitionsAsync()` called
 - [ ] Time-skipping env via `WorkflowEnvironment.StartTimeSkippingAsync()`
 - [ ] `TemporalWorker` with your workflow + activities

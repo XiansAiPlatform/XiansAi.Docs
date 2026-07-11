@@ -42,7 +42,9 @@ var agent = xiansPlatform.Agents.Register(new XiansAgentRegistration
     Name = "MyAgent",
     Version = "1.0.0",
     Description = "My intelligent agent",
-    IsTemplate = true  // system-scoped template, deployable to any tenant
+    IsTemplate = true,   // system-scoped template, deployable to any tenant
+    EnableTasks = true,  // opt-in HITL task worker
+    SamplePrompts = ["Summarize this document", "What are my open orders?"]
 });
 ```
 
@@ -75,16 +77,25 @@ chatWorkflow.OnUserDataMessage(async (context) =>
 {
     await ProcessData(context.Message.Data);
 });
+
+// Webhooks typically use DefineIntegrator() → "Integrator Workflow"
+var integrator = agent.Workflows.DefineIntegrator();
+integrator.OnWebhook(async (context) =>
+{
+    context.Respond(new { status = "ok" });
+});
 ```
 
 Each handler receives a `UserMessageContext` — see [Messaging – Reply](messaging-replying.md) for everything you can do with it.
 
 ## Defining a Custom Workflow
 
-A custom workflow is a standard Temporal workflow class registered with your agent. You get the full Temporal toolbox: activities, signals, queries, timers, and child workflows.
+A custom workflow is a standard Temporal workflow class registered with your agent. The `[Workflow]` attribute **must** use the `"AgentName:WorkflowName"` format (exactly one colon):
 
 ```csharp
-var customWorkflow = agent.Workflows.DefineCustom<MyCustomWorkflow>();
+// Activable = true lets users start this workflow from Studio with input parameters
+var customWorkflow = agent.Workflows.DefineCustom<MyCustomWorkflow>(
+    new WorkflowOptions { Activable = true });
 
 // Register the activities the workflow calls
 customWorkflow.AddActivity<MyActivity>();       // new instance per worker
@@ -94,7 +105,7 @@ customWorkflow.AddActivity(new SharedActivity()); // shared instance
 ```csharp
 using Temporalio.Workflows;
 
-[Workflow]
+[Workflow("MyAgent:My Custom Workflow")]
 public class MyCustomWorkflow
 {
     [WorkflowRun]
@@ -121,27 +132,21 @@ public class MyCustomWorkflow
 await agent.RunAllAsync(cancellationToken);
 ```
 
-This starts workers for every defined workflow and keeps them polling for work until cancelled.
+This uploads workflow definitions, starts workers for every defined workflow, and keeps them polling for work until cancelled.
 
 ## Common Patterns
 
 ### Self-Scheduling
 
-A workflow can ensure its own recurring schedule exists — useful for "run every N hours" jobs that bootstrap themselves on first run:
+A workflow can ensure its own recurring schedule exists — useful for "run every N hours" jobs that bootstrap themselves on first run. Schedules live on the **agent**:
 
 ```csharp
-try
-{
-    await XiansContext.CurrentWorkflow.Schedules!
-        .Create($"recurring-{taskId}")
-        .WithIntervalSchedule(TimeSpan.FromHours(intervalHours))
-        .WithInput(new object[] { taskId, intervalHours })
-        .StartAsync();
-}
-catch (ScheduleAlreadyExistsException)
-{
-    // Already scheduled — nothing to do
-}
+await XiansContext.CurrentAgent.Schedules
+    .Create<MyRecurringWorkflow>($"recurring-{taskId}")
+    .WithIntervalSchedule(TimeSpan.FromHours(intervalHours))
+    .WithInput(taskId, intervalHours)
+    .SkipIfRunning()
+    .CreateIfNotExistsAsync();  // idempotent — safe on every run
 ```
 
 See [Scheduling](scheduling.md) for the full schedule API.
@@ -153,16 +158,16 @@ Split large processes into smaller workflows. Fire-and-forget with `StartAsync`,
 ```csharp
 // Fire and forget
 await XiansContext.Workflows.StartAsync<ChildWorkflow>(
-    idPostfix: taskId,
-    args: new object[] { "param1" });
+    new object[] { "param1" },
+    uniqueKey: taskId);
 
 // Wait for the result
 var result = await XiansContext.Workflows.ExecuteAsync<ChildWorkflow, string>(
-    idPostfix: "process",
-    args: new object[] { data });
+    new object[] { data },
+    uniqueKey: "process");
 ```
 
-The child's workflow ID becomes `{workflowType}-{idPostfix}` (a GUID is used if `idPostfix` is null). Starting a duplicate ID throws `WorkflowAlreadyStartedException`.
+Workflow IDs follow `{tenantId}:{agentName}:{workflowName}[:{idPostfix}][:{uniqueKey}]`. Starting a duplicate ID throws `WorkflowAlreadyStartedException`. See [Workflows](workflows.md).
 
 ## API Reference
 
@@ -171,20 +176,19 @@ The child's workflow ID becomes `{workflowType}-{idPostfix}` (a GUID is used if 
 | Member | Description |
 |--------|-------------|
 | `Name`, `Version`, `Description` | Identity metadata |
-| `IsTemplate` | Whether the agent is a multi-tenant template |
-| `Workflows`, `Knowledge`, `Documents` | Owned resource collections |
+| `SystemScoped` | Whether the agent was registered as a template (`IsTemplate`) |
+| `Workflows`, `Knowledge`, `Documents`, `Schedules`, `Tasks`, `Secrets`, `Metrics` | Owned resource collections |
 | `GetBuiltInWorkflow(string? name)` | Get a built-in workflow by name |
 | `GetCustomWorkflow<T>()` | Get a custom workflow by type |
 | `UploadWorkflowDefinitionsAsync()` | Push workflow definitions to the server |
-| `RunAllAsync(CancellationToken)` | Run all registered workflows |
+| `RunAllAsync(CancellationToken)` | Upload defs and run all registered workflows |
 
 ### Workflow
 
 | Member | Description |
 |--------|-------------|
-| `WorkflowType` | Unique type identifier (prefixed with agent name) |
-| `Workers` | Number of worker instances (default 100) |
-| `Schedules` | Schedule management for this workflow |
+| `WorkflowType` | Unique type identifier (`AgentName:WorkflowName`) |
+| `Workers` | Max concurrent workflow tasks (default 100) |
 | `AddActivity<T>()` / `AddActivity(object)` | Register activities |
-| `OnUserChatMessage(...)` / `OnUserDataMessage(...)` / `OnFileUpload(...)` | Message handlers (built-in only) |
+| `OnUserChatMessage(...)` / `OnUserDataMessage(...)` / `OnFileUpload(...)` / `OnWebhook(...)` | Message handlers (built-in only) |
 | `RunAsync(CancellationToken)` | Start this workflow's workers |

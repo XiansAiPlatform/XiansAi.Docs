@@ -36,7 +36,7 @@ conversationalWorkflow.OnUserChatMessage(async (context) =>
 });
 ```
 
-Progress messages are intermediate — they appear before the final `ReplyAsync` and don't replace it. Pass a string or object as `data`; use the optional `content` parameter for accompanying text.
+Progress messages are intermediate — they appear before the final `ReplyAsync` and don't replace it. Both methods take `(object data, string? content = null)`: pass a string or object as `data`; use optional `content` for accompanying text.
 
 ## Related
 

@@ -20,7 +20,7 @@ graph LR
 |----------|---------|---------|
 | **Identity** | `WorkflowId`, `TenantId`, `GetParticipantId()`, `GetTaskQueue()` | Knowing where you are |
 | **Safe identity** | `SafeWorkflowId`, `SafeAgentName`, ... | Logging (never throws) |
-| **Current instances** | `CurrentAgent`, `CurrentWorkflow` | Agent data, schedules |
+| **Current instances** | `CurrentAgent`, `CurrentWorkflow` | Agent data, schedules, workflow metadata |
 | **Helpers** | `Workflows`, `Messaging` | Starting workflows, messaging users |
 | **Registry** | `GetAgent()`, `GetWorkflow()`, `TryGet...()` | Finding other registered resources |
 
@@ -48,12 +48,13 @@ _logger.LogInfo("Workflow: {0}", XiansContext.SafeWorkflowId ?? "N/A");
 These give you the resources owned by the agent/workflow your code is running in (see [SDK Patterns](sdk-patterns.md) for the ownership model):
 
 ```csharp
-// Agent-owned: knowledge and documents
+// Agent-owned: knowledge, documents, schedules
 var config = await XiansContext.CurrentAgent.Knowledge.GetAsync("config-key");
 var docs   = await XiansContext.CurrentAgent.Documents.QueryAsync(new DocumentQuery());
+var schedule = await XiansContext.CurrentAgent.Schedules.GetAsync("my-schedule");
 
-// Workflow-owned: schedules and identity
-var schedule = await XiansContext.CurrentWorkflow.Schedules.GetAsync("my-schedule");
+// Current workflow metadata
+var workflowType = XiansContext.CurrentWorkflow.WorkflowType;
 ```
 
 ## Helpers for Doing Things
@@ -66,15 +67,21 @@ await XiansContext.Workflows.StartAsync<MyWorkflow>(args, uniqueKey);
 var result = await XiansContext.Workflows.ExecuteAsync<MyWorkflow, string>(args, uniqueKey);
 
 var handle = await XiansContext.Workflows.GetWorkflowHandleAsync<MyWorkflow>(idPostfix);
-await handle.SignalAsync(wf => wf.ProcessSignal, data);
-var status = await handle.QueryAsync(wf => wf.GetStatus);
+await handle.SignalAsync(wf => wf.ProcessSignalAsync(data));
+var status = await handle.QueryAsync(wf => wf.GetStatus());
 ```
 
 ### Messaging — reach any user
 
 ```csharp
-await XiansContext.Messaging.SendChatAsync("userId123", "Your order shipped!");
-await XiansContext.Messaging.SendDataAsync("userId123", "Order data", orderObject);
+await XiansContext.Messaging.SendChatAsync(
+    text: "Your order shipped!",
+    participantId: "userId123");
+
+await XiansContext.Messaging.SendDataAsync(
+    text: "Order data",
+    data: orderObject,
+    participantId: "userId123");
 ```
 
 See [Proactive Messaging](messaging-proactive.md).
@@ -114,10 +121,10 @@ var custom = XiansContext.GetWorkflowTypeFor(typeof(MyCustomWorkflow));
 | `WorkflowId` | `string` | Yes | Current workflow ID |
 | `TenantId` | `string` | Yes | Current tenant ID |
 | `InWorkflow` / `InActivity` / `InWorkflowOrActivity` | `bool` | No | Context checks |
-| `SafeWorkflowId`, `SafeWorkflowRunId`, `SafeWorkflowType`, `SafeAgentName` | `string?` | No | Null-safe identity |
+| `SafeWorkflowId`, `SafeWorkflowRunId`, `SafeWorkflowType`, `SafeAgentName`, `SafeTenantId`, `SafeParticipantId` | `string?` | No | Null-safe identity |
 | `CurrentAgent` | `XiansAgent` | Yes | Current agent instance |
 | `CurrentWorkflow` | `XiansWorkflow` | Yes | Current workflow instance |
-| `Workflows` / `Messaging` | helpers | No | Operation helpers |
+| `Workflows` / `Messaging` / `Metrics` | helpers | No | Operation helpers |
 
 ### Methods
 

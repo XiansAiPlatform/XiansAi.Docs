@@ -102,7 +102,7 @@ await XiansContext.Messaging.SendDataAsSupervisorAsync(
 
 ## Method Summary
 
-All six methods take the same optional `data`, `scope`, `hint`, `taskId`, and `participantId` parameters:
+All send methods take the same optional `data`, `scope`, `hint`, `taskId`, and `participantId` parameters:
 
 | Method | Sends as | Primary content |
 |--------|----------|-----------------|
@@ -112,6 +112,8 @@ All six methods take the same optional `data`, `scope`, `hint`, `taskId`, and `p
 | `SendDataAsWorkflowAsync(name, text, data, ...)` | Named built-in workflow | Data |
 | `SendChatAsSupervisorAsync(text, ...)` | Supervisor Workflow | Text |
 | `SendDataAsSupervisorAsync(text, data, ...)` | Supervisor Workflow | Data |
+
+Supervisor also has `SendReasoningMessageAsSupervisorAsync` and `SendToolCallMessageAsSupervisorAsync` for progress-style messages outside a chat handler.
 
 ## Best Practices
 

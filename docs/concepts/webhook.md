@@ -56,14 +56,14 @@ Everything about the incoming request is on `context.Webhook`:
 ```csharp
 integratorWorkflow.OnWebhook((context) =>
 {
-    if (context.Webhook.Payload is not string jsonString)
+    if (string.IsNullOrEmpty(context.Webhook.Payload))
     {
-        context.Response = WebhookResponse.BadRequest("Invalid payload format");
+        context.Response = WebhookResponse.BadRequest("Missing payload");
         return;
     }
 
-    var payload = JsonSerializer.Deserialize<OrderPayload>(jsonString);
-    Console.WriteLine($"Processing order {payload.OrderId} for ${payload.Amount}");
+    var payload = JsonSerializer.Deserialize<OrderPayload>(context.Webhook.Payload);
+    Console.WriteLine($"Processing order {payload!.OrderId} for ${payload.Amount}");
     context.Respond(new { accepted = true });
 });
 ```
@@ -148,16 +148,18 @@ integratorWorkflow.OnWebhook(async (context) =>
 });
 ```
 
-### Respond fast, process in the background
+### Accept fast, process in a workflow
 
-Webhook callers usually expect a quick acknowledgment. For long-running work, accept immediately and process asynchronously:
+Webhook callers usually expect a quick acknowledgment. For long-running work, accept immediately and start a durable workflow:
 
 ```csharp
 integratorWorkflow.OnWebhook(async (context) =>
 {
-    var payloadJson = context.Webhook.Payload as string;
+    var payloadJson = context.Webhook.Payload;
 
-    _ = Task.Run(() => ProcessLongRunningTaskAsync(payloadJson));
+    // Start a durable workflow instead of Task.Run — workflows must stay deterministic
+    await XiansContext.Workflows.StartAsync<ProcessOrderWorkflow>(
+        new object[] { payloadJson });
 
     context.Respond(new
     {

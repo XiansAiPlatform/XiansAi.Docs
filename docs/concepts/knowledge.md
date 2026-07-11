@@ -31,6 +31,12 @@ await agent.Knowledge.UploadEmbeddedResourceAsync(
     resourcePath: "Supervisor/supervisor-agent-prompt.md",
     knowledgeName: "Supervisor Agent Prompt",
     knowledgeType: "markdown");
+
+// Or upload a string directly
+await agent.Knowledge.UploadTextResourceAsync(
+    knowledgeName: "welcome-message",
+    content: "Hello! How can I help?",
+    knowledgeType: "text");
 ```
 
 Supported types: `"text"`, `"markdown"`, and `"json"`.

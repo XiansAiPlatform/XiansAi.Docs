@@ -16,7 +16,7 @@ The key insight: **a workflow that schedules itself is autonomous**. It controls
 ## Quick Start: A Self-Scheduling Workflow
 
 ```csharp
-[Workflow("Daily Report Workflow")]
+[Workflow("MyAgent:Daily Report Workflow")]
 public class DailyReportWorkflow
 {
     [WorkflowRun]
@@ -43,7 +43,7 @@ The workflow runs, does its work, and guarantees its own next run. That's the wh
 | Style | Methods | Example |
 |-------|---------|---------|
 | Time-based | `.Daily()`, `.Hourly()`, `.Weekdays()`, `.Weekly()`, `.Monthly()` | `.Daily(hour: 9, timezone: "America/New_York")` |
-| Interval | `.EverySeconds()`, `.EveryMinutes()`, `.EveryHours()`, `.EveryDays()` | `.EveryMinutes(15)` |
+| Interval | `.EverySeconds()`, `.EveryMinutes()`, `.EveryHours()`, `.EveryDays()` / `.WithIntervalSchedule(...)` | `.EveryMinutes(15)` |
 | Cron | `.WithCronSchedule(expr, timezone?)` | `.WithCronSchedule("0 9 * * 1-5", timezone: "America/New_York")` |
 | One-time | `.WithCalendarSchedule(dateTime, timezone?)` | `.WithCalendarSchedule(new DateTime(2026, 12, 25, 9, 0, 0))` |
 
@@ -73,15 +73,14 @@ Schedules can fire faster than workflows finish. Decide up front what happens:
 
 ## Creation Methods: Idempotent by Default
 
-Why three methods? Because self-scheduling workflows call the creation code on *every* run, so it must be safe to repeat:
+Self-scheduling workflows call the creation code on *every* run, so it must be safe to repeat:
 
 ```csharp
 .CreateIfNotExistsAsync()  // Returns existing or creates — idempotent (recommended)
 .CreateAsync()             // Throws ScheduleAlreadyExistsException if it exists — strict
-.RecreateAsync()           // Deletes existing, creates new — for config changes
 ```
 
-Use `CreateIfNotExistsAsync()` unless you specifically need strict failure (`CreateAsync`) or are changing the schedule's configuration (`RecreateAsync`).
+Use `CreateIfNotExistsAsync()` unless you specifically need strict failure (`CreateAsync`).
 
 ## Managing Schedules
 
@@ -89,7 +88,6 @@ Use `CreateIfNotExistsAsync()` unless you specifically need strict failure (`Cre
 var schedules = XiansContext.CurrentAgent.Schedules;
 
 var schedule = await schedules.GetAsync("my-schedule");
-bool exists  = await schedules.ExistsAsync("my-schedule");
 
 await schedule.PauseAsync("System maintenance");
 await schedule.UnpauseAsync("Maintenance complete");
@@ -104,35 +102,22 @@ await schedule.BackfillAsync(new[]
 });
 ```
 
-All of these also exist as by-ID overloads on the collection (e.g. `schedules.PauseAsync("my-schedule")`). For advanced Temporal features, `schedule.GetHandle()` returns the native Temporal handle.
+All of these also exist as by-name overloads on the collection (e.g. `schedules.PauseAsync("my-schedule")`). For advanced Temporal features, `schedule.GetHandle()` returns the native Temporal handle.
 
 ## Multi-Tenant Isolation
 
-Schedule IDs are automatically namespaced as `{tenantId}:{agentName}:{idPostfix}:{scheduleId}`, so:
+Schedule IDs are automatically namespaced as `{tenantId}:{agentName}:{idPostfix}:{scheduleName}`, so:
 
 - Tenants can't see or trigger each other's schedules.
 - The same agent code deployed to many tenants creates independent schedules per tenant.
 - No manual filtering or prefixing required.
-
-If you need extra uniqueness within an agent (e.g. per-user schedules), use a custom `idPostfix` with the non-generic overload:
-
-```csharp
-var workflowType = XiansContext.GetWorkflowTypeFor(typeof(SyncWorkflow));
-await XiansContext.CurrentAgent.Schedules
-    .Create("daily-sync", workflowType, idPostfix: "user123")
-    .Daily(hour: 9)
-    .CreateIfNotExistsAsync();
-
-// Retrieve with the same idPostfix
-var retrieved = await XiansContext.CurrentAgent.Schedules.GetAsync("daily-sync", idPostfix: "user123");
-```
 
 ## Common Patterns
 
 ### Per-entity schedules
 
 ```csharp
-[Workflow("Research Setup")]
+[Workflow("MyAgent:Research Setup")]
 public class ResearchSetupWorkflow
 {
     [WorkflowRun]
@@ -178,6 +163,7 @@ await schedule.UnpauseAsync("Ready to start maintenance");
 - **Always specify timezones** for time-based schedules — interval schedules don't need them.
 - **Use descriptive IDs** — `daily-sync-{company}`, not `schedule1`.
 - **Catch the specific exceptions** — they tell you exactly what went wrong.
+- **`[Workflow("AgentName:WorkflowName")]`** — custom workflows need the agent-prefixed type name.
 
 ## What's Next?
 
