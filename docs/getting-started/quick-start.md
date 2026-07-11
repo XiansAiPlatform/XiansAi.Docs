@@ -126,9 +126,11 @@ If your workflow is named 'Supervisor Workflow', Agent Studio by default picks t
 
 **IsTemplate Setting:**
 
-- **`IsTemplate = true`**: Adds the agent to the global **Agent Templates** library, making it available for any tenant admin to deploy. This option is only available if you're a **system administrator**.
+- **`IsTemplate = true`**: Adds the agent to the system-wide **Agent Templates** library, making it available for any tenant admin to deploy to their tenant. This option is only available if you're a **system administrator**.
   
-- **`IsTemplate = false`** (default): Immediately deploys the agent to your current tenant. Use this if you only have tenant-level permissions.
+- **`IsTemplate = false`** (default): Immediately deploys the agent to your current tenant's Agent Store. Use this if you only have tenant-level permissions.
+
+See [Understanding the Agent Lifecycle](#understanding-the-agent-lifecycle) below for how templates, deployed agents, and activated agents relate to each other.
 
 **Understanding Workflows:**
 
@@ -141,26 +143,46 @@ If your workflow is named 'Supervisor Workflow', Agent Studio by default picks t
 
 ## Step 3: Deploy and Chat with Your Agent
 
-### For System-Scoped Agents
+### Understanding the Agent Lifecycle
 
-If you registered your agent with `IsTemplate = true`, you'll find it in the **Agent Templates** section:
+Agents on the Xians platform move through **three levels**, from a system-wide definition down to a running instance:
+
+| Level | Scope | Where to Find It | Who Manages It |
+|-------|-------|------------------|----------------|
+| **1. Agent Templates** | System-wide | **System Admin → Templates** | System administrators |
+| **2. Deployed Agents** | Tenant | **Agent Settings → Agent Store** | Tenant administrators |
+| **3. Activated Agents** | Tenant (running) | **Agents** | Tenant users |
+
+#### Level 1: System-Scoped Agent Templates
+
+Agent templates are system-wide definitions available to every tenant. If you registered your agent with `IsTemplate = true`, it appears in the **Agent Templates** section under **System Admin**:
 
 ![Agent Templates](../assets/images/agent-templates.png)
 
-Tenant administrators can then deploy instances of this template to their tenants.
+Templates are not runnable by themselves — a tenant administrator must first deploy a template to make it available within a tenant.
 
-### For Tenant-Scoped Agents
+#### Level 2: Agents Deployed to a Tenant
 
-If you used `IsTemplate = false`, or after deploying a system template, your agent appears under **Deployed Agents**:
+When a template is deployed to a tenant (or when you register an agent directly with `IsTemplate = false`), it becomes available in that tenant's **Agent Store** under **Agent Settings**:
 
 ![Deployed Agents](../assets/images/deployed-agents.png)
+
+A deployed agent belongs to the tenant, but it is still just a catalog entry — it is not yet running or ready to chat.
+
+#### Level 3: Activated Agents
+
+Finally, an agent must be **activated** from the deployed agents in the store. Use the **Activate from Store** button on the **Agents** page. Activated agents are live, running instances that users can interact with:
+
+![Activated Agents](../assets/images/activated-agents.png)
+
+> **In summary:** A template (system-wide) is **deployed** to a tenant's Agent Store, and a deployed agent is **activated** to become a running agent users can chat with.
 
 ### Start a Conversation
 
 Now for the exciting part — talking to your agent!
 
 1. Navigate to **Conversations** in Agent Studio
-2. Select your deployed agent from the list
+2. Select your activated agent from the list
 3. Click the **+** button to create a new conversation
 4. Send a message and see it echoed back!
 

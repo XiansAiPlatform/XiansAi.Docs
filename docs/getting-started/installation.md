@@ -21,7 +21,7 @@ Get started with 99x hosted SaaS platform at [agentri.ai](https://agentri.ai).
 
 ## Option: Gture SaaS Platform
 
-Get started with 99x hosted SaaS platform at [agentri.ai](https://agentri.ai).
+Get started with Gture hosted SaaS platform at [gture.ai](https://agentic.gture.ai/).
 
 - [Agent Studio](https://agentic.gture.ai/dashboard)
 - **Obtain your API key** from the tenant settings page

@@ -17,11 +17,11 @@ The diagram above illustrates how Xians operates as a control plane in a typical
 
 As a control plane, Xians provides a **single point of governance and coordination** for your entire agent fleet:
 
-- **Multi-Tenant Governance**: Complete tenant isolation with centralized management - deploy agents across tenants from a single control point
-- **Business Process Orchestration**: Coordinate complex, long-running workflows with fault tolerance and automatic retries
-- **Unified Visibility**: Monitor health, performance, costs, and operations across all agents and tenants from one platform
+- **[Multi-Tenant Governance](../concepts/multitenancy.md)**: Complete tenant isolation with centralized management - deploy agents across tenants from a single control point
+- **[Business Process Orchestration](../concepts/workflows.md)**: Coordinate complex, long-running workflows with fault tolerance and automatic retries
+- **[Unified Visibility](../concepts/metrics.md)**: Monitor health, performance, costs, and operations across all agents and tenants from one platform
 - **Lifecycle Management**: Register, deploy, version, configure, and decommission agents centrally with template-based rollouts
-- **Knowledge Management**: Centralize prompts, configurations, and agent knowledge accessible to both code and Agent Studio
+- **[Knowledge Management](../concepts/knowledge.md)**: Centralize prompts, configurations, and agent knowledge accessible to both code and Agent Studio
 
 ### Direct Integration Option
 
@@ -47,21 +47,21 @@ The ACP sits **between your agents and the external world** - mediating all inte
 
 **Orchestrate External Interactions:**
 
-- Route messages between users and agents through conversation APIs
-- Handle webhook events from external systems to trigger workflows
-- Manage integrations with third-party platforms and services
+- Route messages between users and agents through [conversation APIs](../concepts/messaging-replying.md)
+- Handle [webhook events](../concepts/webhook.md) from external systems to trigger workflows
+- Manage integrations with third-party platforms like [Slack](../server/slack-integration.md) and [Microsoft Teams](../server/teams-integration.md)
 
 **Provide Agent Utilities:**
 
-- Tenant-scoped data storage for state and memory
-- Centralized prompt and knowledge management
-- Scheduling infrastructure for time-based automation
-- Conversation history with hierarchical organization
+- Tenant-scoped [data storage](../concepts/document-db.md) for state and memory, plus an encrypted [secret vault](../concepts/secret-vault.md)
+- Centralized [prompt and knowledge management](../concepts/knowledge.md)
+- [Scheduling](../concepts/scheduling.md) infrastructure for time-based automation
+- [Conversation history](../getting-started/chat-history.md) with hierarchical organization
 
 **Governance & Observability:**
 
 - Multi-tenant isolation with centralized policy enforcement
-- Real-time monitoring with logs, metrics, and distributed tracing
+- Real-time monitoring with [logs](../concepts/logging.md), [metrics](../concepts/metrics.md), and distributed tracing
 - Cost tracking across agents and tenants
 - Audit trails for compliance and debugging
 
@@ -69,7 +69,7 @@ The ACP sits **between your agents and the external world** - mediating all inte
 
 - Distributed networking and load balancing across agent workers
 - Fault tolerance with automatic retries and state recovery
-- Horizontal scalability with dynamic worker pools
+- [Horizontal scalability](../server/scaling.md) with dynamic worker pools
 - Network isolation (agents run in private subnets with no incoming ports)
 
 By handling these cross-cutting concerns, the control plane allows your agents to focus purely on business logic while the platform manages multi-tenancy, orchestration, scalability, monitoring, and infrastructure complexity.
