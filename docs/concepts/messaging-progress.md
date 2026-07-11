@@ -41,4 +41,4 @@ Progress messages are intermediate — they appear before the final `ReplyAsync`
 ## Related
 
 - [Replying to User Messages](messaging-replying.md) — `ReplyAsync`, `SendDataAsync`, and the rest of the response API
-- [Tool & Reasoning Logs in Studio](../studio/tool-reasoning-logs.md) — how these render in the Agent Studio UI
+- [Tool & Reasoning Logs in Studio](../studio/tool-reasoning-logs.md) — how these render in Agent Studio

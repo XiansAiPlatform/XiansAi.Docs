@@ -2,7 +2,7 @@
 
 ## Why Agents?
 
-When you build an AI application, you quickly accumulate more than just code: prompts, stored data, schedules, conversations, and credentials. An **Agent** is the unit that owns all of these. It gives your application an identity on the platform, so the server can isolate its resources per tenant, route messages to it, and manage it from the Studio UI.
+When you build an AI application, you quickly accumulate more than just code: prompts, stored data, schedules, conversations, and credentials. An **Agent** is the unit that owns all of these. It gives your application an identity on the platform, so the server can isolate its resources per tenant, route messages to it, and manage it from Agent Studio.
 
 ```mermaid
 graph TB

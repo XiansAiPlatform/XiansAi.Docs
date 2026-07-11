@@ -59,7 +59,7 @@ GET /api/v1/admin/bootstrap
 ```
 
 !!! danger "Save the API key now"
-    The raw `apiKey` is returned **only once** and is never retrievable again. Store it securely. If you lose it, the bootstrapped administrator can still sign in to Agent Studio and mint a new key from the UI.
+    The raw `apiKey` is returned **only once** and is never retrievable again. Store it securely. If you lose it, the bootstrapped administrator can still sign in to Agent Studio and mint a new key from there.
 
 ## What the endpoint does
 

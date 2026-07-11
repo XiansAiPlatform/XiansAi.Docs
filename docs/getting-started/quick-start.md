@@ -41,7 +41,7 @@ Let's get your agent connected to the Xians platform right away. We'll start wit
 Before proceeding, you need to:
 
 1. Set up your Xians platform instance
-2. Navigate to **Tenant Settings** in the platform UI
+2. Navigate to **Tenant Admin** in Agent Studio
 3. Copy your **Agent Certificate** and **Server URL**
 
 ![Xians API Key Location](../assets/images/xians-apikey.png)
@@ -122,7 +122,7 @@ Your agent is now connected to Xians and listening for messages!
 
 **DefineSupervisor shortcut method**
 
-If your workflow is named 'Supervisor Workflow', the `agent studio` by default picks that workflow when the user wants to talk to the agent.
+If your workflow is named 'Supervisor Workflow', Agent Studio by default picks that workflow when the user wants to talk to the agent.
 
 **IsTemplate Setting:**
 
@@ -159,7 +159,7 @@ If you used `IsTemplate = false`, or after deploying a system template, your age
 
 Now for the exciting part — talking to your agent!
 
-1. Navigate to **Conversations** in the platform UI
+1. Navigate to **Conversations** in Agent Studio
 2. Select your deployed agent from the list
 3. Click the **+** button to create a new conversation
 4. Send a message and see it echoed back!
@@ -299,7 +299,7 @@ dotnet build
 dotnet run
 ```
 
-Go back to **Conversations** in the platform UI and chat with your agent — you'll now get intelligent AI-powered responses instead of echoes!
+Go back to **Conversations** in Agent Studio and chat with your agent — you'll now get intelligent AI-powered responses instead of echoes!
 
 ---
 

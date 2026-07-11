@@ -11,7 +11,7 @@ An agent goes from code to a running, tenant-specific instance in three phases, 
 | Phase | Who | What happens | Result |
 |-------|-----|--------------|--------|
 | **1. Registration** | System Admin (via agent code) | Agent registered with `IsTemplate = true` | A reusable template visible to all tenants |
-| **2. Deployment** | Tenant Admin (via UI or API) | Template deployed into a tenant | Agent available in that tenant, not yet running |
+| **2. Deployment** | Tenant Admin (via Agent Studio or API) | Template deployed into a tenant | Agent available in that tenant, not yet running |
 | **3. Activation** | Tenant Users | A workflow is activated with its own identity and config | A running workflow instance |
 
 ```mermaid
@@ -51,7 +51,7 @@ Set `IsTemplate = false` (or omit it) for an agent that lives only in your own t
 
 ### Deployment
 
-Tenant admins browse available templates in the UI portal (or use the API) and deploy them to their tenant. Deployment makes the agent *visible and configurable* within the tenant; nothing runs yet.
+Tenant admins browse available templates in Agent Studio (or use the API) and deploy them to their tenant. Deployment makes the agent *visible and configurable* within the tenant; nothing runs yet.
 
 ### Activation
 

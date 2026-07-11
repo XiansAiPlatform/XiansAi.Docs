@@ -16,16 +16,14 @@ Xians.ai offers two deployment options:
 
 Get started with 99x hosted SaaS platform at [agentri.ai](https://agentri.ai).
 
-- [Dev Portal](https://app.agentri.ai)
-- [User Portal](https://studio.agentri.ai)
+- [Agent Studio](https://studio.agentri.ai)
 - **Obtain your API key** from the tenant settings page
 
 ## Option: Gture SaaS Platform
 
 Get started with 99x hosted SaaS platform at [agentri.ai](https://agentri.ai).
 
-- [Dev Portal](https://agentic-admin.gture.ai/)
-- [User Portal](https://agentic.gture.ai/dashboard)
+- [Agent Studio](https://agentic.gture.ai/dashboard)
 - **Obtain your API key** from the tenant settings page
 
 ---
@@ -48,7 +46,7 @@ Before setting up the Community Edition, ensure you have:
 The Community Edition provides a one-command setup that includes all essential components:
 
 - **Xians Server** - Core platform API and orchestration
-- **Xians UI** - Web-based management interface
+- **Xians Agent Studio** - Web-based management console
 - **Temporal** - Workflow orchestration engine
 - **Keycloak** - Authentication and authorization
 - **Database Components** - Data persistence layer

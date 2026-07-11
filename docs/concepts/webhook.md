@@ -190,12 +190,6 @@ integratorWorkflow.OnWebhook(async (context) =>
 });
 ```
 
-## Monitoring
-
-Webhook messages appear in the **Messaging Playground** in the Xians UI alongside chat and data messages — including the payload, request ID, scope, and execution timing. This gives you debugging and auditing for free, with no custom logging.
-
-![Webhook Messages in Messaging Playground](../assets/images/webhook-ui.png)
-
 ## Next Steps
 
 - [Agents & Workflows](agents.md) — built-in workflows and system-scoped agents

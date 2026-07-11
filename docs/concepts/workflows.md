@@ -5,7 +5,7 @@
 Xians workflows are standard Temporal workflows, and you could start them with the raw Temporal SDK. Don't. `XiansContext.Workflows` does the same thing **plus** everything the platform needs:
 
 - Workflow IDs are built with the correct tenant/agent/activation structure.
-- Search attributes and memos are set so workflows stay scoped and appear in the Xians UI.
+- Search attributes and memos are set so workflows stay scoped.
 - The same API works inside workflows (starts child workflows) and outside them (uses the Temporal client) — you write the same code in both places.
 
 | Pattern | Method | When |

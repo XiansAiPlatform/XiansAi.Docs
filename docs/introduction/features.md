@@ -20,7 +20,7 @@ When you register an agent (built with any framework like Azure AI Projects, Lan
 
 ## 3. Knowledge & Data Management
 
-- **[Prompt Management](#configuration-management)** - Centralized prompt and knowledge storage accessible from code and UI
+- **[Prompt Management](#configuration-management)** - Centralized prompt and knowledge storage accessible from code and Agent Studio
 - **[Document Storage](#document-storage)** - Tenant-scoped persistent storage for agent state and memory
 - **[Conversation History](#agent-user-collaboration)** - Hierarchical message organization with complete context preservation
 
@@ -211,7 +211,7 @@ Time-based automation enables autonomous business processes - generating reports
 - **Multi-tenant isolation**: Automatic tenant scoping and isolation
 - **Durable execution**: Schedules survive restarts and system failures
 
-Manage everything programmatically via SDK or through the UI. Built on Temporal's durable execution for reliability.
+Manage everything programmatically via SDK or through Agent Studio. Built on Temporal's durable execution for reliability.
 
 ## Webhooks
 
@@ -250,7 +250,7 @@ Common use cases: conversation memory, user preferences, session state, analytic
 
 *Part of: Knowledge & Data Management*
 
-Centralized **prompt and knowledge management** through the control plane. Both agents (via code) and humans (via UI) can read and write the same knowledge, enabling no-code updates to agent behavior.
+Centralized **prompt and knowledge management** through the control plane. Both agents (via code) and humans (via Agent Studio) can read and write the same knowledge, enabling no-code updates to agent behavior.
 
 Also known as **Knowledge Management** or **Prompt Management**.
 
@@ -258,15 +258,15 @@ Agents need more than just code - they need prompts, instructions, configs, and 
 
 **Key capabilities:**
 
-- **Dual access**: Agents use SDK methods, humans use UI portal - same data, synchronized
+- **Dual access**: Agents use SDK methods, humans use Agent Studio - same data, synchronized
 - **Automatic scoping**: Per-agent and per-tenant isolation
 - **Multiple content types**: AI prompts, instructions, JSON configs, markdown docs, preferences
 - **Version tracking**: Track changes to prompts and configurations over time
-- **Simple CRUD**: Get, update, delete, and list operations via SDK or UI
+- **Simple CRUD**: Get, update, delete, and list operations via SDK or Agent Studio
 - **Fast retrieval**: Automatic caching for performance
 - **No schema constraints**: Store any text content
 
-Common uses: AI prompts editable via UI, user preferences, feature flags, instructions, API configurations, templates, FAQ content. **Update agent behavior without redeployment** by changing prompts in the UI.
+Common uses: AI prompts editable via Agent Studio, user preferences, feature flags, instructions, API configurations, templates, FAQ content. **Update agent behavior without redeployment** by changing prompts in Agent Studio.
 
 ## Sub-Workflows
 
@@ -294,7 +294,7 @@ The control plane provides comprehensive **logs, distributed tracing, and audit 
 
 **Key capabilities:**
 
-- **Structured logs**: Auto-captured with stack traces, searchable by agent/tenant/workflow/time in the UI
+- **Structured logs**: Auto-captured with stack traces, searchable by agent/tenant/workflow/time in Agent Studio
 - **Distributed tracing**: OpenTelemetry support with correlation IDs to trace requests across agents and workflows
 - **Workflow history**: Complete execution history for every workflow with state transitions
 - **Audit trails**: Immutable execution history - every workflow, action, and decision timestamped

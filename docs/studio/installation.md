@@ -74,7 +74,7 @@ Best for development, customizing the UI, or evaluating against a local server.
 
 ```bash
 # 1. Clone the repository
-git clone <agent-studio-repo-url>
+git clone https://github.com/XiansAiPlatform/agent-studio.git
 cd agent-studio
 
 # 2. Install dependencies

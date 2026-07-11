@@ -21,7 +21,7 @@ As a control plane, Xians provides a **single point of governance and coordinati
 - **Business Process Orchestration**: Coordinate complex, long-running workflows with fault tolerance and automatic retries
 - **Unified Visibility**: Monitor health, performance, costs, and operations across all agents and tenants from one platform
 - **Lifecycle Management**: Register, deploy, version, configure, and decommission agents centrally with template-based rollouts
-- **Knowledge Management**: Centralize prompts, configurations, and agent knowledge accessible to both code and UI
+- **Knowledge Management**: Centralize prompts, configurations, and agent knowledge accessible to both code and Agent Studio
 
 ### Direct Integration Option
 
@@ -34,9 +34,8 @@ Xians is built with a modular architecture comprising the following major compon
 ![Xians Components](../assets/images/illustrations/Slide2.png)
 
 1. **Xians Server** - The core control plane engine that provides APIs for policy enforcement, monitoring, and agent orchestration. Includes both Web and Temporal servers.
-2. **Xians UI** - A comprehensive management console for governing agents, monitoring operations, viewing metrics, configuring policies, and managing lifecycles across your entire fleet
+2. **Xians Agent Studio** - The web console for governing agents, monitoring operations, viewing metrics, configuring policies, and managing lifecycles across your fleet — plus onboarding human users for chat conversations and human-in-the-loop tasks, right out of the box.
 3. **Xians Lib** - A .NET Core class library that agents use to register with the control plane and communicate securely with Xians Server
-4. **Xians Agent Studio** – An optional, standalone UI that allows you to quickly onboard human users and enable collaboration with AI agents through chat conversations and human-in-the-loop tasks, right out of the box.
 
 ## Layered Architecture View
 

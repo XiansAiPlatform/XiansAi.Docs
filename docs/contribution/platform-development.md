@@ -1,6 +1,6 @@
 # Developer Guide - Agentic AI
 
-This guide provides step-by-step instructions to set up and run the Agentic AI platform. Follow the steps below to clone the repositories, configure the server, and set up the UI.
+This guide provides step-by-step instructions to set up and run the Agentic AI platform. Follow the steps below to clone the repositories, configure the server, and set up Agent Studio.
 
 ---
 
@@ -22,11 +22,11 @@ To begin, clone the following three repositories from GitHub:
    git clone https://github.com/XiansAiPlatform/XiansAi.Lib.git
    ```
 
-3. **XiansAI.UI**  
-   Repository URL: [https://github.com/XiansAiPlatform/XiansAi.UI.git](https://github.com/XiansAiPlatform/XiansAi.UI.git)  
+3. **Agent Studio**  
+   Repository URL: [https://github.com/XiansAiPlatform/agent-studio.git](https://github.com/XiansAiPlatform/agent-studio.git)  
    Command to clone:
    ```bash
-   git clone https://github.com/XiansAiPlatform/XiansAi.UI.git
+   git clone https://github.com/XiansAiPlatform/agent-studio.git
    ```
 
 ---
@@ -55,17 +55,24 @@ To configure and run the server, follow these steps:
 ---
 
 
-## 3. Setting Up the UI
+## 3. Setting Up Agent Studio
 
-To configure and run the UI, follow these steps:
+To configure and run Agent Studio, follow these steps (see also the full [Agent Studio installation guide](../studio/installation.md)):
 
-1. **Create a `.env` File**  
-      - Navigate to the root directory of the `XiansAI.UI` repository.  
-      - Create a new file named `.env`.
+1. **Create an environment file**  
+      - Navigate to the root directory of the `agent-studio` repository.  
+      - Copy the example env file:
+      ```bash
+      cp .env.example .env.local
+      ```
 
-2. **Copy Environment Variables**  
-      - Open the `XiansAI.UI` repository and locate the `.env.development` file.  
-      - Copy the contents of the `.env.development` file into the newly created `.env` file.
+2. **Configure environment variables**  
+      - Edit `.env.local` and set at least:
+        - `XIANS_SERVER_URL` — your local server URL (e.g. `http://localhost:5005`)
+        - `XIANS_APIKEY` — an API key from the server (bootstrap or tenant settings)
+        - `NEXTAUTH_URL` — `http://localhost:3010`
+        - `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
+        - At least one OAuth/OIDC provider (Google, Azure AD, Keycloak, or Visma Connect)
 
 3. **Install Dependencies**  
       - Run the following command to install all required dependencies:
@@ -73,13 +80,13 @@ To configure and run the UI, follow these steps:
       npm install
       ```
 
-4. **Start the UI**  
+4. **Start Agent Studio**  
       - Start the development server by running:
       ```bash
-      npm start
+      npm run dev
       ```
 
-      - The UI should now be accessible in your browser. The default URL is typically `http://localhost:3000`, but refer to the project documentation for confirmation.
+      - Agent Studio should now be accessible at [http://localhost:3010](http://localhost:3010).
 
 ---
 
@@ -90,24 +97,24 @@ To configure and run the UI, follow these steps:
 To configure and use the `XiansAI.Lib` library, follow these steps:
 
 1. **Run the Library**  
-      - After cloning the `XiansAI.Lib` repository, navigate to its root directory and run the following command to build and execute the library in release mode:
-      ```bash
-      dotnet run -c Release
-      ```
+   - After cloning the `XiansAI.Lib` repository, navigate to its root directory and run the following command to build and execute the library in release mode:
+   ```bash
+   dotnet run -c Release
+   ```
 
 2. **Making Changes to the Library**  
-      - If you make any changes to the `XiansAI.Lib` codebase, you need to update its reference in the agent's package dependency list:
-      - Locate the `.csproj` file of the `XiansAI.Lib` project.
-      - Copy the file path of the `.csproj` file.
-      - Update the agent's package dependency list to reference the updated `.csproj` file location.
+   - If you make any changes to the `XiansAI.Lib` codebase, you need to update its reference in the agent's package dependency list:
+   - Locate the `.csproj` file of the `XiansAI.Lib` project.
+   - Copy the file path of the `.csproj` file.
+   - Update the agent's package dependency list to reference the updated `.csproj` file location.
 
-      Example of referencing the `.csproj` file in another project:
-      ```xml
-      <ProjectReference Include="path/to/XiansAI.Lib.csproj" />
-      ```
+     Example of referencing the `.csproj` file in another project:
+     ```xml
+     <ProjectReference Include="path/to/XiansAI.Lib.csproj" />
+     ```
 
 3. **Rebuild the Dependent Project**  
-      - After updating the reference, rebuild the dependent project to ensure the changes in the library are applied.
+   - After updating the reference, rebuild the dependent project to ensure the changes in the library are applied.
 
 ---
 
@@ -115,6 +122,7 @@ To configure and use the `XiansAI.Lib` library, follow these steps:
 
 - Ensure you have the required versions of .NET SDK installed on your system before setting up the library. Refer to the `XiansAI.Lib` repository's README for version requirements.
 - For the server and library, ensure you have the necessary runtime environment (e.g., .NET Core) installed. Check the respective repositories for specific prerequisites.
+- Agent Studio requires Node.js 20+ (`>=20.9.0`).
 - If you encounter any issues during setup, consult the respective repository's documentation or reach out to your team for assistance.
 
 ---

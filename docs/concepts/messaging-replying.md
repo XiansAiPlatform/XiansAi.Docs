@@ -165,7 +165,7 @@ if (context.Metadata?.TryGetValue("priority", out var priority) == true && prior
 - **Handle errors gracefully** — wrap processing in try/catch and reply with a friendly message on failure; never leave the user without a response.
 - **Be specific in replies** — "I've updated your preferences; daily summaries arrive at 9 AM" beats "Done".
 - **Match the method to the content** — text goes in `ReplyAsync`, data-first responses in `SendDataAsync`.
-- **Keep scopes human-readable** — they double as topic labels in the UI.
+- **Keep scopes human-readable** — they double as topic labels in Agent Studio.
 
 ## Next Steps
 

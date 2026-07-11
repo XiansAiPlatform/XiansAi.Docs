@@ -45,13 +45,13 @@ Contribute to the core platform:
 
 - [ ] 5.1 Clone and set up the following repositories locally:
   - [XiansAi.Server](https://github.com/XiansAiPlatform/XiansAi.Server)
-  - [XiansAi.UI](https://github.com/XiansAiPlatform/XiansAi.UI)
+  - [agent-studio](https://github.com/XiansAiPlatform/agent-studio)
   - [XiansAi.Lib](https://github.com/XiansAiPlatform/XiansAi.Lib)
 - [ ] 5.2 Configure your existing agent development projects to use the local Lib and Server
 
 ### Contribute to Platform
 
-- [ ] 5.3 Make improvements to the platform repositories (e.g., unit tests, UI enhancements)
+- [ ] 5.3 Make improvements to the platform repositories (e.g., unit tests, Agent Studio enhancements)
 - [ ] 5.4 Test your changes thoroughly
 - [ ] 5.5 Submit a Pull Request with your improvements
 

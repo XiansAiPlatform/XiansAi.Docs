@@ -2,7 +2,7 @@
 
 ## Why Knowledge?
 
-LLMs are smart, but they don't know **your** business — your products, policies, or tone. And if you hard-code prompts into your source, every wording tweak requires a redeploy. **Knowledge** solves both problems: it's a per-agent key-value store for prompts, instructions, and configuration that can be read at runtime and edited from the Studio UI without touching code.
+LLMs are smart, but they don't know **your** business — your products, policies, or tone. And if you hard-code prompts into your source, every wording tweak requires a redeploy. **Knowledge** solves both problems: it's a per-agent key-value store for prompts, instructions, and configuration that can be read at runtime and edited from Agent Studio without touching code.
 
 Typical contents:
 
