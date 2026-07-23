@@ -128,6 +128,93 @@ curl -X POST "http://localhost:5005/api/user/webhooks/builtin?apikey=sk-Xnai-abc
   -d '{"orderId": "12345", "amount": 99.99, "status": "completed"}'
 ```
 
+## Managing Webhooks Programmatically
+
+Everything above assumes a webhook endpoint already exists (for example, the default one Agent Studio creates). But agents can also **create, list, and delete their own inbound webhooks at runtime** through the SDK — no Studio or admin API required. Each created webhook is a real trigger: it provisions an API key and returns a ready-to-call `WebhookUrl`.
+
+The API lives on `agent.Webhooks` and resolves the **agent name and activation automatically** from the current context, so you rarely pass them in.
+
+> **Where can I call these?**
+> `CreateAsync`, `ListAsync`, and `DeleteAsync` make HTTP calls to the Xians server. That means they must run either **outside** a workflow (e.g. in your `Program.cs` startup, or a plain service) or **inside a Temporal activity** — never directly in deterministic workflow code. To manage webhooks as part of a workflow, call them from an activity that the workflow invokes.
+
+### Creating a Webhook
+
+```csharp
+// agentName + activationName are resolved from context automatically
+var webhook = await agent.Webhooks.CreateAsync(
+    webhookName: "OrderReceived",
+    name: "Order received trigger");
+
+Console.WriteLine(webhook.Id);          // use this to delete it later
+Console.WriteLine(webhook.WebhookUrl);  // the URL external systems should POST to
+```
+
+`CreateAsync` parameters (all optional):
+
+| Parameter | Default (server) | Description |
+|-----------|------------------|-------------|
+| `webhookName` | `Default` | The webhook name/scope used when triggering |
+| `workflowName` | `Integrator Workflow` | The target workflow the webhook delivers to |
+| `participantId` | `webhook` | The participant id the webhook runs as |
+| `timeoutSeconds` | `30` | Synchronous response timeout (1–300) |
+| `name` | — | Human-readable label for the webhook |
+| `activationName` | current activation | Override the target activation instead of using context |
+
+### Listing Webhooks
+
+```csharp
+var webhooks = await agent.Webhooks.ListAsync();
+foreach (var w in webhooks)
+{
+    Console.WriteLine($"{w.WebhookName}: {w.WebhookUrl} (enabled={w.IsEnabled})");
+}
+```
+
+When called inside a workflow/activity, `ListAsync` is scoped to the **current activation**; when called outside any activation context it returns **all activations** of the agent.
+
+Each `WebhookInfo` exposes `Id`, `Name`, `AgentName`, `ActivationName`, `WorkflowId`, `WebhookUrl`, `IsEnabled`, `CreatedAt`, plus convenience accessors `WebhookName`, `WorkflowName`, `ParticipantId`, and `TimeoutInSeconds`.
+
+### Deleting a Webhook
+
+```csharp
+// Revokes the underlying API key and removes the trigger. Returns false if not found.
+var deleted = await agent.Webhooks.DeleteAsync(webhook.Id);
+```
+
+### Checking "Self" Information
+
+To confirm an activation exists and is active before acting on it (for example, before creating a webhook for it):
+
+```csharp
+bool exists = await agent.ActivationExistsAsync();               // current activation
+var status  = await agent.GetActivationStatusAsync();            // Active | NotFound | Deactivated
+```
+
+### Doing it from a Workflow (via an activity)
+
+Because the calls do I/O, put them in an activity and let the workflow orchestrate:
+
+```csharp
+public class WebhookManagementActivities
+{
+    [Activity]
+    public async Task<string> CreateWebhookAsync()
+    {
+        // agent + activation resolved from the activity's context
+        var agent = XiansContext.CurrentAgent;
+        var webhook = await agent.Webhooks.CreateAsync(webhookName: "OrderReceived");
+        return webhook.Id;
+    }
+}
+
+// In the workflow:
+var id = await Workflow.ExecuteActivityAsync(
+    (WebhookManagementActivities a) => a.CreateWebhookAsync(),
+    new ActivityOptions { StartToCloseTimeout = TimeSpan.FromMinutes(1) });
+```
+
+A full, runnable end-to-end sample — a Default webhook that starts a custom workflow which creates, lists, waits, then deletes webhooks — lives in the `WebhookManagement` example project.
+
 ## Common Patterns
 
 ### Validate authorization
