@@ -177,10 +177,11 @@ Workflow IDs follow `{tenantId}:{agentName}:{workflowName}[:{idPostfix}][:{uniqu
 |--------|-------------|
 | `Name`, `Version`, `Description` | Identity metadata |
 | `SystemScoped` | Whether the agent was registered as a template (`IsTemplate`) |
-| `Workflows`, `Knowledge`, `Documents`, `Schedules`, `Tasks`, `Secrets`, `Metrics` | Owned resource collections |
+| `Workflows`, `Knowledge`, `Documents`, `Schedules`, `Tasks`, `Secrets`, `Metrics`, `Webhooks`, `Tenant` | Owned resource collections / accessors |
 | `GetBuiltInWorkflow(string? name)` | Get a built-in workflow by name |
 | `GetCustomWorkflow<T>()` | Get a custom workflow by type |
 | `UploadWorkflowDefinitionsAsync()` | Push workflow definitions to the server |
+| `GetActivationStatusAsync` / `ActivationExistsAsync` | Check whether this agent's activation is active (see [Agents & Activations](activations.md)) |
 | `RunAllAsync(CancellationToken)` | Upload defs and run all registered workflows |
 
 ### Workflow

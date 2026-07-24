@@ -125,3 +125,4 @@ await XiansContext.Workflows.StartAsync<ScanWorkflow>(
 
 - [Workflows](workflows.md) — the core `XiansContext.Workflows` API and same-agent patterns
 - [Multitenancy](multitenancy.md) — what activations are and how they're created
+- [Agents & Activations](activations.md) — SDK methods to check, create, activate, list, and deactivate activations (including for other agents)

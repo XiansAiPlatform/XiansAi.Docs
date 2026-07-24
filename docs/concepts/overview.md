@@ -58,6 +58,7 @@ graph TB
 | ---- | ----------------- |
 | [Workflows](workflows.md) | Starting and communicating with Temporal workflows |
 | [Cross-Agent Workflows](cross-agent-workflows.md) | Calling workflows that belong to other agents |
+| [Agents & Activations](activations.md) | Checking agent/activation existence and creating, activating, listing, and deactivating activations via the SDK |
 
 ### Operations
 

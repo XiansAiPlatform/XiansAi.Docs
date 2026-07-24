@@ -190,6 +190,8 @@ bool exists = await agent.ActivationExistsAsync();               // current acti
 var status  = await agent.GetActivationStatusAsync();            // Active | NotFound | Deactivated
 ```
 
+For checking or managing **other** agents' activations in the tenant (`agent.Tenant.Agent(...)`), see [Agents & Activations](activations.md).
+
 ### Doing it from a Workflow (via an activity)
 
 Because the calls do I/O, put them in an activity and let the workflow orchestrate:

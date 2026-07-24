@@ -32,6 +32,7 @@ nav:
     - Human-in-the-Loop: concepts/hitl-tasks.md
     - Workflows: concepts/workflows.md
     - Cross-Agent Workflows: concepts/cross-agent-workflows.md
+    - Agents & Activations: concepts/activations.md
     - Metrics: concepts/metrics.md
     - Logging: concepts/logging.md
     - Unit Testing: concepts/unit-tests.md
