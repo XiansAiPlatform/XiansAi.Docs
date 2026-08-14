@@ -25,7 +25,7 @@ As a control plane, Xians provides a **single point of governance and coordinati
 
 ### Direct Integration Option
 
-The Xians Server can use OIDC to connect directly with your web UI in scenarios where a BFF/Web Server layer is not mediating the communication. Developers may use the [**Xians TypeScript SDK**](https://github.com/XiansAiPlatform/sdk-web-typescript) (Optional) to easily integrate with the server's APIs and leverage the control plane's capabilities.
+The Xians Server can use OIDC to connect directly with your web UI in scenarios where a BFF/Web Server layer is not mediating the communication. Developers may use the [**Xians TypeScript SDK**](https://github.com/XiansAiPlatform/sdk-web-typescript) (Optional) to integrate with the server's **UserApi** (REST, SSE, and WebSocket messaging) — not the Studio WebApi (`/api/client/*`).
 
 ## Control Plane Components
 

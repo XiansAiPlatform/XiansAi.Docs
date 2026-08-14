@@ -23,7 +23,7 @@ Rich, persistent conversations between humans and agents — the part every cust
 - **[Proactive Messaging](../concepts/messaging-proactive.md)** — Agents reach out on their own: an order shipped, a schedule fired, a background job finished. Any workflow can message any user at any time.
 - **[Live Progress Streaming](../concepts/messaging-progress.md)** — Stream reasoning steps and tool calls to the user while the agent thinks, so they see "calling `getWeather(...)`" instead of a blinking cursor.
 - **[File Uploads](../concepts/messaging-fileupload.md)** — Users attach files to conversations; agents receive typed file objects, with large files handled transparently by reference.
-- **[Multiple Transports](https://github.com/XiansAiPlatform/sdk-web-typescript)** — WebSocket, Server-Sent Events, and REST APIs, with a TypeScript SDK for building custom frontends. Authenticate with API keys or OIDC/OAuth 2.0.
+- **[Multiple Transports](https://github.com/XiansAiPlatform/sdk-web-typescript)** — UserApi WebSocket, Server-Sent Events, and REST, with a TypeScript SDK for building custom frontends. Authenticate with API keys or OIDC/OAuth 2.0.
 
 ## Business Process Automation
 

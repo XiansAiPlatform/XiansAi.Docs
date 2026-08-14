@@ -2,7 +2,7 @@
 
 Tenants can configure their own OIDC authentication rules independently of the global providers configured in the platform's `.env` file. This is useful when a tenant needs to enforce a specific identity provider or restrict logins to a particular organization.
 
-These rules govern **who is allowed in** — both for users signing into Agent Studio and for any custom frontend you build with the [Web User SDK](https://github.com/XiansAiPlatform/sdk-web-typescript) (`@99xio/xians-sdk-typescript`). The SDK forwards a JWT issued by your identity provider, and the server validates that token against the tenant's OIDC rules.
+These rules govern **who is allowed in** — both for users signing into Agent Studio and for any custom frontend you build with the [Web User SDK](https://github.com/XiansAiPlatform/sdk-web-typescript) (`@99xio/xians-sdk-typescript`), which calls the server **UserApi**. The SDK forwards a JWT issued by your identity provider, and the server validates that token against the tenant's OIDC rules.
 
 ## Where
 
