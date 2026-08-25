@@ -44,7 +44,7 @@ The workflow runs, does its work, and guarantees its own next run. That's the wh
 |-------|---------|---------|
 | Time-based | `.Daily()`, `.Hourly()`, `.Weekdays()`, `.Weekly()`, `.Monthly()` | `.Daily(hour: 9, timezone: "America/New_York")` |
 | Interval | `.EverySeconds()`, `.EveryMinutes()`, `.EveryHours()`, `.EveryDays()` / `.WithIntervalSchedule(...)` | `.EveryMinutes(15)` |
-| Cron | `.WithCronSchedule(expr, timezone?)` | `.WithCronSchedule("0 9 * * 1-5", timezone: "America/New_York")` |
+| Cron | `.WithCronSchedule(expr, timezone?)` — see [Cron String Formats](#cron-string-formats) | `.WithCronSchedule("0 9 * * 1-5", timezone: "America/New_York")` |
 | One-time | `.WithCalendarSchedule(dateTime, timezone?)` | `.WithCalendarSchedule(new DateTime(2026, 12, 25, 9, 0, 0))` |
 
 ```csharp
@@ -58,6 +58,79 @@ The workflow runs, does its work, and guarantees its own next run. That's the wh
 
 !!! note "Multi-day intervals"
     `.EveryDays(n)` with `n > 1` ignores hour/minute parameters. `.EveryDays(1, hour: 9)` is equivalent to `.Daily(hour: 9)`.
+
+## Cron String Formats
+
+`.WithCronSchedule(expr, timezone?)` hands `expr` to Temporal untouched — the SDK only rejects
+null/empty. Everything else is validated by the server at creation time, so a bad expression
+surfaces as `Invalid schedule spec: ...` from `CreateIfNotExistsAsync()`, not as a compile-time or
+startup error. That makes it worth knowing exactly what the server accepts.
+
+### Field counts: 5, 6, or 7
+
+| Fields | Layout | Example | Meaning |
+|--------|--------|---------|---------|
+| 5 | `minute hour day-of-month month day-of-week` | `0 9 * * 1-5` | 09:00, Mon–Fri |
+| 6 | the five above **+ year** | `0 9 * * * 2027` | 09:00 daily, only in 2027 |
+| 7 | **second +** the five **+ year** | `*/30 * * * * * *` | every 30 seconds |
+
+With 5 or 6 fields, seconds are pinned to `0`. Fields accept the usual cron syntax: steps
+(`*/15`), ranges (`1-5`), lists (`1,3,5`), and names (`MON-FRI`, `JAN`).
+
+!!! warning "The 6th field is the year — not seconds"
+    A 6-field string is the 5-field layout with a year appended, so `*/30 * * * * *` is **every 30
+    minutes**, not every 30 seconds: `*/30` lands on minutes and the trailing `*` is the year.
+    Seconds only appear once you supply all 7 fields. Anything outside 5–7 fields is rejected with
+    `CronString does not have 5-7 fields`. A miscounted string that happens to land on 6 or 7
+    fields usually fails on the year instead — `Year is not in range [2000-2100]` — because the last
+    field is being read as one.
+
+### Descriptors
+
+| Descriptor | Fires |
+|------------|-------|
+| `@every <duration>` | Repeatedly, on an interval — `@every 30s`, `@every 1h30m` |
+| `@hourly` | Top of every hour |
+| `@daily` / `@midnight` | 00:00 daily |
+| `@weekly` | 00:00 Sunday |
+| `@monthly` | 00:00 on the 1st |
+| `@yearly` / `@annually` | 00:00 on January 1 |
+
+`@every` takes a Go duration string and becomes an *interval* spec rather than a calendar one, so
+it is the only cron-string form that can go sub-minute. The unit is required (`@every 30` fails
+with `missing unit in duration`), sub-second intervals are rejected (`interval is too small`), and
+an optional phase offset after a slash shifts the alignment — `@every 45s/10s` fires 10s into each
+45s window.
+
+### Timezone prefix and comments
+
+```csharp
+.WithCronSchedule("CRON_TZ=America/New_York 0 9 * * *")   // same as timezone: "America/New_York"
+.WithCronSchedule("0 9 * * * #daily standup")             // trailing comment, kept on the spec
+```
+
+!!! note "`CRON_TZ` does nothing for `@every`"
+    `CRON_TZ=Asia/Colombo @every 30s` is accepted, but the timezone is silently dropped — an
+    interval has no wall-clock anchor to shift. Timezones only affect calendar-style specs.
+
+### Going sub-minute
+
+Three ways to say "every 30 seconds", in order of preference:
+
+```csharp
+.EverySeconds(30)                      // clearest, no cron parsing involved
+.WithCronSchedule("@every 30s")        // when the value comes from config (env var, DB, Studio input)
+.WithCronSchedule("*/30 * * * * * *")  // 7-field form; easy to miscount, see the warning above
+```
+
+The first two produce an interval spec, anchored to when the schedule was created; the 7-field
+form is a calendar spec, so it fires on wall-clock `:00` and `:30` of each minute. Reach for
+`@every` when a single configurable setting has to express both "daily at 03:00" and "every 30
+seconds during local testing"; otherwise prefer the typed interval methods.
+
+!!! info "Verified behavior"
+    The field-count semantics, descriptors and error messages above were checked against Temporal
+    Server 1.28 by creating each spec and reading back the stored schedule.
 
 ## Overlap Policies: What If the Previous Run Is Still Going?
 
