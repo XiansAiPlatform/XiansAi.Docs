@@ -38,6 +38,49 @@ public class DailyReportWorkflow
 
 The workflow runs, does its work, and guarantees its own next run. That's the whole pattern.
 
+## Create Schedules Inside the Workflow, Not at Registration
+
+Schedule creation belongs **inside a workflow marked `Activable = true`**, using the
+self-scheduling pattern above. It does not belong in the agent registration path (`Program.cs` /
+wherever you call `platform.Agents.Register`), even though `agent.Schedules.Create(...)` works
+there.
+
+```csharp
+// Registration: define the workflow as activable, and stop there.
+agent.Workflows.DefineCustom<DailyReportWorkflow>(new WorkflowOptions { Activable = true });
+
+// Don't do this here — see below for why.
+// await agent.Schedules.Create<DailyReportWorkflow>("daily-report")...CreateIfNotExistsAsync();
+```
+
+Why it matters: schedule IDs are `{tenantId}:{agentName}:{idPostfix}:{scheduleName}`, and the
+`idPostfix` — the activation — can only be resolved from workflow or activity context. Registration
+has no such context, so the SDK omits that segment altogether and you get
+`{tenantId}:{agentName}:{scheduleName}`: a single schedule per tenant that belongs to no
+activation. The workflow runs it starts inherit the same empty `idPostfix`, so they don't run under
+an activation either. Created from inside a run, the schedule instead carries the activation that
+started it and is isolated per activation, exactly like every other workflow ID.
+
+Two more consequences of the registration-time version:
+
+- **It exists as soon as any worker process boots**, whether or not the agent was ever activated —
+  and every replica re-runs registration, so they race to create it (idempotent, but pointless).
+- **Deactivating the activation doesn't scope it.** Nothing links the schedule to the activation it
+  was meant to serve, so it keeps its own lifecycle.
+
+With `Activable = true`, the lifecycle falls out naturally: activating the agent starts the
+workflow, that first run creates the schedule under the activation, and every scheduled run after
+that re-asserts it via `CreateIfNotExistsAsync()`.
+
+!!! tip "Assert the schedule before the work, not after"
+    The Quick Start creates the schedule after doing the work, which reads well but means a failure
+    in the work leaves a fresh activation with no recurring trigger at all. Putting the
+    `CreateIfNotExistsAsync()` call first makes the first run establish the schedule regardless of
+    what the run itself does.
+
+See [Agents & Activations](activations.md) for the activation lifecycle and
+[Agents](agents.md) for declaring activable custom workflows.
+
 ## Defining When to Run
 
 | Style | Methods | Example |
@@ -185,6 +228,11 @@ Schedule IDs are automatically namespaced as `{tenantId}:{agentName}:{idPostfix}
 - The same agent code deployed to many tenants creates independent schedules per tenant.
 - No manual filtering or prefixing required.
 
+The `idPostfix` segment is only filled in when the schedule is created from workflow or activity
+context — another reason to
+[create schedules inside the workflow](#create-schedules-inside-the-workflow-not-at-registration)
+rather than at registration.
+
 ## Common Patterns
 
 ### Per-entity schedules
@@ -232,6 +280,8 @@ await schedule.UnpauseAsync("Ready to start maintenance");
 
 ## Best Practices
 
+- **Create schedules from inside an activable workflow**, not from the registration path — that's
+  what ties the schedule to the activation rather than to the process.
 - **`CreateIfNotExistsAsync()` + `.SkipIfRunning()`** is the right default for nearly everything.
 - **Always specify timezones** for time-based schedules — interval schedules don't need them.
 - **Use descriptive IDs** — `daily-sync-{company}`, not `schedule1`.
