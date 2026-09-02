@@ -61,6 +61,7 @@ EncryptionKeys__BaseSecret=<random-base64>
 EncryptionKeys__UniqueSecrets__ConversationMessageKey=<random-base64>
 EncryptionKeys__UniqueSecrets__TenantOidcSecretKey=<random-base64>
 EncryptionKeys__UniqueSecrets__SecretVaultKey=<random-base64>
+EncryptionKeys__UniqueSecrets__TenantTemporalSecretKey=<random-base64>
 
 # Root CA certificate — see "Certificates" below for generation steps
 Certificates__AppServerPfxBase64=<base64-encoded-pfx>
@@ -119,7 +120,7 @@ Temporal__FlowServerUrlExternal=temporal.your-domain.com:7233
 
 ### Encryption keys — required
 
-The server encrypts sensitive data at rest (chat messages, tenant OIDC secrets, and the secret vault). Generate each key with `openssl rand -base64 32` and use **different** values per environment.
+The server encrypts sensitive data at rest (chat messages, tenant OIDC secrets, the secret vault, and per-tenant Temporal connection credentials). Generate each key with `openssl rand -base64 32` and use **different** values per environment.
 
 ```bash
 # Foundational secret (min 32 chars)
@@ -129,6 +130,7 @@ EncryptionKeys__BaseSecret=<random-base64>
 EncryptionKeys__UniqueSecrets__ConversationMessageKey=<random-base64>
 EncryptionKeys__UniqueSecrets__TenantOidcSecretKey=<random-base64>
 EncryptionKeys__UniqueSecrets__SecretVaultKey=<random-base64>
+EncryptionKeys__UniqueSecrets__TenantTemporalSecretKey=<random-base64>
 ```
 
 !!! danger "Keep keys stable and safe"
