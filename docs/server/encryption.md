@@ -2,6 +2,8 @@
 
 All chat messages stored in the database are encrypted at rest to ensure data privacy and security. This encryption is mandatory and complies with the EU AI Act requirements for data protection in AI systems.
 
+When multi-instance caching uses Redis (`Cache__Provider=redis`), short-lived cross-replica `/converse` pending-result payloads written to Redis are also encrypted with the same conversation message key before storage. Completion signals over Redis pub/sub carry only the request id, not message body content. See [Scaling — Server replicas + Redis](scaling.md#server-replicas--redis).
+
 ## Encryption Overview
 
 The system uses AES encryption to secure all conversation messages before storing them in the database. Each message is encrypted using a combination of:
@@ -60,6 +62,7 @@ EncryptionKeys__UniqueSecrets__ConversationMessageKey=AnotherSecureRandomKeyForM
 - **Access Control**: Limit access to encryption keys to authorized personnel only
 - **Backup**: Ensure encryption keys are included in your secure backup procedures
 - **Monitoring**: Monitor for any unauthorized access attempts to encrypted data
+- **Redis multi-instance**: Keep Redis network-isolated with AUTH and TLS. Pending `/converse` result keys are encrypted with `ConversationMessageKey`, but Redis remains a trusted control plane for cache invalidation (see [Scaling — Server replicas + Redis](scaling.md#server-replicas--redis))
 
 ## Troubleshooting
 
