@@ -294,7 +294,7 @@ Cache__Redis__ConnectionString=your-redis-host:6380,password=YOUR_PASSWORD,ssl=t
 # Cache__Redis__AllowInsecureConnection=true
 ```
 
-See [Installation — Optional settings](installation.md#optional-settings) and the [Cache provider README](../../../XiansAi.Server/XiansAi.Server.Src/Shared/Providers/Cache/README.md) for configuration details.
+See [Installation — Optional settings](installation.md#optional-settings) and the [Cache provider README](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/Shared/Providers/Cache/README.md) for configuration details.
 
 ## Summary
 
