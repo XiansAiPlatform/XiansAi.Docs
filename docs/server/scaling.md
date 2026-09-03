@@ -256,6 +256,46 @@ Track these metrics to optimize scaling:
 
 Use Temporal's built-in metrics and integrate with your monitoring stack (Prometheus, Grafana, etc.) for comprehensive observability.
 
+## Server Replicas + Redis
+
+When you run **multiple `xiansAi.Server` replicas** behind a load balancer, set `Cache__Provider=redis` and provide `Cache__Redis__ConnectionString`. This is required for correct behavior across instances.
+
+Redis is used for three concerns:
+
+1. **ObjectCache** — shared cache for the agent cache API, tenant OIDC config, and auth handoff payloads (via `ICacheProvider`).
+2. **Auth and messaging L1 invalidation bus** — when auth state or messaging caches change on one replica, invalidation events propagate to every other replica so local L1 caches are cleared without waiting for TTL expiry.
+3. **Pending `/converse` coordination** — synchronous `/converse` requests that wait on one instance can be completed by an agent response handled on a different instance. Short-lived result payloads in Redis are encrypted with the same conversation encryption key used for MongoDB at-rest encryption (see [Chat message encryption](encryption.md)); completion signals carry only the request id.
+
+Without Redis on a multi-replica deployment:
+
+- **Stale auth** — user disable, API key revoke, activation deactivate, and similar changes may not be visible on other replicas until the cache TTL expires.
+- **`/converse` timeouts** — if the HTTP waiter and the agent completer land on different instances, the request may time out because there is no cross-instance signal.
+
+Single-instance deployments can keep the default `Cache__Provider=memory`.
+
+### Production Redis security
+
+Redis is a trusted control plane for invalidation and pending-request coordination. In production:
+
+1. **Network isolation** — Redis must be reachable only from server replicas (private network / private endpoint), not the public internet.
+2. **AUTH** — include a password in the connection string.
+3. **TLS** — set `ssl=true` (or equivalent).
+
+Startup **fails** outside Development if AUTH or TLS is missing. For local Docker Redis without AUTH/TLS, Development only warns; outside Development set `Cache__Redis__AllowInsecureConnection=true` for lab use only (never in production).
+
+```bash
+# Production
+Cache__Provider=redis
+Cache__Redis__ConnectionString=your-redis-host:6380,password=YOUR_PASSWORD,ssl=true
+
+# Local / lab only (insecure Redis)
+# Cache__Provider=redis
+# Cache__Redis__ConnectionString=localhost:6379
+# Cache__Redis__AllowInsecureConnection=true
+```
+
+See [Installation — Optional settings](installation.md#optional-settings) and the [Cache provider README](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/Shared/Providers/Cache/README.md) for configuration details.
+
 ## Summary
 
 | Scaling Type | Method | Use Case | Configuration |
