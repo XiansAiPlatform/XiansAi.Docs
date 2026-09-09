@@ -150,32 +150,30 @@ curl -X POST "${BASE_URL}/api/v1/admin/tenants/${TENANT_ID}/integrations" \
 
 ## Step 6: Install Bot to Teams
 
-### Option A: Via App Studio (Recommended)
+### Option A: Via Developer Portal (Recommended)
 
 1. Open Microsoft Teams
-2. Go to **Apps** → Search for **"App Studio"** or **"Developer Portal"**
-3. Install App Studio if not already installed
-4. Open **App Studio**
-5. Click **"Create a new app"**
-6. Fill in app details:
+2. Go to **Apps** → Search for **"Developer Portal"**
+3. Install Developer Portal if not already installed
+4. Open **Developer Portal** and click **"Create a new app"**
+5. Enter your bot name, keep the default **Manifest version**, then click **"Create"**
+6. In **Configure**, open **"Basic information"** and fill in app details:
    - **Short name**: Your bot name
    - **App ID**: Use the `TEAMS_APP_ID` from Step 2
-   - **Package name**: Unique identifier
    - **Version**: 1.0.0
    - **Short description**: Bot description
    - **Full description**: Detailed description
-7. Go to **"Capabilities"** → **"Bots"**
-8. Click **"Set up"**
-9. Select **"Existing bot"**
-10. Enter your **Bot ID** (same as `TEAMS_APP_ID`)
-11. Select scopes:
+7. Go to **"App features"** → **"Bot"**
+8. Select **"Existing bot"**
+9. Enter your **Bot ID** (same as `TEAMS_APP_ID`)
+10. Select scopes:
     - ✅ Personal
     - ✅ Team
     - ✅ Group Chat
-12. Click **"Save"**
-13. Click on 'App package editor' and fix any issues in Manifest.json
-14. Go to **"Test and distribute"**
-15. Click **"Install"** to add to your team
+11. Click **"Save"**
+12. Click on 'App package editor' and fix any issues in manifest.json
+13. Click **"Preview in Teams"**
+14. Click on **"Distribute"** to add to your team
 
 ### Option B: Direct Installation Link
 
