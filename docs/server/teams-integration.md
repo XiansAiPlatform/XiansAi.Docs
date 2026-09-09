@@ -150,7 +150,7 @@ curl -X POST "${BASE_URL}/api/v1/admin/tenants/${TENANT_ID}/integrations" \
 
 ## Step 6: Install Bot to Teams
 
-### Option A: Via Developer Portal  (Recommended)
+### Option A: Via Developer Portal (Recommended)
 
 1. Open Microsoft Teams
 2. Go to **Apps** → Search for **"Developer Portal"**
