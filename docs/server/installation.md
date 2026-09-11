@@ -211,6 +211,11 @@ WebSockets__Enabled=true
 Logging__LogLevel__Default=Information
 Logging__LogLevel__Microsoft.AspNetCore=Warning
 
+# OpenTelemetry — off by default. See [Observability](observability.md).
+# OpenTelemetry__Enabled=true
+# OpenTelemetry__ServiceName=XiansAi.Server
+# OpenTelemetry__OtlpEndpoint=http://otel-collector:4317
+
 # Data Protection keys directory (see "Persisting Data Protection keys")
 DataProtection__KeysDirectory=/app/keys
 ```

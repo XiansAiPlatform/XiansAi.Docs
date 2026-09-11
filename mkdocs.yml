@@ -49,6 +49,7 @@ nav:
     - Installation: server/installation.md
     - Bootstrapping: server/bootstrapping.md
     - Encryption: server/encryption.md
+    - Observability: server/observability.md
     - Outbound Webhooks: server/outbound-webhooks.md
     - Scaling: server/scaling.md
     - Partner Isolation: server/partner-isolation.md
