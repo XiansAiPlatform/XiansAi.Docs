@@ -258,6 +258,8 @@ Use Temporal's built-in metrics and integrate with your monitoring stack (Promet
 
 ## Server Replicas + Redis
 
+> For the full picture of all cache providers (`memory`, `redis`, `noop`) and when to use each, see [Caching](caching.md). This section covers the Redis-specific requirements for multi-replica deployments.
+
 When you run **multiple `xiansAi.Server` replicas** behind a load balancer, set `Cache__Provider=redis` and provide `Cache__Redis__ConnectionString`. This is required for correct behavior across instances.
 
 Redis is used for three concerns:
@@ -271,7 +273,7 @@ Without Redis on a multi-replica deployment:
 - **Stale auth** — user disable, API key revoke, activation deactivate, and similar changes may not be visible on other replicas until the cache TTL expires.
 - **`/converse` timeouts** — if the HTTP waiter and the agent completer land on different instances, the request may time out because there is no cross-instance signal.
 
-Single-instance deployments can keep the default `Cache__Provider=memory`.
+Single-instance deployments can keep the default `Cache__Provider=memory`, or use `Cache__Provider=noop` to disable caching entirely — see [Caching](caching.md) for details on all provider options.
 
 ### Production Redis security
 

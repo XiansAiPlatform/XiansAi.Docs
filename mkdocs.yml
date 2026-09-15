@@ -51,6 +51,7 @@ nav:
     - Encryption: server/encryption.md
     - Observability: server/observability.md
     - Outbound Webhooks: server/outbound-webhooks.md
+    - Caching: server/caching.md
     - Scaling: server/scaling.md
     - Partner Isolation: server/partner-isolation.md
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
