@@ -12,7 +12,8 @@ Each row stores two identities from the request:
 |-------|---------|
 | `logged_in_user` | Authenticated credential: the OIDC user, or the **API-key owner**. |
 | `participant_id` | The person the action is attributed to. Defaults to `logged_in_user`. |
-| `action` | Event type (for example `agent.access.changed`). Same values as [webhook events](outbound-webhooks.md#supported-events). |
+| `action` | Event type (for example `activation.deactivated`). Same values as [webhook events](outbound-webhooks.md#supported-events). |
+| `description` | Sentence from the emitting service (who/what changed). Falls back to a canonical sentence for the event type. |
 | `details` | Event payload (ids and names, never secrets). |
 | `tenant_id` | Owning tenant, or `__platform__` for platform-scoped actions. |
 | `created_at` | When the row was built. |
