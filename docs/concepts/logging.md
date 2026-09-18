@@ -130,3 +130,7 @@ Console.WriteLine($"Queued logs: {queuedCount}, Retrying: {retryingCount}");
 ```
 
 A `queuedCount > 0` means logs are being captured and queued for upload. Remember the up-to-60-second batch delay before they appear.
+
+## Optional OpenTelemetry export
+
+Besides MongoDB upload for Agent Studio, agents can also send logs (and traces) to an OpenTelemetry collector when you set `OpenTelemetry__Enabled=true` and `OpenTelemetry__OtlpEndpoint`. That path is separate from Studio log viewing and is used for backends such as Application Insights. See [Observability](../server/observability.md).

@@ -33,6 +33,19 @@ A user can simultaneously be a `TenantAdmin` in one tenant, a `TenantParticipant
 | Tenant Admin (Users, Branding, OIDC) | — | — | — | ✓ | ✓ |
 | System Admin (Tenants, Users) | — | — | — | — | ✓ |
 
+### Per-agent access
+
+Beyond the tenant roles above, each agent carries its own access lists — **Read**
+(see and use the agent), **Write** (also edit its knowledge, schedules and
+configuration) and **Owner** (full control, including managing this list). The
+person who registers an agent is added as its first Owner; **Tenant Admin** and
+**System Admin** always have full access to every agent in their scope regardless
+of these lists.
+
+To change them, open **Agent Store**, use an agent's **⋯ → Manage access**, and
+add users at a level or remove them. This menu is available to an **Owner** of
+that agent and to Tenant / System Admins.
+
 ## What's Next?
 
 - **[Making Agents Descriptive](agent-descriptors.md)** — fill in registration fields so operators and other agents can discover and understand your agent

@@ -19,7 +19,7 @@ This guide shows you how to connect a Slack workspace to a XiansAi agent activat
 
 ## Step 2: Configure OAuth Scopes
 
-1. In your app settings, go to **"OAuth & Permissions"**
+1. In your app settings, under **"Features"**, go to **"OAuth & Permissions"**
 2. Scroll to **"Scopes"** → **"Bot Token Scopes"**
 3. Click **"Add an OAuth Scope"** and add these scopes:
    - `channels:history` - Read messages in channels
@@ -34,7 +34,7 @@ This guide shows you how to connect a Slack workspace to a XiansAi agent activat
 
 ## Step 3: Install App to Workspace
 
-1. Scroll up to **"OAuth Tokens for Your Workspace"**
+1. Scroll up to **"OAuth Tokens"**
 2. Click **"Install to Workspace"**
 3. Review permissions and click **"Allow"**
 4. **Copy the "Bot User OAuth Token"** (starts with `xoxb-`)
@@ -42,7 +42,7 @@ This guide shows you how to connect a Slack workspace to a XiansAi agent activat
 
 ## Step 4: Get Signing Secret
 
-1. Go to **"Basic Information"** in the left sidebar
+1. Go to **"Settings"** → **"Basic Information"** in the left sidebar
 2. Scroll to **"App Credentials"**
 3. **Copy the "Signing Secret"**
    - Save this as `SLACK_SIGNING_SECRET`
@@ -186,7 +186,7 @@ curl -X POST "${BASE_URL}/api/v1/admin/tenants/${TENANT_ID}/integrations" \
 
 ## Step 7: Configure Slack Event Subscriptions
 
-1. Go to your Slack App → **"Event Subscriptions"**
+1. Go to your Slack app settings → **"Event Subscriptions"** in the left sidebar
 2. Toggle **"Enable Events"** to ON
 3. In **"Request URL"**, paste the `webhookUrl` from Step 5
 4. Wait for **"Verified ✓"** checkmark

@@ -61,6 +61,7 @@ EncryptionKeys__BaseSecret=<random-base64>
 EncryptionKeys__UniqueSecrets__ConversationMessageKey=<random-base64>
 EncryptionKeys__UniqueSecrets__TenantOidcSecretKey=<random-base64>
 EncryptionKeys__UniqueSecrets__SecretVaultKey=<random-base64>
+EncryptionKeys__UniqueSecrets__TenantTemporalSecretKey=<random-base64>
 
 # Root CA certificate — see "Certificates" below for generation steps
 Certificates__AppServerPfxBase64=<base64-encoded-pfx>
@@ -119,7 +120,7 @@ Temporal__FlowServerUrlExternal=temporal.your-domain.com:7233
 
 ### Encryption keys — required
 
-The server encrypts sensitive data at rest (chat messages, tenant OIDC secrets, and the secret vault). Generate each key with `openssl rand -base64 32` and use **different** values per environment.
+The server encrypts sensitive data at rest (chat messages, tenant OIDC secrets, the secret vault, and per-tenant Temporal connection credentials). Generate each key with `openssl rand -base64 32` and use **different** values per environment.
 
 ```bash
 # Foundational secret (min 32 chars)
@@ -129,6 +130,7 @@ EncryptionKeys__BaseSecret=<random-base64>
 EncryptionKeys__UniqueSecrets__ConversationMessageKey=<random-base64>
 EncryptionKeys__UniqueSecrets__TenantOidcSecretKey=<random-base64>
 EncryptionKeys__UniqueSecrets__SecretVaultKey=<random-base64>
+EncryptionKeys__UniqueSecrets__TenantTemporalSecretKey=<random-base64>
 ```
 
 !!! danger "Keep keys stable and safe"
@@ -185,9 +187,16 @@ None of these are needed to get started — the defaults work out of the box.
 
 ```bash
 # Caching: "memory" (default) or "redis".
-# Use Redis when running multiple server replicas so they share cache state.
+# memory = single instance / local caches only.
+# redis  = shared ObjectCache + cross-replica invalidation + sync /converse coordination.
+# Multiple server replicas REQUIRE redis and Cache__Redis__ConnectionString.
+# Production Redis must use AUTH + TLS (password=...,ssl=true) and be network-isolated.
+# Outside Development, startup fails without AUTH+TLS unless AllowInsecureConnection=true (lab only).
 Cache__Provider=memory
-Cache__Redis__ConnectionString=
+# Cache__Redis__ConnectionString=your-redis-host:6380,password=YOUR_PASSWORD,ssl=true
+# Local Docker without AUTH/TLS (Development warns; required outside Development):
+# Cache__Redis__ConnectionString=localhost:6379
+# Cache__Redis__AllowInsecureConnection=true
 
 # Email: "console" (default, prints to logs) or "azure" (Azure Communication Services).
 # Used for tenant user-invitation emails.
@@ -202,9 +211,16 @@ WebSockets__Enabled=true
 Logging__LogLevel__Default=Information
 Logging__LogLevel__Microsoft.AspNetCore=Warning
 
+# OpenTelemetry — off by default. See [Observability](observability.md).
+# OpenTelemetry__Enabled=true
+# OpenTelemetry__ServiceName=XiansAi.Server
+# OpenTelemetry__OtlpEndpoint=http://otel-collector:4317
+
 # Data Protection keys directory (see "Persisting Data Protection keys")
 DataProtection__KeysDirectory=/app/keys
 ```
+
+When running **multiple server replicas**, Redis is required. It backs shared ObjectCache (agent cache API, tenant OIDC, auth handoff), the auth/messaging L1 invalidation bus, and pending `/converse` coordination. Production Redis must be network-isolated with AUTH and TLS; see [Scaling — Server replicas + Redis](scaling.md#server-replicas--redis). Without Redis, other replicas may serve stale auth until TTL expires, and sync `/converse` can time out when the waiter and completer hit different instances.
 
 ## Running the Server
 
