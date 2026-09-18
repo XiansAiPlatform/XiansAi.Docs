@@ -137,7 +137,7 @@ Every request body has the same envelope. The `data` object varies by event type
 | `eventId` | Logical id shared across all deliveries of this event. Use it to deduplicate. |
 | `tenantId` | The tenant the event targets. May be `null` for global events (for example some user or template events). |
 | `occurredAt` | UTC timestamp when the event was published. |
-| `actor` | Who triggered the event, taken from the authenticated request context. `null` for system-originated events. |
+| `actor` | Who triggered the event, taken from the authenticated credential (`LoggedInUser`). `null` for system-originated events. For Admin API calls this is the API-key owner, not an `X-On-Behalf-Of` UI user — see [Audit log](audit-log.md). |
 | `data` | Event-specific payload. |
 
 !!! info "Secrets are never sent"
@@ -200,6 +200,14 @@ Events are published from the server's shared services, so they fire regardless 
 | `tenant.deleted` | A tenant was deleted. |
 | `tenant.oidc.updated` | A tenant's OIDC configuration was created or updated. |
 | `tenant.oidc.deleted` | A tenant's OIDC configuration was deleted. |
+| `tenant.temporal.updated` | A tenant's Temporal (flow-server) configuration was created or updated. |
+| `tenant.temporal.reverted` | A tenant's Temporal configuration was reverted to the platform default. |
+
+### Platform
+
+| Event type | Description |
+|------------|-------------|
+| `platform.bootstrapped` | The platform was bootstrapped (first SysAdmin, tenant, and API key). |
 
 ### Users
 
@@ -217,6 +225,7 @@ Events are published from the server's shared services, so they fire regardless 
 | `user.sysadmin.revoked` | A user's system administrator flag was revoked. |
 | `user.enabled` | A user account was enabled (unlocked). |
 | `user.disabled` | A user account was disabled (locked out). |
+| `user.deleted` | A user account was permanently deleted. |
 
 ### Agents, deployments, and templates
 
@@ -226,7 +235,9 @@ Events are published from the server's shared services, so they fire regardless 
 | `agent.deleted` | An agent and its dependent resources were deleted. |
 | `agent.deployment.updated` | An agent deployment's configuration was updated (via the Admin API). |
 | `agent.ownership.transferred` | Ownership of an agent was transferred to another user. |
+| `agent.access.changed` | An agent's owner / write / read access lists were changed. |
 | `agent.template.deployed` | A system template agent was deployed into a tenant. |
+| `agent.template.promoted` | A tenant-scoped agent was promoted into a new system-scoped template. |
 | `template.updated` | A system-scoped template agent's metadata was updated. |
 | `template.deleted` | A system-scoped template agent was deleted. |
 
@@ -281,7 +292,7 @@ Events are published from the server's shared services, so they fire regardless 
 
 ## Auditing
 
-Beyond delivering to listeners, every row in the `webhook_deliveries` collection records audit fields you can query directly in the database:
+The same domain events are also written to the [audit log](audit-log.md). Separately, every row in the `webhook_deliveries` collection records delivery-audit fields you can query in the database:
 
 | Field | Description |
 |-------|-------------|
