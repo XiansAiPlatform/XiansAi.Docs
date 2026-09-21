@@ -126,7 +126,7 @@ See **[Running tests after a change](running-tests.md)** for:
 
 - Which suite to run (unit, Mongo integration, Temporal, Lib-backed agent cycles)
 - Filter commands for a single class or a full PR
-- Xians.Lib unit / mock / RealServer tests
+- Xians.Lib `dotnet test` (unit + mock; RealServer excluded by default)
 - Agent Studio `npm test`
 
 ---

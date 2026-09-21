@@ -19,14 +19,14 @@ This page is the contributor loop. The in-repo catalogs (which class covers whic
 | Server auth (Admin API keys, roles, tenant scope) | `AdminAuthEndpointsTests` plus related unit tests |
 | Temporal HTTP, activations, schedules, HITL | `AdminApiTemporal` (or the specific class) |
 | Agent SDK behaviour on a live worker (chat, knowledge, secrets, documents, webhooks, files, custom workflows, schedules, HITL, cross-agent, activations, metrics, logging) | The matching Lib-backed cycle |
-| Xians.Lib internals | Lib unit + mock integration (`Category!=RealServer`) |
+| Xians.Lib internals | Lib `dotnet test` (unit + mock; RealServer excluded) |
 | Agent Studio UI | `npm test` and `npm run lint` |
 | An agent you author (not the platform) | [Unit Testing Workflows](../concepts/unit-tests.md) (Local Mode) |
 
 !!! note "Two different “Lib” suites"
-    **Server Lib-backed tests** start a real Xians.Lib agent against an in-process Server and a local Temporal CLI. They need no `.env` and no hosted cluster.
+    **Server Lib-backed tests** start a real Xians.Lib agent against an in-process Server and a local Temporal CLI. They need no `.env` and no hosted cluster. That is the default after-dev path for agent SDK behaviour.
 
-    **Lib RealServer tests** (`Category=RealServer`) call `SERVER_URL` from a `.env` file. They are optional and are **not** the default after-dev loop.
+    **Lib RealServer tests** (`Category=RealServer`) call `SERVER_URL` from a `.env` file. They are **not** included in Lib’s plain `dotnet test`. Opt in with `--filter "Category=RealServer"`.
 
 ## Prerequisites
 
@@ -172,8 +172,8 @@ Manual `.http` files under `XiansAi.Server.Tests/http/` are for exploring APIs b
 Lib has its own project, `Xians.Lib.Tests`. From the Lib repo:
 
 ```bash
-# Unit + mock integration (default loop; does not hit a live Server)
-dotnet test --filter "Category!=RealServer"
+# Default loop: unit + mock integration. Does not hit a live Server.
+dotnet test
 
 # Unit only
 dotnet test --filter "Category!=Integration&Category!=RealServer"
@@ -182,23 +182,30 @@ dotnet test --filter "Category!=Integration&Category!=RealServer"
 dotnet test --filter "Category=Integration"
 ```
 
-| Category | Connects to a hosted Server? | When |
-| --- | --- | --- |
-| Unit | No | Always, after Lib logic changes |
-| Integration (`Category=Integration`) | No (WireMock / local Temporal if enabled) | Before commit, with unit tests |
-| RealServer (`Category=RealServer`) | **Yes** — `SERVER_URL` / `API_KEY` from `.env` | Optional check against a running Server you own |
+Plain `dotnet test` applies `Category!=RealServer` in the test csproj. Live agent-against-Server coverage is the Server **Lib-backed** cycles above — not Lib’s RealServer trait.
+
+| Category | Connects to a hosted Server? | In default `dotnet test`? | When |
+| --- | --- | --- | --- |
+| Unit | No | Yes | Always, after Lib logic changes |
+| Integration (`Category=Integration`) | No (WireMock / local Temporal if enabled) | Yes | Before commit, with unit tests |
+| RealServer (`Category=RealServer`) | **Yes** — `SERVER_URL` / `API_KEY` from `.env` | **No** | Optional check against a running Server you own |
 
 ```bash
-# Optional: only if you have a local or dedicated Server and a .env
+# Opt-in only: local or dedicated Server plus a .env
 dotnet test --filter "Category=RealServer"
+
+# Everything, including RealServer
+dotnet test --filter "Category!=RealServer|Category=RealServer"
 ```
 
 !!! warning "RealServer tests use live credentials"
     Copy `env.template` to `.env` locally. Do not commit API keys. Do not point `SERVER_URL` at production unless that is an explicit, isolated check.
 
+A `--filter` you pass **replaces** the default exclusion. `dotnet test --filter "FullyQualifiedName~Knowledge"` can include `RealServerKnowledgeTests`. Add `&Category!=RealServer` to stay off the live Server.
+
 Lib `Category=Integration` tests do **not** read `.env` (except Temporal tests when `RUN_INTEGRATION_TESTS=true`). Passing them does not prove your hosted Server is healthy.
 
-More detail: [Xians.Lib.Tests README](https://github.com/XiansAiPlatform/XiansAi.Lib/blob/main/Xians.Lib.Tests/README.md).
+More detail: [Running tests (Lib)](https://github.com/XiansAiPlatform/XiansAi.Lib/blob/main/Xians.Lib.Tests/docs/RUNNING_TESTS.md).
 
 ## Agent Studio ([agent-studio](https://github.com/XiansAiPlatform/agent-studio))
 
@@ -230,7 +237,9 @@ dotnet test --filter "FullyQualifiedName~AdminAuthEndpointsTests"
 dotnet test --filter "FullyQualifiedName~EchoAgent"
 
 # --- Lib (from XiansAi.Lib/) ---
-dotnet test --filter "Category!=RealServer"
+dotnet test
+dotnet test --filter "Category!=Integration&Category!=RealServer"
+dotnet test --filter "Category=Integration"
 dotnet test --filter "Category=RealServer"
 
 # --- Studio (from agent-studio/) ---
@@ -241,7 +250,7 @@ npm test
 
 For **Server** changes: `dotnet test` in `XiansAi.Server` (includes Temporal and Lib-backed cycles).
 
-For **Lib** changes: `dotnet test --filter "Category!=RealServer"` in `XiansAi.Lib`, plus the matching Server Lib-backed cycle if you changed an API agents call.
+For **Lib** changes: `dotnet test` in `XiansAi.Lib` (RealServer excluded), plus the matching Server Lib-backed cycle if you changed an API agents call.
 
 For **Studio** changes: `npm test` and `npm run lint`.
 
@@ -258,6 +267,9 @@ Expected. The CLI is cached afterwards. Set `XIANS_TEMPORAL_CLI_PATH` if you alr
 **Mongo-only tests suddenly talk to Temporal**  
 You ran a class whose name contains `AdminApiTemporal`, or you ran unfiltered `dotnet test`. Mongo-only classes must **not** take a `TemporalFixture`.
 
+**Lib RealServer tests ran during a name filter**  
+Any `--filter` replaces Lib’s default `Category!=RealServer`. Add `&Category!=RealServer` if you meant to stay off a live Server, or run plain `dotnet test` with no filter.
+
 **Need a single failing test’s logs**  
 Raise console logging only for that run; the factory defaults to `Warning` so `dotnet test` stays readable. See [Host and fixtures](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/integration-tests/host.md).
 
@@ -265,5 +277,6 @@ Raise console logging only for that run; the factory defaults to `Warning` so `d
 
 - [Server integration tests](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Src/docs/integration-tests/index.md) — host, suites, Temporal, Lib cycles
 - [Server tests README](https://github.com/XiansAiPlatform/XiansAi.Server/blob/main/XiansAi.Server.Tests/README.md) — short run commands
-- [Xians.Lib.Tests](https://github.com/XiansAiPlatform/XiansAi.Lib/blob/main/Xians.Lib.Tests/README.md) — Lib unit / mock / RealServer
+- [Xians.Lib running tests](https://github.com/XiansAiPlatform/XiansAi.Lib/blob/main/Xians.Lib.Tests/docs/RUNNING_TESTS.md) — default `dotnet test`, filters, optional RealServer
+- [Xians.Lib.Tests README](https://github.com/XiansAiPlatform/XiansAi.Lib/blob/main/Xians.Lib.Tests/README.md)
 - [Platform development setup](platform-development.md) — clone and run Server, Lib, and Studio
