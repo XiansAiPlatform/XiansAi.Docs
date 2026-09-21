@@ -118,6 +118,19 @@ To configure and use the `XiansAI.Lib` library, follow these steps:
 
 ---
 
+## 5. Running Tests After Development
+
+When you finish a Server, Lib, or Studio change, run the matching automated suite before you open a PR. The default Server tests are self-contained (in-process Mongo, stubbed auth, optional local Temporal CLI). You do not need a hosted cluster or identity provider.
+
+See **[Running tests after a change](running-tests.md)** for:
+
+- Which suite to run (unit, Mongo integration, Temporal, Lib-backed agent cycles)
+- Filter commands for a single class or a full PR
+- Xians.Lib unit / mock / RealServer tests
+- Agent Studio `npm test`
+
+---
+
 ## Notes
 
 - Ensure you have the required versions of .NET SDK installed on your system before setting up the library. Refer to the `XiansAI.Lib` repository's README for version requirements.

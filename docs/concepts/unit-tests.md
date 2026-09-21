@@ -207,3 +207,4 @@ dotnet test --filter "FullyQualifiedName~GreetingWorkflowTests"
 ## See Also
 
 - [Knowledge](knowledge.md) — knowledge management in production
+- [Running tests after a change](../contribution/running-tests.md) — Server, Lib, and Studio suites for platform contributors

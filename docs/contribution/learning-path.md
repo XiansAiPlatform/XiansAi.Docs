@@ -52,7 +52,7 @@ Contribute to the core platform:
 ### Contribute to Platform
 
 - [ ] 5.3 Make improvements to the platform repositories (e.g., unit tests, Agent Studio enhancements)
-- [ ] 5.4 Test your changes thoroughly
+- [ ] 5.4 Test your changes thoroughly — follow [Running tests after a change](running-tests.md)
 - [ ] 5.5 Submit a Pull Request with your improvements
 
 ### Join Platform Development

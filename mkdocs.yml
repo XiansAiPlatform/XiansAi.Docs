@@ -62,6 +62,7 @@ nav:
   - Contribution:
     - Learning Path: contribution/learning-path.md
     - Platform Development: contribution/platform-development.md
+    - Running Tests: contribution/running-tests.md
 
 
 site_name: Xians.ai Documentation
