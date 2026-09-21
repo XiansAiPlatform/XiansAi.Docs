@@ -70,6 +70,8 @@ The cutoff is inclusive. Messages created after it are left as they are.
 | `markedCount` | Messages changed by this call. Messages that were already `Read` are not counted, so repeating a call returns `0`. |
 | `unreadCount` | Messages in the **whole thread** (all topics) that are still not `Read`, counted after the update. |
 
+`unreadCount` is a snapshot from a separate query that runs right after the update, so the two are not atomic. A message that arrives in that gap is included, but one that arrives after the count is not, and a concurrent mark-as-read call can also change the figure. Treat it as the count at that moment and keep the badge current from history or the message stream.
+
 There is no separate endpoint that returns the unread count without changing anything. To show a count without marking, count `status != "Read"` in the history you already loaded.
 
 ### Examples
