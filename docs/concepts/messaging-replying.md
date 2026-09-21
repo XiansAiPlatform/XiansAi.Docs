@@ -171,4 +171,5 @@ if (context.Metadata?.TryGetValue("priority", out var priority) == true && prior
 
 - [Messaging – Progress](messaging-progress.md) — stream "working on it" updates before the final reply
 - [Messaging – File Upload](messaging-fileupload.md) — handle files from users
+- [Messaging – Read Status](messaging-status.md) — track unread messages per thread from your client
 - [Proactive Messaging](messaging-proactive.md) — initiate messages from background workflows

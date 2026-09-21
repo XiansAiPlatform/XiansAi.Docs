@@ -40,6 +40,7 @@ graph TB
 | [Messaging – File Upload](messaging-fileupload.md) | Receiving and processing files sent by users |
 | [Messaging – Proactive](messaging-proactive.md) | Starting conversations from your agent (notifications, alerts) |
 | [Messaging – Progress](messaging-progress.md) | Showing "working on it..." updates during long operations |
+| [Messaging – Read Status](messaging-status.md) | Tracking unread messages and marking a thread as read through the Admin API |
 | [Messaging – Webhooks](webhook.md) | Connecting external systems via HTTP callbacks |
 
 ### Agent Capabilities
