@@ -135,13 +135,16 @@ Most Temporal Admin tests drive an in-process **stub** workflow. Lib-backed cycl
 | --- | --- |
 | Chat, Admin SSE, UserApi SSE, `/ws/chat` | `EchoAgent` |
 | Knowledge overrides | `KnowledgeAgent` |
-| Secret Vault | `SecretVaultAgent` |
+| Secret Vault isolation | `SecretVaultAgent` |
+| Secret Vault from workflow and activity | `SecretVaultSdkAgent` |
 | Document DB | `DocumentDbAgent` |
 | Builtin webhooks | `WebhookAgent` |
 | File messages both ways | `FileMessagingAgent` |
 | Custom workflows / activable onboarding | `CustomWorkflowAgent` |
-| Schedules | `SchedulerAgent` |
-| HITL tasks | `HitlTaskAgent` |
+| Schedules (Admin HTTP) | `SchedulerAgent` |
+| `ScheduleCollection` from workflow and activity | `ScheduleSdkAgent` |
+| HITL tasks (Admin HTTP) | `HitlTaskAgent` |
+| HITL `TaskCollection` from workflow and activity | `HitlTaskSdkAgent` |
 | Cross-agent workflows | `CrossAgentWorkflow` |
 | Activations SDK | `ActivationSdkAgent` |
 | Metrics | `MetricsAgent` |
