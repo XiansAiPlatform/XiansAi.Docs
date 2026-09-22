@@ -107,3 +107,7 @@ After bootstrapping:
 **`400 Bad Request`**: The `email` query parameter is missing or malformed. Provide a valid email address.
 
 **Administrator cannot sign in to Agent Studio**: Confirm that the user id issued by your identity provider exactly matches the `email` used during bootstrap.
+
+## Next: a custom admin UI instead of the API key
+
+The API key from this endpoint authorizes the full Admin API surface for whoever holds it. If you're building your own admin UI where each signed-in person should act (and be audited) as themselves, see [Admin API Authentication & Access Control](admin-api-auth.md) for the ID-token-based alternative and the capability matrix that governs what each role can do.

@@ -130,3 +130,4 @@ const socketSDK = new SocketSDK({
 - [Authentication Examples](https://github.com/XiansAiPlatform/sdk-web-typescript/blob/main/docs/examples/authentication.md) — full API-key and JWT recipes for every SDK
 - [Studio Installation → Authentication providers](installation.md#authentication-providers-at-least-one) — configuring global OIDC providers in the server `.env`
 - [Web User SDK](https://github.com/XiansAiPlatform/sdk-web-typescript) — `@99xio/xians-sdk-typescript` source and reference
+- [Admin API Authentication & Access Control](../server/admin-api-auth.md) — a separate OIDC mechanism: letting a custom **admin** UI authenticate to the Admin API with no API key
