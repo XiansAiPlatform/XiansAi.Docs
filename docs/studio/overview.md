@@ -1,5 +1,7 @@
 # Agent Studio
 
+The activation **Connections** page provides the URL for connecting MCP-compatible clients to the platform. See [Xians MCP](../server/xians-mcp.md).
+
 ## What Agent Studio Is
 
 Agent Studio is the **web console** for the XiansAi platform — the place where humans (rather than SDK code) configure, observe, and operate the agents your team has deployed. It sits in front of the same APIs your agents use, so anything you do in the Studio is just a UI on top of the platform's tenant-scoped, certificate-authenticated services.

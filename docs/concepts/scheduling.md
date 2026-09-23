@@ -1,5 +1,7 @@
 # Scheduling
 
+Schedules can also be discovered and managed by external clients through [Xians MCP](../server/xians-mcp.md).
+
 ## Why Schedules?
 
 AI agents should be proactive, not just reactive. Daily reports, hourly health checks, background research — these need time-based triggers. You could run external cron jobs, but then timing logic lives outside your agent, doesn't survive failures gracefully, and knows nothing about tenants.
