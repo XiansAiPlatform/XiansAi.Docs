@@ -48,6 +48,7 @@ nav:
     - Heartbeats: studio/heartbeats.md
   - Server:
     - Installation: server/installation.md
+    - Xians MCP: server/xians-mcp.md
     - Bootstrapping: server/bootstrapping.md
     - Encryption: server/encryption.md
     - Observability: server/observability.md
@@ -329,4 +330,3 @@ copyright: |
   <a href="#__consent">Cookie Settings</a> &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="/other/privacy-policy/">Privacy Policy</a> &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="/other/terms-of-service/">Terms of Service</a>
-

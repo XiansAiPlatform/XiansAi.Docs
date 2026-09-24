@@ -1,5 +1,7 @@
 # Document DB
 
+Activation-scoped records can also be browsed and managed by external clients through [Xians MCP](../server/xians-mcp.md).
+
 ## Why Document DB?
 
 Agents need to **remember things** between executions — customer profiles, order state, sessions, event logs. Standing up and migrating a relational database for every agent is heavy, and the data agents store is rarely relational anyway. Document DB gives every agent a built-in, schema-less JSON store with automatic isolation: no schema design, no migrations, no manual tenant filtering.
