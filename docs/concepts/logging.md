@@ -108,7 +108,7 @@ Logs are queued in memory and uploaded in batches — this keeps logging cheap a
 | Visibility delay | Logs may take **up to 60 seconds** to appear in the dashboard |
 | Failures | Failed uploads are automatically requeued |
 | Shutdown | Pending logs are flushed on exit |
-| Retention | Server logs are deleted after **15 days** by default (MongoDB TTL) — don't rely on them for long-term audit trails |
+| Retention | Server logs are deleted after **15 days** by default (MongoDB TTL, [configurable](../server/data-retention.md)) — don't rely on them for long-term audit trails |
 
 Tune batching when needed — smaller/faster for near-real-time visibility, larger/slower for high-volume systems:
 
