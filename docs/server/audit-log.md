@@ -51,3 +51,24 @@ Admin API, API-key auth:
 | Platform (SysAdmin) | `GET /api/v1/admin/platform/audit-logs` |
 
 Query params: `performedBy` (matches `participant_id`), `activationName`, `onlyWithoutActivation`, `startDate`, `endDate`, `page`, `pageSize` (max 100). Companion routes `/performed-by` and `/activation-names` return distinct filter values.
+
+## Writing an entry
+
+Admin clients such as Agent Studio can also record an entry that the server doesn't emit on its own:
+
+```http
+POST /api/v1/admin/tenants/{tenantId}/audit-logs
+```
+
+| Body field | Meaning |
+|------------|---------|
+| `action` | Required. The event type to record. |
+| `description` | Optional sentence. Falls back to the canonical one for the event type. |
+| `activationName` | Optional activation the entry relates to. |
+| `details` | Optional key/value payload. |
+
+`participant_id` is `X-On-Behalf-Of` when present, otherwise the API-key owner. `logged_in_user` is always the key owner. Platform-scoped writes (`__platform__`) return `404`.
+
+### `conversation.view_as`
+
+When a privileged admin opens another tenant member's conversations in Studio ("view as"), the client records a `conversation.view_as` entry. `details.targetParticipantId` is required for this action and a missing value returns `400`. Repeated views of the same target by the same admin within one hour update the existing row instead of adding a new one, so the log is not flooded.

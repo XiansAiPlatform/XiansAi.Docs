@@ -110,4 +110,4 @@ After bootstrapping:
 
 ## Next: a custom admin UI instead of the API key
 
-The API key from this endpoint authorizes the full Admin API surface for whoever holds it. If you're building your own admin UI where each signed-in person should act (and be audited) as themselves, see [Admin API Authentication & Access Control](admin-api-auth.md) for the ID-token-based alternative and the capability matrix that governs what each role can do.
+The API key from this endpoint authorizes the full Admin API surface for whoever holds it. If you're building your own admin UI where each signed-in person should act (and be audited) as themselves, see [Admin API Authentication & Access Control](admin-api-auth.md). It covers managing API keys, the ID-token alternative, and the capability matrix that governs what each role can do.
