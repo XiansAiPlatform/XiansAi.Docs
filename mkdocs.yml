@@ -55,6 +55,7 @@ nav:
     - Outbound Webhooks: server/outbound-webhooks.md
     - Audit Log: server/audit-log.md
     - Caching: server/caching.md
+    - Data Retention: server/data-retention.md
     - Scaling: server/scaling.md
     - Partner Isolation: server/partner-isolation.md
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
