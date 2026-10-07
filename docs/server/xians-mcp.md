@@ -1,6 +1,6 @@
 # Xians MCP
 
-Xians MCP lets MCP-compatible clients discover and operate Xians resources through the Server. It currently supports agent discovery, workflow scheduling, and activation-scoped Data Explorer records.
+Xians MCP lets MCP-compatible clients discover and operate Xians resources through the Server. It supports agent discovery, workflow scheduling, activation-scoped Data Explorer records, and inbound webhooks.
 
 The server uses stateless Streamable HTTP:
 
@@ -68,14 +68,24 @@ The agent worker must be running when a scheduled workflow executes. MCP creates
 
 `save_data_record` accepts `content` as JSON object text, such as `"{\"title\":\"Report\"}"`. Data browsing is limited to 100 records per call and a 365-day date range. See [Document DB](../concepts/document-db.md) for how agents store documents.
 
+### Webhooks
+
+| Tool | Purpose |
+| --- | --- |
+| `list_webhooks` | List inbound builtin webhooks for an activation without exposing their credential-bearing URLs. |
+| `create_webhook` | Create an inbound builtin webhook for a registered workflow. |
+| `delete_webhook` | Permanently delete an exact webhook after confirmation. |
+
+Use `list_workflows` before creation to obtain the exact workflow type. The synchronous response timeout must be from 1 to 300 seconds. Treat the URL returned by `create_webhook` as a credential and disclose it only to the intended caller.
+
 ## Authorization and safety
 
 - The Admin API key determines the authenticated tenant and user.
 - Agent read/write permissions are checked for every targeted operation.
 - Tool arguments cannot switch the authenticated tenant.
-- Schedule and record deletion require `confirmed: true` after explicit user approval.
+- Schedule, record, and webhook deletion require `confirmed: true` after explicit user approval.
 - Confirmation flags guide the MCP client; they are not a separate human-approval security boundary.
 - Bulk deletion is limited to the records previewed by the request and rejects matches above 100 records.
 - Deletions are irreversible. List resources first and reuse their exact IDs.
 
-Xians MCP currently exposes discovery, scheduling, and Data Explorer tools. It does not expose webhook management or the complete Admin API.
+Xians MCP does not expose the complete Admin API.
