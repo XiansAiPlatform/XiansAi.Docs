@@ -39,6 +39,7 @@ nav:
     - Unit Testing: concepts/unit-tests.md
   - Agent Studio:
     - Overview: studio/overview.md
+    - Connections: studio/connections.md
     - Installation: studio/installation.md
     - Workflow Conventions: studio/workflow-conventions.md
     - Making Agents Descriptive: studio/agent-descriptors.md
