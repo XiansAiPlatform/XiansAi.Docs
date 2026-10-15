@@ -239,6 +239,10 @@ Ensure your Temporal cluster can handle the load:
 - Workers in different regions may have higher latency
 - Consider deploying Temporal workers close to Temporal server
 
+### Scaling Down and Deploys
+
+When an instance is removed or replaced, it finishes its running work before it exits, and its workflows continue on the remaining instances. Make sure the orchestrator's stop timeout is long enough — see [Graceful Shutdown](graceful-shutdown.md).
+
 ### Cost Optimization
 
 - Start with fewer workers and scale up as needed
