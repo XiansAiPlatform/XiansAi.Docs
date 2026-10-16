@@ -1,6 +1,6 @@
 # Agent Studio
 
-The activation **Connections** page provides the URL for connecting MCP-compatible clients to the platform. See [Xians MCP](../server/xians-mcp.md).
+The activation **Connections** page manages integrations, including OAuth-protected MCP servers. See [Connections](connections.md). To connect an external MCP client to the platform, see [Xians MCP](../server/xians-mcp.md).
 
 ## What Agent Studio Is
 
