@@ -218,6 +218,10 @@ Logging__LogLevel__Microsoft.AspNetCore=Warning
 
 # Data Protection keys directory (see "Persisting Data Protection keys")
 DataProtection__KeysDirectory=/app/keys
+
+# Graceful shutdown — see [Graceful Shutdown](graceful-shutdown.md).
+# Server__ShutdownTimeoutSeconds=45
+# Server__BackgroundTaskDrainTimeoutSeconds=30
 ```
 
 When running **multiple server replicas**, Redis is required. It backs shared ObjectCache (agent cache API, tenant OIDC, auth handoff), the auth/messaging L1 invalidation bus, and pending `/converse` coordination. Production Redis must be network-isolated with AUTH and TLS; see [Scaling — Server replicas + Redis](scaling.md#server-replicas--redis). Without Redis, other replicas may serve stale auth until TTL expires, and sync `/converse` can time out when the waiter and completer hit different instances.
@@ -243,11 +247,13 @@ docker run -d \
   --env-file .env \
   -p 5001:8080 \
   --restart unless-stopped \
+  --stop-timeout 60 \
   99xio/xiansai-server:latest
 ```
 
 | Parameter | Description |
 | --- | --- |
+| `--stop-timeout 60` | Wait up to 60s for a clean shutdown before force-killing. See [Graceful Shutdown](graceful-shutdown.md). |
 | `-d` | Run detached (in the background). |
 | `--name xiansai-server` | Name the container. |
 | `--env-file .env` | Load all app settings from your env file. |
@@ -289,6 +295,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    stop_grace_period: 60s # time for a clean shutdown, see Graceful Shutdown
     volumes:
       - xiansai-keys:/app/keys
     healthcheck:
@@ -346,10 +353,11 @@ docker compose pull && docker compose up -d
 
 # Plain docker run
 docker pull 99xio/xiansai-server:latest
-docker rm -f xiansai-server
+docker stop -t 60 xiansai-server   # clean shutdown first
+docker rm xiansai-server
 docker run -d --name xiansai-server \
   --env-file .env -p 5001:8080 -v xiansai-keys:/app/keys \
-  --restart unless-stopped 99xio/xiansai-server:latest
+  --restart unless-stopped --stop-timeout 60 99xio/xiansai-server:latest
 ```
 
 ## Troubleshooting

@@ -57,6 +57,7 @@ nav:
     - Caching: server/caching.md
     - Data Retention: server/data-retention.md
     - Scaling: server/scaling.md
+    - Graceful Shutdown: server/graceful-shutdown.md
     - Partner Isolation: server/partner-isolation.md
     - Admin API Auth: server/admin-api-auth.md
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript
