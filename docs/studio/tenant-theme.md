@@ -12,7 +12,7 @@ Each tenant has its own visual theme — color scheme, logo, and favicon shown i
 | --- | --- |
 | **Color theme** | Choose from the curated palette: **Lingon** (warm coral), **Fjord** (deep navy), **Skog** (forest green), **Zenith** (classic red), or **Gaia** (ocean teal). |
 | **Logo** | Upload an image file (PNG or SVG, up to ~700 KB) or supply an external image URL. Displayed in the Studio header and on login screens. |
-| **Favicon** | Upload an image file (PNG, SVG, or ICO, up to 256 KB) or supply an external image URL. The image must be square; a non-square image is rejected and the current favicon is kept. At least 32×32 px is recommended. Shown in the browser tab and bookmarks. |
+| **Favicon** | Upload an image file (PNG, SVG, or ICO, up to 256 KB) or supply an external image URL. Any size is accepted. Browser tabs show icons in a small square, so a square image of at least 32×32 px looks best; a non-square image is shown smaller. Shown in the browser tab and bookmarks. |
 
 ## Which icon the browser tab shows
 
