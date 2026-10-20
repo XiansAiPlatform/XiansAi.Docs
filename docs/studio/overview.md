@@ -91,7 +91,7 @@ the role default).
 
 - **[Making Agents Descriptive](agent-descriptors.md)** — fill in registration fields so operators and other agents can discover and understand your agent
 - **[Tool & Reasoning Logs](tool-reasoning-logs.md)** — emit live thinking and tool-call events into the chat timeline
-- **[Tenant Theme](tenant-theme.md)** — customize the color scheme and logo for your tenant
+- **[Tenant Theme](tenant-theme.md)** — customize the color scheme, logo, and favicon for your tenant
 - **[Tenant OIDC Providers](oidc-providers.md)** — configure per-tenant identity provider rules
 - **[Heartbeats](heartbeats.md)** — monitor agent liveness and act on missed heartbeats
 - **[Operating Context](../concepts/context.md)** — what tenant, agent, and participant identity the Studio uses everywhere
