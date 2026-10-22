@@ -47,6 +47,7 @@ nav:
     - Tenant Theme: studio/tenant-theme.md
     - Tenant OIDC Providers: studio/oidc-providers.md
     - Heartbeats: studio/heartbeats.md
+    - Evals: studio/evals.md
   - Server:
     - Installation: server/installation.md
     - Xians MCP: server/xians-mcp.md

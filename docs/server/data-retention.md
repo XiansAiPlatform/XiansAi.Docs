@@ -26,6 +26,7 @@ MongoIndexes__{collection}__{index_name}__ExpireAfter=<duration>
 | `MongoIndexes__logs__logs_ttl_created_at__ExpireAfter` | `15d` |
 | `MongoIndexes__usage_metrics__usage_metrics_ttl__ExpireAfter` | `90d` |
 | `MongoIndexes__webhook_deliveries__webhook_delivery_ttl__ExpireAfter` | `15d` |
+| `MongoIndexes__agent_health_check_runs__health_check_run_ttl__ExpireAfter` (eval run history, see [Evals](../studio/evals.md)) | `30d` |
 
 ```bash
 MongoIndexes__logs__logs_ttl_created_at__ExpireAfter=30d
