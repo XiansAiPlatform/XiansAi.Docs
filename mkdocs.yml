@@ -39,6 +39,7 @@ nav:
     - Unit Testing: concepts/unit-tests.md
   - Agent Studio:
     - Overview: studio/overview.md
+    - Connections: studio/connections.md
     - Installation: studio/installation.md
     - Workflow Conventions: studio/workflow-conventions.md
     - Making Agents Descriptive: studio/agent-descriptors.md
@@ -58,6 +59,7 @@ nav:
     - Caching: server/caching.md
     - Data Retention: server/data-retention.md
     - Scaling: server/scaling.md
+    - Graceful Shutdown: server/graceful-shutdown.md
     - Partner Isolation: server/partner-isolation.md
     - Admin API Auth: server/admin-api-auth.md
     - Web User SDK: https://github.com/XiansAiPlatform/sdk-web-typescript

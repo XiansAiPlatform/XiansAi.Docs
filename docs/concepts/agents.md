@@ -134,6 +134,8 @@ await agent.RunAllAsync(cancellationToken);
 
 This uploads workflow definitions, starts workers for every defined workflow, and keeps them polling for work until cancelled.
 
+When the agent is stopped (Ctrl+C or SIGTERM), running activities get up to 30 seconds to finish before they are cancelled. See [Graceful Shutdown](../server/graceful-shutdown.md).
+
 ## Common Patterns
 
 ### Self-Scheduling

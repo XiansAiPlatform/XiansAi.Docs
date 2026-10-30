@@ -12,7 +12,7 @@ Run one agent codebase for many customers, with complete isolation and central c
 - **[Template-Based Deployment](../concepts/multitenancy.md)** — A three-phase lifecycle (register → deploy → activate) rolls agents out to any number of tenants from a single control point, each with their own prompts and configuration.
 - **[Agent Registry](../studio/agent-descriptors.md)** — Every agent has a public face in Agent Studio: description, version, author, sample prompts. Operators managing 40 agents see more than a list of names.
 - **[Per-Tenant OIDC](../studio/oidc-providers.md)** — Each tenant can bring its own identity provider and login rules, independent of the platform's global auth. Role-based access control (SysAdmin, Tenant Admin, users, participants) is enforced server-side.
-- **[Tenant Branding](../studio/tenant-theme.md)** — Per-tenant logo and color theme across Agent Studio and the chat widget your participants see.
+- **[Tenant Branding](../studio/tenant-theme.md)** — Per-tenant logo, favicon, and color theme across Agent Studio and the chat widget your participants see.
 
 ## Agent-User Collaboration
 
